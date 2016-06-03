@@ -89,16 +89,13 @@ implicit val conn = recreateDbFrom(demo.schema.YourDomainSchema)
 ... and start using Molecule
 
 ```scala
-import molecule.examples.seattle.dsl.seattle._
+import demo.dsl.yourDomain._
 
-// Populate
-Community.name.url.orgtype$.category$.Neighborhood.name.District.name.region$ insert seattleData
+// Insert data
+val companyId = Person.name("John").age(26).gender("male").add.eid
 
-// Query
-Community.name.get(3) === List(
-  "KOMO Communities - Ballard",
-  "Ballard Blog",
-  "Ballard Historical Society")
+// Retrieve data
+val (person, age, gender) = Person.name.age.gender.one
 ```
 
 Read more on [scalamolecule.org](http://www.scalamolecule.org)
