@@ -26,7 +26,7 @@ partitions/namespaces/attributes of your Datomic database. Molecule use the info
 defined there to create all the boilerplate code needed to use Molecule in your code.
 
 You can have several Schema definition files in a project and each definition file will
-define a single database. This is useful if you for instance wants to experiment with various
+define a single database. This is useful if you for instance want to experiment with various
 database designs during development.
 
 Schema definiton files should reside in directories named `schema` anywhere in your source code.
@@ -73,7 +73,8 @@ The MoleculePlugin will now automatically as part of the compilation process do 
 4. Package both the source code and compiled classes into two `jar`s and place them in the `lib` directory of your module
 5. Remove the generated source code and compiled classes
 
-Molecule create the `jars` so that you can use the boilerplate code without having to recompile any generated boilerplate code each time you recompile your project. In our demo example two jars are created:
+The MoleculePlugin create the `jars` so that you can use the boilerplate code without having to recompile any 
+generated boilerplate code each time you recompile your project. In our demo example two jars are created:
 
 ![](img/jars.png)
 

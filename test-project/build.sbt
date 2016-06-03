@@ -21,15 +21,20 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
 
 lazy val root = project.in(file("."))
   .aggregate(app)
-  .settings(commonSettings)
+  .settings(commonSettings ++ noPublishSettings)
 
 
 lazy val app = (project in file("app"))
   .enablePlugins(MoleculePlugin)
-  .settings(commonSettings: _*)
+  .settings(commonSettings ++ noPublishSettings)
   .settings(
     name := "sbt-molecule-example-app",
     version := "1.0",
     moleculeSchemas := Seq("app")
   )
 
+lazy val noPublishSettings = Seq(
+  publish :=(),
+  publishLocal :=(),
+  publishArtifact := false
+)
