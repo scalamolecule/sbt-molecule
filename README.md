@@ -83,6 +83,7 @@ generated boilerplate code each time you recompile your project. In our demo exa
 Having the necessary Molecule boilerplate code we can now create our Datomic database with our new Schema:
 
 ```scala
+import molecule._
 implicit val conn = recreateDbFrom(demo.schema.YourDomainSchema)
 ```
 
