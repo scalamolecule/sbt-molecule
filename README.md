@@ -22,12 +22,11 @@ lazy val moleculeDemo = project.in(file("demo"))
 ### Tell sbt about your Schema definition files
 
 A Schema definition file contains a plain Scala object where you define 
-partitions/namespaces/attributes of your Datomic database. Molecule use the information
+partitions/namespaces/attributes of your Datomic database. The MoleculePlugin uses the information
 defined there to create all the boilerplate code needed to use Molecule in your code.
 
-You can have several Schema definition files in a project and each definition file will
-define a single database. This is useful if you for instance want to experiment with various
-database designs during development.
+You can have several Schema definition files in a project. Each definition file defines a single database. 
+This is useful if you for instance want to experiment with various database designs during development.
 
 Schema definiton files should reside in directories named `schema` anywhere in your source code.
 
