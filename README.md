@@ -92,7 +92,7 @@ implicit val conn = recreateDbFrom(demo.schema.YourDomainSchema)
 import demo.dsl.yourDomain._
 
 // Insert data
-Person.name("John").age(26).gender("male").add.eid
+Person.name("John").age(26).gender("male").add
 
 // Retrieve data
 val (person, age, gender) = Person.name.age.gender.one
