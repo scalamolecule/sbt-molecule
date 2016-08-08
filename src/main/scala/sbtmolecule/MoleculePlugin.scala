@@ -8,14 +8,34 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def requires = plugins.JvmPlugin
 
   object autoImport {
-    lazy val moleculeSchemas     = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
-    lazy val moleculeBoilerplate = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
-    lazy val moleculeJars        = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
+    lazy val moleculeSchemas         = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
+    lazy val moleculeSeparateInFiles = settingKey[Boolean]("Whether boilerplate code for input files should reside in separate files (good for very large namespaces) - default: false")
+    lazy val moleculeAllIndexed      = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
+    lazy val moleculeBoilerplate     = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
+    lazy val moleculeJars            = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
   }
   import autoImport._
 
   def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
-    moleculeBoilerplate := MoleculeBoilerplate(scalaSource.value, sourceManaged.value, moleculeSchemas.value),
+    moleculeBoilerplate := {
+
+      // Optional settings
+      val separateInFiles = moleculeSeparateInFiles.?.value getOrElse false
+      val allIndexed = moleculeAllIndexed.?.value getOrElse true
+
+      // generate source files
+      val sourceFiles = MoleculeBoilerplate(scalaSource.value, sourceManaged.value, moleculeSchemas.value, separateInFiles, allIndexed)
+
+      // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
+      val cache = FileFunction.cached(
+        streams.value.cacheDirectory / "moleculeBoilerplateTesting",
+        inStyle = FilesInfo.lastModified,
+        outStyle = FilesInfo.hash
+      ) {
+        in: Set[File] => sourceFiles.toSet
+      }
+      cache(sourceFiles.toSet).toSeq
+    },
     sourceGenerators += moleculeBoilerplate.taskValue,
     moleculeJars <<= makeJars()
   ))

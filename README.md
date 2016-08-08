@@ -3,10 +3,10 @@ SBT plugin to generate and package Molecule DSL boilerplate code.
 
 ## 1. Setup
 
-For sbt 0.13.6+ add sbt-molecule as a dependency in `project/buildinfo.sbt`:
+For sbt 0.13.8+ add sbt-molecule as a dependency in `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.1.0")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.2.0")
 ```
 
 Add the following in your `build.sbt`:
@@ -54,6 +54,17 @@ moleculeSchemas := Seq(
   "molecule/examples/seattle"
 )
 ```
+
+If your namespaces grow very big, you can add the following setting 
+
+```scala
+moleculeSeparateInFiles := true
+```
+This tells the MoleculePlugin to split the generated boilerplate code into smaller files. It doesn't 
+affect your code but could help compilation. For smaller projects you might want to set the setting to
+false or simply omit it (it defaults to false) so that all boilerplate traits for each namespace
+resides in one file which can make it easier to overview when looking in the file view of your IDE.
+
 
 ## 2. Compile
 

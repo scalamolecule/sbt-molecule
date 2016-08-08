@@ -2,9 +2,9 @@ lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.1.0",
+    version := "0.2.0",
     organization in ThisBuild := "org.scalamolecule",
-//    scalaVersion := "2.11.8",
+    //    scalaVersion := "2.11.8",
     sbtPlugin := true,
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     licenses := Seq("MIT License" -> url("https://github.com/scalamolecule/sbt-molecule/blob/master/LICENSE.txt"))
@@ -23,7 +23,7 @@ lazy val publishSettings = Seq(
   homepage := Some(url("http://scalamolecule.org")),
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   scmInfo := Some(ScmInfo(url("https://github.com/scalamolecule/sbt-molecule"), "scm:git:git@github.com:scalamolecule/sbt-molecule.git")),
-  pomExtra := (
+  pomExtra :=
     <developers>
       <developer>
         <id>marcgrue</id>
@@ -31,5 +31,4 @@ lazy val publishSettings = Seq(
         <url>http://marcgrue.com</url>
       </developer>
     </developers>
-    )
 )

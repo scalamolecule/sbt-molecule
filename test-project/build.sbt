@@ -1,7 +1,7 @@
 import sbt.Keys._
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  version := "0.1.0",
+  version := "0.2.0",
   organization := "org.scalamolecule",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
@@ -13,8 +13,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
     "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
   ),
   libraryDependencies ++= Seq(
-    "org.scalamolecule" %% "molecule" % "0.6.2",
-    "com.datomic" % "datomic-free" % "0.9.5359"
+    "org.scalamolecule" %% "molecule" % "0.9.0",
+    "com.datomic" % "datomic-free" % "0.9.5372"
   )
 )
 
@@ -30,7 +30,9 @@ lazy val app = (project in file("app"))
   .settings(
     name := "sbt-molecule-example-app",
     version := "1.0",
-    moleculeSchemas := Seq("app")
+    moleculeSchemas := Seq("app"), // Mandatory
+    moleculeSeparateInFiles := false, // Optional to set
+    moleculeAllIndexed := true // Optional to set
   )
 
 lazy val noPublishSettings = Seq(
