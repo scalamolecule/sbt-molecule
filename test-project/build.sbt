@@ -13,7 +13,7 @@ resolvers ++= Seq(
 )
 libraryDependencies ++= Seq(
   "org.scalamolecule" %% "molecule" % "0.9.0",
-  "com.datomic" % "datomic-free" % "0.9.5372"
+  "com.datomic" % "datomic-free" % "0.9.5404"
 )
 
 // Molecule
