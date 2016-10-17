@@ -1,7 +1,7 @@
 import sbt.Keys._
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  version := "0.2.0",
+  version := "0.2.1-SNAPSHOT",
   organization := "org.scalamolecule",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
@@ -14,7 +14,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   ),
   libraryDependencies ++= Seq(
     "org.scalamolecule" %% "molecule" % "0.9.0",
-    "com.datomic" % "datomic-free" % "0.9.5372"
+    "com.datomic" % "datomic-free" % "0.9.5404"
   )
 )
 

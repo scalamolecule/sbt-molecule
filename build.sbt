@@ -2,9 +2,9 @@ lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.2.0",
+    version := "0.2.1-SNAPSHOT",
     organization in ThisBuild := "org.scalamolecule",
-    //    scalaVersion := "2.11.8",
+//    scalaVersion := "2.11.8",
     sbtPlugin := true,
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     licenses := Seq("MIT License" -> url("https://github.com/scalamolecule/sbt-molecule/blob/master/LICENSE.txt"))
