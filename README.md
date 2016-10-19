@@ -6,7 +6,7 @@ SBT plugin to generate and package Molecule DSL boilerplate code.
 For sbt 0.13.8+ add sbt-molecule as a dependency in `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.2.0")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.3.0")
 ```
 
 Add the following in your `build.sbt`:
