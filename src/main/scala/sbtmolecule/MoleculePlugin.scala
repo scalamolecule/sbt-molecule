@@ -37,7 +37,9 @@ object MoleculePlugin extends sbt.AutoPlugin {
       cache(sourceFiles.toSet).toSeq
     },
     sourceGenerators += moleculeBoilerplate.taskValue,
+//    moleculeJars := Def.taskDyn { makeJars()}.value
     moleculeJars <<= makeJars()
+//    moleculeJars := makeJars().value
   ))
 
   override def projectSettings: Seq[Def.Setting[_]] = moleculeScopedSettings(Compile)

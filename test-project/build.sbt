@@ -1,8 +1,8 @@
 //import sbt.Keys._
 
-version := "0.3.0"
+version := "0.3.1"
 organization := "org.scalamolecule"
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 resolvers ++= Seq(
   "datomic" at "http://files.datomic.com/maven",
@@ -12,8 +12,8 @@ resolvers ++= Seq(
   "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "0.10.0",
-  "com.datomic" % "datomic-free" % "0.9.5404"
+  "org.scalamolecule" %% "molecule" % "0.10.1",
+  "com.datomic" % "datomic-free" % "0.9.5561"
 )
 
 // Molecule
