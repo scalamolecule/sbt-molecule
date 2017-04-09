@@ -2,9 +2,10 @@ lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.3.0",
+    version := "0.3.1",
+//    version := "0.3.1-SNAPSHOT",
     organization in ThisBuild := "org.scalamolecule",
-//    scalaVersion := "2.11.8",
+//    scalaVersion := "2.12.1",
     sbtPlugin := true,
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     licenses := Seq("MIT License" -> url("https://github.com/scalamolecule/sbt-molecule/blob/master/LICENSE.txt"))
@@ -17,7 +18,7 @@ lazy val releases = "Sonatype OSS Staging" at "https://oss.sonatype.org/service/
 
 lazy val publishSettings = Seq(
   publishMavenStyle := true,
-  publishTo <<= version((v: String) => Some(if (v.trim endsWith "SNAPSHOT") snapshots else releases)),
+  publishTo := (if (isSnapshot.value) Some(snapshots) else Some(releases)),
   publishArtifact in Test := false,
   pomIncludeRepository := (_ => false),
   homepage := Some(url("http://scalamolecule.org")),

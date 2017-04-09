@@ -3,19 +3,37 @@ SBT plugin to generate and package Molecule DSL boilerplate code.
 
 ## 1. Setup
 
-For sbt 0.13.8+ add sbt-molecule as a dependency in `project/buildinfo.sbt`:
+Add the following to your build files: 
+
+`project/build.properties`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.3.0")
+sbt.version=0.13.13
 ```
 
-Add the following in your `build.sbt`:
+`project/buildinfo.sbt`:
 
 ```scala
-lazy val moleculeDemo = project.in(file("demo"))
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.3.1")
+```
+
+`build.sbt`:
+
+```scala
+lazy val yourProject = project.in(file("demo"))
   .enablePlugins(MoleculePlugin)
   .settings(
-    moleculeSchemas := Seq("demo")
+    resolvers ++= Seq(
+      "datomic" at "http://files.datomic.com/maven",
+      "clojars" at "http://clojars.org/repo",
+      Resolver.sonatypeRepo("releases"),
+      "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
+    ),
+    libraryDependencies ++= Seq(
+      "org.scalamolecule" %% "molecule" % "0.10.1",
+      "com.datomic" % "datomic-free" % "0.9.5561"
+    ),
+    moleculeSchemas := Seq("demo") // paths to your schema definition files...
   )
 ```
 
