@@ -14,7 +14,7 @@ sbt.version=0.13.13
 `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.3.3")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.3.4")
 ```
 
 `build.sbt`:
@@ -26,8 +26,7 @@ lazy val yourProject = project.in(file("demo"))
     resolvers ++= Seq(
       "datomic" at "http://files.datomic.com/maven",
       "clojars" at "http://clojars.org/repo",
-      Resolver.sonatypeRepo("releases"),
-      "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
+      Resolver.sonatypeRepo("releases")
     ),
     libraryDependencies ++= Seq(
       "org.scalamolecule" %% "molecule" % "0.11.0",

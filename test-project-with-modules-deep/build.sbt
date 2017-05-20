@@ -30,7 +30,11 @@ lazy val app = (project in file("app"))
   .settings(
     name := "sbt-molecule-example-app",
     version := "1.0",
-    moleculeSchemas := Seq("app"), // Mandatory
+    moleculeSchemas := Seq(
+      "app/domains",
+      "app/domains/nested1",
+      "app/domains/nested2"
+    ), // Mandatory
     moleculeSeparateInFiles := false, // Optional to set
     moleculeAllIndexed := true // Optional to set
   )
