@@ -37,9 +37,9 @@ object MoleculePlugin extends sbt.AutoPlugin {
       cache(sourceFiles.toSet).toSeq
     },
     sourceGenerators += moleculeBoilerplate.taskValue,
-//    moleculeJars := Def.taskDyn { makeJars()}.value
+    //    moleculeJars := Def.taskDyn { makeJars()}.value
     moleculeJars <<= makeJars()
-//    moleculeJars := makeJars().value
+    //    moleculeJars := makeJars().value
   ))
 
   override def projectSettings: Seq[Def.Setting[_]] = moleculeScopedSettings(Compile)
@@ -50,15 +50,16 @@ object MoleculePlugin extends sbt.AutoPlugin {
     val sourceDir = (sourceManaged in Compile).value
     val targetDir = (classDirectory in Compile).value
     val moduleDirName = baseDirectory.value.toString.split("/").last
+    val transferDirs = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
 
     // Create jar from generated source files
     val srcJar = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + "-sources.jar/")
-    val srcFilesData = files2TupleRec("", sourceDir, ".scala")
+    val srcFilesData = files2TupleRec("", sourceDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest)
 
     // Create jar from class files compiled from generated source files
     val targetJar = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + ".jar/")
-    val targetFilesData = files2TupleRec("", targetDir, ".class")
+    val targetFilesData = files2TupleRec("", targetDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest)
 
     // Cleanup now obsolete generated code
@@ -69,12 +70,16 @@ object MoleculePlugin extends sbt.AutoPlugin {
   }.triggeredBy(compile in Compile)
 
 
-  def files2TupleRec(pathPrefix: String, dir: File, tpe: String): Seq[Tuple2[File, String]] = {
-    sbt.IO.listFiles(dir) flatMap { f =>
-      if (f.isFile && f.name.endsWith(tpe))
-        Seq((f, s"${pathPrefix}${f.getName}"))
-      else
-        files2TupleRec(s"${pathPrefix}${f.getName}/", f, tpe)
+  def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[Tuple2[File, String]] = {
+    sbt.IO.listFiles(directory) flatMap {
+      case file if file.isFile &&
+        file.name.endsWith(tpe) &&
+        transferDirs.exists(path.startsWith(_)) &&
+        !file.name.endsWith(s"Definition$tpe") &&
+        !file.name.endsWith(s"Definition$$$tpe")
+      => Seq((file, s"$path${file.getName}"))
+      case otherFile if otherFile.isFile        => Nil
+      case dir                                  => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
     }
   }
 }

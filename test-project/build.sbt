@@ -1,6 +1,6 @@
 //import sbt.Keys._
 
-version := "0.3.3"
+version := "0.3.4"
 organization := "org.scalamolecule"
 scalaVersion := "2.12.1"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
