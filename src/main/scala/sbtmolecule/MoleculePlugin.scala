@@ -76,10 +76,9 @@ object MoleculePlugin extends sbt.AutoPlugin {
         file.name.endsWith(tpe) &&
         transferDirs.exists(path.startsWith(_)) &&
         !file.name.endsWith(s"Definition$tpe") &&
-        !file.name.endsWith(s"Definition$$$tpe")
-      => Seq((file, s"$path${file.getName}"))
-      case otherFile if otherFile.isFile        => Nil
-      case dir                                  => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
+        !file.name.endsWith(s"Definition$$$tpe") => Seq((file, s"$path${file.getName}"))
+      case otherFile if otherFile.isFile         => Nil
+      case dir                                   => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
     }
   }
 }

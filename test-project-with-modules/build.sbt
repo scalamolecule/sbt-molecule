@@ -1,7 +1,7 @@
 import sbt.Keys._
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  version := "0.3.4",
+  version := "0.4.1",
   organization := "org.scalamolecule",
   scalaVersion := "2.12.1",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
