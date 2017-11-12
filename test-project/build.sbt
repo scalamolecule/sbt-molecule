@@ -1,6 +1,6 @@
-version := "0.4.3"
+version := "0.4.4"
 organization := "org.scalamolecule"
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.4"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 resolvers ++= Seq(
   "datomic" at "http://files.datomic.com/maven",
@@ -10,8 +10,8 @@ resolvers ++= Seq(
   "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "0.12.2",
-  "com.datomic" % "datomic-free" % "0.9.5561"
+  "org.scalamolecule" %% "molecule" % "0.13.0",
+  "com.datomic" % "datomic-free" % "0.9.5561.62"
 )
 
 // Molecule

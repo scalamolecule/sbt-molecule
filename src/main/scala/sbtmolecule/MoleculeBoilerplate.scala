@@ -1043,7 +1043,7 @@ object MoleculeBoilerplate {
          |package ${firstLow(d.domain)}
          |import molecule.boilerplate._
          |import molecule.boilerplate.attributes._
-         |import molecule._$extraImports
+         |import molecule.Imports._$extraImports
          |
          |
          |object $ns extends ${ns}_0 with FirstNS {
@@ -1077,7 +1077,7 @@ object MoleculeBoilerplate {
            |package ${firstLow(d.domain)}
            |import molecule.boilerplate._
            |import molecule.boilerplate.attributes._
-           |import molecule._$extraImports
+           |import molecule.Imports._$extraImports
            |
            |$inTraits""".stripMargin
 
@@ -1114,7 +1114,7 @@ object MoleculeBoilerplate {
        |package ${firstLow(d.domain)}
        |import molecule.boilerplate._
        |import molecule.boilerplate.attributes._
-       |import molecule._$extraImports
+       |import molecule.Imports._$extraImports
        |
        |
        |object $ns extends ${ns}_0 with FirstNS {
