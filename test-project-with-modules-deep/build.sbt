@@ -1,9 +1,9 @@
 import sbt.Keys._
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  version := "0.4.4",
+  version := "0.4.5",
   organization := "org.scalamolecule",
-  scalaVersion := "2.12.4",
+  scalaVersion := "2.12.6",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
   resolvers ++= Seq(
     "datomic" at "http://files.datomic.com/maven",
@@ -13,8 +13,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
     "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
   ),
   libraryDependencies ++= Seq(
-    "org.scalamolecule" %% "molecule" % "0.13.1",
-    "com.datomic" % "datomic-free" % "0.9.5561.62"
+    "org.scalamolecule" %% "molecule" % "0.13.2",
+    "com.datomic" % "datomic-free" % "0.9.5697"
   )
 )
 
