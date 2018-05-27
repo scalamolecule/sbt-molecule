@@ -5,7 +5,7 @@ import molecule.schema.definition._
 object PersonDefinition {
 
   trait Person {
-    val name     = oneString.fullTextSearch
+    val name     = oneString.fulltextSearch
     val age      = oneInt
     val gender   = oneEnum('male, 'female)
   }
