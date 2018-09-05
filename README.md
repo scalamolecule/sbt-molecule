@@ -112,7 +112,7 @@ Having the necessary Molecule boilerplate code we can now create our Datomic dat
 
 ```scala
 import molecule.api._
-implicit val conn = recreateDbFrom(demo.schema.YourDomainSchema)
+implicit val conn = recreateDbFrom(app.schema.YourDomainSchema)
 ```
 
 ... and start using Molecule
