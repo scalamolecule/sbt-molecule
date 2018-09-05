@@ -1,13 +1,22 @@
+//import sbt.Keys.resolvers
+
 lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.4.5",
+    version := "0.5.0",
     organization in ThisBuild := "org.scalamolecule",
-//    scalaVersion := "2.12.2",
+    //    scalaVersion := "2.12.2",
     sbtPlugin := true,
-    scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
-    licenses := Seq("MIT License" -> url("https://github.com/scalamolecule/sbt-molecule/blob/master/LICENSE.txt"))
+    scalacOptions := Seq(
+      "-unchecked",
+      "-deprecation",
+      "-feature",
+      "-language:implicitConversions"
+
+    ),
+    licenses := Seq("MIT License" -> url("https://github.com/scalamolecule/sbt-molecule/blob/master/LICENSE.txt")),
+    resolvers ++= Seq("clojars" at "http://clojars.org/repo")
   )
   .settings(publishSettings)
 
