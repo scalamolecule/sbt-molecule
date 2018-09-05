@@ -103,7 +103,7 @@ The MoleculePlugin will now automatically as part of the compilation process do 
 The MoleculePlugin create the `jars` so that you can use the boilerplate code without having to recompile any 
 generated boilerplate code each time you recompile your project. In our demo example two jars are created:
 
-![](img/jars.png)
+![](img/dirs3.png)
 
 
 ## 3. Use Molecule!
@@ -111,7 +111,7 @@ generated boilerplate code each time you recompile your project. In our demo exa
 Having the necessary Molecule boilerplate code we can now create our Datomic database with our new Schema:
 
 ```scala
-import molecule.Imports._
+import molecule.api._
 implicit val conn = recreateDbFrom(demo.schema.YourDomainSchema)
 ```
 
@@ -121,10 +121,10 @@ implicit val conn = recreateDbFrom(demo.schema.YourDomainSchema)
 import demo.dsl.yourDomain._
 
 // Insert data
-Person.name("John").age(26).gender("male").add
+Person.name("John").age(26).gender("male").save
 
 // Retrieve data
-val (person, age, gender) = Person.name.age.gender.one
+val (person, age, gender) = Person.name.age.gender.get.head
 ```
 
 Read more on [scalamolecule.org](http://www.scalamolecule.org)
