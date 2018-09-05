@@ -118,7 +118,7 @@ implicit val conn = recreateDbFrom(app.schema.YourDomainSchema)
 ... and start using Molecule
 
 ```scala
-import demo.dsl.yourDomain._
+import app.dsl.yourDomain._
 
 // Insert data
 Person.name("John").age(26).gender("male").save
