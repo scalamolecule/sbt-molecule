@@ -20,11 +20,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
     moleculeBoilerplate := {
 
       // Optional settings
-      val separateInFiles = moleculeSeparateInFiles.?.value getOrElse false
+      val separateInFiles = moleculeSeparateInFiles.?.value getOrElse true
       val allIndexed = moleculeAllIndexed.?.value getOrElse true
 
       // generate source files
-      val sourceFiles = MoleculeBoilerplate(scalaSource.value, sourceManaged.value, moleculeSchemas.value, separateInFiles, allIndexed)
+      val sourceFiles = MoleculeBoilerplate.apply(scalaSource.value, sourceManaged.value, moleculeSchemas.value, separateInFiles, allIndexed)
 
       // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
       val cache = FileFunction.cached(
@@ -37,40 +37,37 @@ object MoleculePlugin extends sbt.AutoPlugin {
       cache(sourceFiles.toSet).toSeq
     },
     sourceGenerators += moleculeBoilerplate.taskValue,
-    //    moleculeJars := Def.taskDyn { makeJars()}.value
-    moleculeJars <<= makeJars()
-    //    moleculeJars := makeJars().value
+    moleculeJars := makeJars().value
   ))
 
   override def projectSettings: Seq[Def.Setting[_]] = moleculeScopedSettings(Compile)
 
 
   def makeJars() = Def.task {
-    val domainDirs = moleculeSchemas.value
-    val sourceDir = (sourceManaged in Compile).value
-    val targetDir = (classDirectory in Compile).value
-    val moduleDirName = baseDirectory.value.toString.split("/").last
-    val transferDirs = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
+    val moduleDirName: String = baseDirectory.value.toString.split("/").last
+    val transferDirs: Seq[String] = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
 
-    // Create jar from generated source files
-    val srcJar = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + "-sources.jar/")
-    val srcFilesData = files2TupleRec("", sourceDir, ".scala", transferDirs)
+    // Create source jar from generated source files
+    val sourceDir: File = (sourceManaged in Compile).value
+    val srcJar: File = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + "-sources.jar/")
+    val srcFilesData: Seq[(File, String)] = files2TupleRec("", sourceDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest)
 
     // Create jar from class files compiled from generated source files
-    val targetJar = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + ".jar/")
-    val targetFilesData = files2TupleRec("", targetDir, ".class", transferDirs)
+    val targetDir: File = (classDirectory in Compile).value
+    val targetJar: File = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + ".jar/")
+    val targetFilesData: Seq[(File, String)] = files2TupleRec("", targetDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest)
 
     // Cleanup now obsolete generated code
-    domainDirs.foreach { dir =>
+    moleculeSchemas.value.foreach { dir =>
       sbt.IO.delete(sourceDir / dir)
       sbt.IO.delete(targetDir / dir)
     }
   }.triggeredBy(compile in Compile)
 
 
-  def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[Tuple2[File, String]] = {
+  def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
     sbt.IO.listFiles(directory) flatMap {
       case file if file.isFile &&
         file.name.endsWith(tpe) &&
