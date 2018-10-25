@@ -8,19 +8,19 @@ Add the following to your build files:
 `project/build.properties`:
 
 ```scala
-sbt.version=1.1.2
+sbt.version=1.1.6
 ```
 
 `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.5.0")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.6.0")
 ```
 
 `build.sbt`:
 
 ```scala
-lazy val yourProject = project.in(file("demo"))
+lazy val yourProject = project.in(file("app"))
   .enablePlugins(MoleculePlugin)
   .settings(
     resolvers ++= Seq(
@@ -29,10 +29,10 @@ lazy val yourProject = project.in(file("demo"))
       Resolver.sonatypeRepo("releases")
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.14.0",
+      "org.scalamolecule" %% "molecule" % "0.15.0",
       "com.datomic" % "datomic-free" % "0.9.5697"
     ),
-    moleculeSchemas := Seq("demo") // paths to your schema definition files...
+    moleculeSchemas := Seq("app") // paths to your schema definition files...
   )
 ```
 
@@ -72,17 +72,6 @@ moleculeSchemas := Seq(
 )
 ```
 
-If your namespaces grow very big, you can add the following setting 
-
-```scala
-moleculeSeparateInFiles := true
-```
-This tells the MoleculePlugin to split the generated boilerplate code into smaller files. It doesn't 
-affect your code but could help compilation. For smaller projects you might want to set the setting to
-false or simply omit it (it defaults to false) so that all boilerplate traits for each namespace
-resides in one file which can make it easier to overview when looking in the file view of your IDE.
-
-
 ## 2. Compile
 
 Now compile your project from the terminal
@@ -100,7 +89,7 @@ The MoleculePlugin will now automatically as part of the compilation process do 
 4. Package both the source code and compiled classes into two `jar`s and place them in the `lib` directory of your module
 5. Remove the generated source code and compiled classes
 
-The MoleculePlugin create the `jars` so that you can use the boilerplate code without having to recompile any 
+The MoleculePlugin creates the `jars` so that you can use the boilerplate code without having to recompile any 
 generated boilerplate code each time you recompile your project. In our demo example two jars are created:
 
 ![](img/dirs3.png)
@@ -111,7 +100,7 @@ generated boilerplate code each time you recompile your project. In our demo exa
 Having the necessary Molecule boilerplate code we can now create our Datomic database with our new Schema:
 
 ```scala
-import molecule.api._
+import molecule.api.out5._ // or other molecule arity needed
 implicit val conn = recreateDbFrom(app.schema.YourDomainSchema)
 ```
 

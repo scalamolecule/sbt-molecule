@@ -8,11 +8,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def requires = plugins.JvmPlugin
 
   object autoImport {
-    lazy val moleculeSchemas         = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
-    lazy val moleculeSeparateInFiles = settingKey[Boolean]("Whether boilerplate code for input files should reside in separate files (good for very large namespaces) - default: false")
-    lazy val moleculeAllIndexed      = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
-    lazy val moleculeBoilerplate     = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
-    lazy val moleculeJars            = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
+    lazy val moleculeSchemas     = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
+    lazy val moleculeDocs        = settingKey[Boolean]("Whether Scala docs for boilerplate code should be generated (takes long time to compile!) - default: false")
+    lazy val moleculeAllIndexed  = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
+    lazy val moleculeBoilerplate = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
+    lazy val moleculeJars        = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
   }
   import autoImport._
 
@@ -20,11 +20,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
     moleculeBoilerplate := {
 
       // Optional settings
-      val separateInFiles = moleculeSeparateInFiles.?.value getOrElse true
+      val docs = moleculeDocs.?.value getOrElse true
       val allIndexed = moleculeAllIndexed.?.value getOrElse true
 
       // generate source files
-      val sourceFiles = MoleculeBoilerplate.apply(scalaSource.value, sourceManaged.value, moleculeSchemas.value, separateInFiles, allIndexed)
+      val sourceFiles = FileBuilder.apply(scalaSource.value, sourceManaged.value, moleculeSchemas.value, docs, allIndexed)
 
       // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
       val cache = FileFunction.cached(
