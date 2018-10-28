@@ -39,58 +39,58 @@ case class NamespaceBuilder(d: Ast.Definition, docs: Boolean) {
       (in, out) match {
         case (0, 0) if maxIn == 0 => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_1[Type], P2[_,_]] with ${ns}_1[Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_0, P1[_]] with ${ns}_0",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_0, P1[_]] with ${ns}_0"
         )
 
         case (0, `maxOut`) if maxIn == 0 => Seq(
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$maxOut[$outs], ${pp(maxOut + 2)}] with ${ns}_$maxOut[$outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$maxOut[$outs], ${pp(maxOut + 2)}] with ${ns}_$maxOut[$outs]"
         )
 
         case (0, o) if maxIn == 0 => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_${o + 1}[$outs, Type], ${pp(o + 2)}] with ${ns}_${o + 1}[$outs, Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$o[$outs], ${pp(o + 1)}] with ${ns}_$o[$outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$o[$outs], ${pp(o + 1)}] with ${ns}_$o[$outs]"
         )
 
         case (0, 0) => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_1[Type], ${ns}_In_1_1[Type, Type]] with ${ns}_1[Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_0, ${ns}_In_1_0[Type]] with ${ns}_0",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_0, ${ns}_In_1_0[Type]] with ${ns}_0"
         )
 
         case (0, `maxOut`) => Seq(
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$maxOut[$outs], ${ns}_In_1_$maxOut[Type, $outs]] with ${ns}_$maxOut[$outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$maxOut[$outs], ${ns}_In_1_$maxOut[Type, $outs]] with ${ns}_$maxOut[$outs]"
         )
 
         case (0, o) => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_${o + 1}[$outs, Type], ${ns}_In_1_${o + 1}[Type, $outs, Type]] with ${ns}_${o + 1}[$outs, Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$o[$outs], ${ns}_In_1_$o[Type, $outs]] with ${ns}_$o[$outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_$o[$outs], ${ns}_In_1_$o[Type, $outs]] with ${ns}_$o[$outs]"
         )
 
         case (`maxIn`, 0) => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_1[$ins, Type], ${pp(maxIn + 2)}] with ${ns}_In_${maxIn}_1[$ins, Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_0[$ins], ${pp(maxIn + 1)}] with ${ns}_In_${maxIn}_0[$ins]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_0[$ins], ${pp(maxIn + 1)}] with ${ns}_In_${maxIn}_0[$ins]"
         )
 
         case (`maxIn`, `maxOut`) => Seq(
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_$maxOut[$ins, $outs], ${pp(maxIn + maxOut + 1)}] with ${ns}_In_${maxIn}_$maxOut[$ins, $outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_$maxOut[$ins, $outs], ${pp(maxIn + maxOut + 1)}] with ${ns}_In_${maxIn}_$maxOut[$ins, $outs]"
         )
 
         case (`maxIn`, o) => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_${o + 1}[$ins, $outs, Type], ${pp(maxIn + o + 2)}] with ${ns}_In_${maxIn}_${o + 1}[$ins, $outs, Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_$o[$ins, $outs], ${pp(maxIn + o + 1)}] with ${ns}_In_${maxIn}_$o[$ins, $outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${maxIn}_$o[$ins, $outs], ${pp(maxIn + o + 1)}] with ${ns}_In_${maxIn}_$o[$ins, $outs]"
         )
 
         case (i, 0) => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_In_${i}_1[$ins, Type], ${ns}_In_${i + 1}_1[$ins, Type, Type]] with ${ns}_In_${i}_1[$ins, Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${i}_0[$ins], ${ns}_In_${i + 1}_0[$ins, Type]] with ${ns}_In_${i}_0[$ins]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${i}_0[$ins], ${ns}_In_${i + 1}_0[$ins, Type]] with ${ns}_In_${i}_0[$ins]"
         )
 
         case (i, `maxOut`) => Seq(
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${i}_$maxOut[$ins, $outs], ${ns}_In_${i + 1}_$maxOut[$ins, Type, $outs]] with ${ns}_In_${i}_$maxOut[$ins, $outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${i}_$maxOut[$ins, $outs], ${ns}_In_${i + 1}_$maxOut[$ins, Type, $outs]] with ${ns}_In_${i}_$maxOut[$ins, $outs]"
         )
 
         case (i, o) => Seq(
           s"type Next[Attr[_, _], Type] = Attr[${ns}_In_${i}_${o + 1}[$ins, $outs, Type], ${ns}_In_${i + 1}_${o + 1}[$ins, Type, $outs, Type]] with ${ns}_In_${i}_${o + 1}[$ins, $outs, Type]",
-          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${i}_$o[$ins, $outs], ${ns}_In_${i + 1}_$o[$ins, Type, $outs]] with ${ns}_In_${i}_$o[$ins, $outs]",
+          s"type Stay[Attr[_, _], Type] = Attr[${ns}_In_${i}_$o[$ins, $outs], ${ns}_In_${i + 1}_$o[$ins, Type, $outs]] with ${ns}_In_${i}_$o[$ins, $outs]"
         )
       }
     }
@@ -501,9 +501,6 @@ case class NamespaceBuilder(d: Ast.Definition, docs: Boolean) {
          |import molecule.boilerplate.attributes._
          |import molecule.boilerplate.base._
          |import molecule.boilerplate.dummyTypes._
-         |import molecule.boilerplate.in1._
-         |import molecule.boilerplate.in2._
-         |import molecule.boilerplate.in3._
          |import molecule.boilerplate.out._
          |import molecule.expression.AttrExpressions.?
          |
@@ -544,8 +541,6 @@ case class NamespaceBuilder(d: Ast.Definition, docs: Boolean) {
            |import molecule.boilerplate.in1._
            |import molecule.boilerplate.in2._
            |import molecule.boilerplate.in3._
-           |import molecule.boilerplate.out._
-           |import molecule.expression.AttrExpressions.?
            |
            |$inTraits""".stripMargin
 
