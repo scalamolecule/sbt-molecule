@@ -1,19 +1,18 @@
 import sbt.Keys._
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
-  version := "0.6.0",
+  version := "0.6.2",
   organization := "org.scalamolecule",
-  scalaVersion := "2.12.6",
+  scalaVersion := "2.12.7",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
   resolvers ++= Seq(
     "datomic" at "http://files.datomic.com/maven",
     "clojars" at "http://clojars.org/repo",
     Resolver.sonatypeRepo("releases"),
-    Resolver.sonatypeRepo("snapshots"),
-    "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
+    Resolver.sonatypeRepo("snapshots")
   ),
   libraryDependencies ++= Seq(
-    "org.scalamolecule" %% "molecule" % "0.15.0",
+    "org.scalamolecule" %% "molecule" % "0.15.1",
     "com.datomic" % "datomic-free" % "0.9.5697"
   )
 )
@@ -35,6 +34,6 @@ lazy val app = (project in file("app"))
       "app/domains/nested1",
       "app/domains/nested2"
     ), // Mandatory
-    moleculeSeparateInFiles := false, // Optional to set
-    moleculeAllIndexed := true // Optional to set
+    moleculeAllIndexed := true, // Optional, default: true
+    moleculeMakeJars := true // Optional, default: true
   )

@@ -11,6 +11,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     lazy val moleculeSchemas     = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
     lazy val moleculeDocs        = settingKey[Boolean]("Whether Scala docs for boilerplate code should be generated (takes long time to compile!) - default: false")
     lazy val moleculeAllIndexed  = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
+    lazy val moleculeMakeJars    = settingKey[Boolean]("Whether jars are created from generated source files.")
     lazy val moleculeBoilerplate = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
     lazy val moleculeJars        = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
   }
@@ -24,7 +25,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
       val allIndexed = moleculeAllIndexed.?.value getOrElse true
 
       // generate source files
-      val sourceFiles = FileBuilder.apply(scalaSource.value, sourceManaged.value, moleculeSchemas.value, docs, allIndexed)
+      val sourceFiles = FileBuilder(scalaSource.value, sourceManaged.value, moleculeSchemas.value, docs, allIndexed)
 
       // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
       val cache = FileFunction.cached(
@@ -37,8 +38,14 @@ object MoleculePlugin extends sbt.AutoPlugin {
       cache(sourceFiles.toSet).toSeq
     },
     sourceGenerators += moleculeBoilerplate.taskValue,
-    moleculeJars := makeJars().value
+    moleculeJars := Def.taskDyn {
+      if (moleculeMakeJars.?.value getOrElse true)
+        makeJars()
+      else
+        Def.task {}
+    }.triggeredBy(compile in Compile).value
   ))
+
 
   override def projectSettings: Seq[Def.Setting[_]] = moleculeScopedSettings(Compile)
 
@@ -59,12 +66,12 @@ object MoleculePlugin extends sbt.AutoPlugin {
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", targetDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest)
 
-    // Cleanup now obsolete generated code
+    // Cleanup now obsolete generated/compiled code
     moleculeSchemas.value.foreach { dir =>
       sbt.IO.delete(sourceDir / dir)
       sbt.IO.delete(targetDir / dir)
     }
-  }.triggeredBy(compile in Compile)
+  }
 
 
   def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
