@@ -17,7 +17,6 @@ object YourApp extends App {
 
   // Verify
   assert(s"$person is a $age years old $gender" == "John is a 26 years old male")
-  val x = 7
 
   println(s"SUCCESS: $person is a $age years old $gender") //SUCCESS: John is a 26 years old male
 }

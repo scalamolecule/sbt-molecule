@@ -1,12 +1,13 @@
 package app
 
-import molecule._
+//import molecule.api.out3_
 //import app.multiple.domain1.dsl.yourDomain._
 //import app.schema._
 
 object YourApp extends App {
 
-  // Make db
+  // Todo
+//  // Make db
 //  implicit val conn = recreateDbFrom(YourDomainSchema)
 //
 //  // Load data

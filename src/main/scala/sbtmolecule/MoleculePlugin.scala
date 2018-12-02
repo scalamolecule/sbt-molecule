@@ -9,7 +9,6 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   object autoImport {
     lazy val moleculeSchemas     = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
-    lazy val moleculeDocs        = settingKey[Boolean]("Whether Scala docs for boilerplate code should be generated (takes long time to compile!) - default: false")
     lazy val moleculeAllIndexed  = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
     lazy val moleculeMakeJars    = settingKey[Boolean]("Whether jars are created from generated source files.")
     lazy val moleculeBoilerplate = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
@@ -21,11 +20,10 @@ object MoleculePlugin extends sbt.AutoPlugin {
     moleculeBoilerplate := {
 
       // Optional settings
-      val docs = moleculeDocs.?.value getOrElse true
       val allIndexed = moleculeAllIndexed.?.value getOrElse true
 
       // generate source files
-      val sourceFiles = FileBuilder(scalaSource.value, sourceManaged.value, moleculeSchemas.value, docs, allIndexed)
+      val sourceFiles = FileBuilder(scalaSource.value, sourceManaged.value, moleculeSchemas.value, allIndexed)
 
       // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
       val cache = FileFunction.cached(
