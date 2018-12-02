@@ -4,7 +4,7 @@ import java.io.File
 import scala.io.Source
 import Ast._
 
-case class DefinitionParser(defFile: File, docs: Boolean = true, allIndexed: Boolean = true) {
+case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
 
   def parse: Definition = {
 
@@ -518,7 +518,7 @@ case class DefinitionParser(defFile: File, docs: Boolean = true, allIndexed: Boo
           // todo: check not to backreference same-named namespaces in different partitions
           curNs.ns match {
             case ns1 if ns1 == ns2.ns => attrs
-            case other                => attrs :+ BackRef(s"_$cleanNs", "", "", "", "", "", curNs.ns)
+            case other                => attrs :+ BackRef(s"_$cleanNs", s"_$cleanNs", "", "", "", "", curNs.ns)
           }
         }.distinct
         ns2.copy(attrs = attrs2)

@@ -14,7 +14,7 @@ object YourApp extends App {
 
   // Retrieve data
   val (person, age, gender) = Person.name.age.gender.get.head
-Person.name.Self.age
+
   // Verify
   assert(s"$person is a $age years old $gender" == "John is a 26 years old male")
 
