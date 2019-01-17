@@ -65,7 +65,7 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
       val indexed = Optional( """":db/index"             , true.asInstanceOf[Object]""", "Indexed")
       val options = str0 match {
         case r"\.doc\((.*)$msg\)(.*)$str" => parseOptions(str, acc :+ Optional(s"""":db/doc"               , $msg""", ""), attr, curFullNs)
-        case r"\.fulltextSearch(.*)$str"  => parseOptions(str, acc :+ Optional("""":db/fulltext"          , true.asInstanceOf[Object]""", "FulltextSearch[Ns, In]"), attr, curFullNs)
+        case r"\.fulltext(.*)$str"        => parseOptions(str, acc :+ Optional("""":db/fulltext"          , true.asInstanceOf[Object]""", "Fulltext[Ns, In]"), attr, curFullNs)
         case r"\.uniqueValue(.*)$str"     => parseOptions(str, acc :+ Optional("""":db/unique"            , ":db.unique/value"""", "UniqueValue"), attr, curFullNs)
         case r"\.uniqueIdentity(.*)$str"  => parseOptions(str, acc :+ Optional("""":db/unique"            , ":db.unique/identity"""", "UniqueIdentity"), attr, curFullNs)
         case r"\.isComponent(.*)$str"     => parseOptions(str, acc :+ Optional("""":db/isComponent"       , true.asInstanceOf[Object]""", "IsComponent"), attr, curFullNs)
@@ -97,6 +97,7 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         case r"oneDate(.*)$str"       => Seq(Val(attr, attrClean, "OneDate", "Date", "", "instant", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
         case r"oneUUID(.*)$str"       => Seq(Val(attr, attrClean, "OneUUID", "UUID", "", "uuid", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
         case r"oneURI(.*)$str"        => Seq(Val(attr, attrClean, "OneURI", "URI", "", "uri", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
+        case r"oneAny(.*)$str"        => Seq(Val(attr, attrClean, "OneAny", "Any", "", "object", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
 
         case r"manyString(.*)$str"     => Seq(Val(attr, attrClean, "ManyString", "Set[String]", "String", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
         case r"manyInt(.*)$str"        => Seq(Val(attr, attrClean, "ManyInt", "Set[Int]", "Int", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
