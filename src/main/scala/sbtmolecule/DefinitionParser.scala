@@ -1,29 +1,27 @@
 package sbtmolecule
 
-import java.io.File
-import scala.io.Source
 import Ast._
 
-case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
+case class DefinitionParser(defFileName: String, lines0: List[String], allIndexed: Boolean = true) {
+
+  val lines: List[String] = lines0.map(_.trim)
 
   def parse: Definition = {
-
-    val raw: List[String] = Source.fromFile(defFile).getLines().map(_.trim).toList
 
     // Checks .......................................................................
 
     // Check package statement
-    raw.collectFirst {
+    lines.collectFirst {
       case r"package (.*)$p\..*" => p
     }.getOrElse {
       throw new SchemaDefinitionException("Found no package statement in definition file")
     }
 
     // Check input/output arities
-    raw collect {
+    lines collect {
       case r"@InOut\((\d+)$in, (\d+)$out\)" => (in.toString.toInt, out.toString.toInt) match {
-        case (i: Int, _) if i < 0 || i > 3  => throw new SchemaDefinitionException(s"Input arity in '${defFile.getName}' was $in. It should be in the range 0-3")
-        case (_, o: Int) if o < 1 || o > 22 => throw new SchemaDefinitionException(s"Output arity of '${defFile.getName}' was $out. It should be in the range 1-22")
+        case (i: Int, _) if i < 0 || i > 3  => throw new SchemaDefinitionException(s"Input arity in '$defFileName' was $in. It should be in the range 0-3")
+        case (_, o: Int) if o < 1 || o > 22 => throw new SchemaDefinitionException(s"Output arity of '$defFileName' was $out. It should be in the range 1-22")
         case (i: Int, o: Int)               => (i, o)
       }
     } match {
@@ -39,21 +37,21 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
     }
 
     // Check domain name
-    raw.collectFirst {
-      case r"class (.*)${dmn}Definition"        => throw new SchemaDefinitionException(s"Can't use class as definition container in ${defFile.getName}. Please use an object:\nobject ${dmn}Definiton { ...")
-      case r"class (.*)${dmn}Definition \{"     => throw new SchemaDefinitionException(s"Can't use class as definition container in ${defFile.getName}. Please use an object:\nobject ${dmn}Definiton { ...")
-      case r"class (.*)${dmn}Definition \{ *\}" => throw new SchemaDefinitionException(s"Can't use class as definition container in ${defFile.getName}. Please use an object:\nobject ${dmn}Definiton { ...")
-      case r"trait (.*)${dmn}Definition"        => throw new SchemaDefinitionException(s"Can't use trait as definition container in ${defFile.getName}. Please use an object:\nobject ${dmn}Definiton { ...")
-      case r"trait (.*)${dmn}Definition \{"     => throw new SchemaDefinitionException(s"Can't use trait as definition container in ${defFile.getName}. Please use an object:\nobject ${dmn}Definiton { ...")
-      case r"trait (.*)${dmn}Definition \{ *\}" => throw new SchemaDefinitionException(s"Can't use trait as definition container in ${defFile.getName}. Please use an object:\nobject ${dmn}Definiton { ...")
+    lines.collectFirst {
+      case r"class (.*)${dmn}Definition"        => throw new SchemaDefinitionException(s"Can't use class as definition container in $defFileName. Please use an object:\nobject ${dmn}Definiton { ...")
+      case r"class (.*)${dmn}Definition \{"     => throw new SchemaDefinitionException(s"Can't use class as definition container in $defFileName. Please use an object:\nobject ${dmn}Definiton { ...")
+      case r"class (.*)${dmn}Definition \{ *\}" => throw new SchemaDefinitionException(s"Can't use class as definition container in $defFileName. Please use an object:\nobject ${dmn}Definiton { ...")
+      case r"trait (.*)${dmn}Definition"        => throw new SchemaDefinitionException(s"Can't use trait as definition container in $defFileName. Please use an object:\nobject ${dmn}Definiton { ...")
+      case r"trait (.*)${dmn}Definition \{"     => throw new SchemaDefinitionException(s"Can't use trait as definition container in $defFileName. Please use an object:\nobject ${dmn}Definiton { ...")
+      case r"trait (.*)${dmn}Definition \{ *\}" => throw new SchemaDefinitionException(s"Can't use trait as definition container in $defFileName. Please use an object:\nobject ${dmn}Definiton { ...")
     }
 
-    raw.collect {
+    lines.collect {
       case r"object (.*)${name}Definition"      => name
       case r"object (.*)${name}Definition \{"   => name
       case r"object (.*)${name}Definition \{\}" => name
     } match {
-      case Nil                      => throw new SchemaDefinitionException("Couldn't find definition object <domain>Definition in " + defFile.getName)
+      case Nil                      => throw new SchemaDefinitionException("Couldn't find definition object <domain>Definition in " + defFileName)
       case l: List[_] if l.size > 1 => throw new SchemaDefinitionException(s"Only one definition object per definition file allowed. Found ${l.size}:" + l.mkString("\n - ", "Definition\n - ", "Definition"))
       case domainNameList           => firstLow(domainNameList.head)
     }
@@ -72,13 +70,19 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         case r"\.noHistory(.*)$str"       => parseOptions(str, acc :+ Optional("""":db/noHistory"         , true.asInstanceOf[Object]""", "NoHistory"), attr, curFullNs)
         case r"\.indexed(.*)$str"         => parseOptions(str, acc :+ indexed, attr, curFullNs)
         case ""                           => acc
-        case unexpected                   => throw new SchemaDefinitionException(s"Unexpected options code for attribute `$attr` in namespace `$curFullNs` in ${defFile.getName}:\n" + unexpected)
+        case unexpected                   => throw new SchemaDefinitionException(s"Unexpected options code for attribute `$attr` in namespace `$curFullNs` in $defFileName:\n" + unexpected)
       }
       if (allIndexed) (options :+ indexed).distinct else options
     }
     val isComponent = Optional("""":db/isComponent"       , true.asInstanceOf[Object]""", "IsComponent")
 
+    val reservedAttrNames = List("a", "e", "v", "t", "tx", "txInstant", "op", "save", "insert", "update", "retract ", "self", "apply", "assert", "replace", "not", "contains", "k")
+
     def parseAttr(backTics: Boolean, attrClean: String, str: String, curPart: String, curFullNs: String, attrGroup0: Option[String]): Seq[DefAttr] = {
+      if (reservedAttrNames.contains(attrClean))
+        throw new SchemaDefinitionException(s"Attribute name `$attrClean` in $defFileName not allowed " +
+          s"since it collides with one of the following reserved attribute names:\n" + reservedAttrNames.mkString("\n")
+        )
       val attr = if (backTics) s"`$attrClean`" else attrClean
       val attrK = attrClean + "K"
       val curNs = if (curFullNs.contains('_')) curFullNs.split("_").last else curFullNs
@@ -200,35 +204,35 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // Missing ref type args
 
         case r"oneBi(.*)$str" => throw new SchemaDefinitionException(
-          s"""Type arg missing for bidirectional ref definition `$attr` in `$curPartDotNs` of ${defFile.getName}.
+          s"""Type arg missing for bidirectional ref definition `$attr` in `$curPartDotNs` of $defFileName.
              |Please add something like:
              |  val $attr = oneBi[$curNs] // for bidirectional self-reference, or:
              |  val $attr = oneBi[<otherNamespace>.<revRefAttr>.type] // for "outgoing" bidirectional reference to other namespace""".stripMargin)
 
         case r"manyBi(.*)$str" => throw new SchemaDefinitionException(
-          s"""Type arg missing for bidirectional ref definition `$attr` in `$curPartDotNs` of ${defFile.getName}.
+          s"""Type arg missing for bidirectional ref definition `$attr` in `$curPartDotNs` of $defFileName.
              |Please add something like:
              |  val $attr = manyBi[$curNs] // for bidirectional self-reference, or:
              |  val $attr = manyBi[<otherNamespace>.<revRefAttr>.type] // for "outgoing" bidirectional reference to other namespace""".stripMargin)
 
         case r"rev(.*)$str" => throw new SchemaDefinitionException(
-          s"""Type arg missing for bidirectional reverse ref definition `$attr` in `$curPartDotNs` of ${defFile.getName}.
+          s"""Type arg missing for bidirectional reverse ref definition `$attr` in `$curPartDotNs` of $defFileName.
              |Please add the namespace where the bidirectional ref pointing to this attribute was defined:
              |  val $attr = rev[<definingNamespace>]""".stripMargin)
 
         case r"one(.*)$str" => throw new SchemaDefinitionException(
-          s"""Type arg missing for ref definition `$attr` in `$curPartDotNs` of ${defFile.getName}.
+          s"""Type arg missing for ref definition `$attr` in `$curPartDotNs` of $defFileName.
              |Please add something like:
              |  val $attr = one[$curNs] // for self-reference, or
              |  val $attr = one[<otherNamespace>] // for ref towards other namespace""".stripMargin)
 
         case r"many(.*)$str" => throw new SchemaDefinitionException(
-          s"""Type arg missing for ref definition `$attr` in `$curPartDotNs` of ${defFile.getName}.
+          s"""Type arg missing for ref definition `$attr` in `$curPartDotNs` of $defFileName.
              |Please add something like:
              |  val $attr = many[$curNs] // for self-reference, or
              |  val $attr = many[<otherNamespace>] // for ref towards other namespace""".stripMargin)
 
-        case unexpected => throw new SchemaDefinitionException(s"Unexpected attribute code in ${defFile.getName}:\n" + unexpected)
+        case unexpected => throw new SchemaDefinitionException(s"Unexpected attribute code in $defFileName:\n" + unexpected)
       }
     }
 
@@ -249,14 +253,14 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"\w*Definition\.([a-z]\w*)$part\.(.*)$edgeNs\.(.*)$targetAttr\.type" if s"${part}_$edgeNs" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$edgeNs]")
 
         // val outRefAttr = oneBi[MyDomainDefinition.ThisPartition.OtherNamespace.revRefAttr.type]  // or manyBi
         // should be only
         // val outRefAttr = oneBi[OtherNamespace.revRefAttr.type]
         case r"\w*Definition\.([a-z]\w*)$part\.(.*)$edgeNs\.(.*)$targetAttr\.type" if part == basePart =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} should have " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName should have " +
             s"only the namespace prefix in the type argument:\n  val $baseAttr = ${card}Bi[$edgeNs.$targetAttr.type]")
 
         // val outRefAttr = oneBi[MyDomainDefinition.SomePartition.OtherNamespace.toRefAttr.type]
@@ -269,14 +273,14 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"([a-z]\w*)$part\.(.*)$edgeNs\.(.*)$targetAttr\.type" if s"${part}_$edgeNs" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and can't have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$edgeNs]")
 
         // val selfRef = oneBi[ThisNamespace.selfRef.type]
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"(.*)$edgeNs\.(.*)$targetAttr\.type" if basePart.nonEmpty && s"${basePart}_$edgeNs" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$edgeNs]")
 
         // val outgoingRef = oneBi[SomePartition.OtherNamespace.toRefAttr.type]
@@ -289,7 +293,7 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"(.*)$edgeNs\.(.*)$targetAttr\.type" if edgeNs == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$edgeNs]")
 
         // val outRefAttr = oneBi[OtherNamespace.toRefAttr.type]
@@ -304,7 +308,7 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // val selfRef = oneBi[ThisNamespace]
         case r"(.*)$a\.type" if a == baseAttr =>
           val ns = if (basePart.nonEmpty) baseFullNs.split("_").last else baseFullNs
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and only needs the current namespace as type argument:\n  val $baseAttr = ${card}Bi[$ns]")
       }
     }
@@ -320,7 +324,7 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
 
         case other =>
           throw new SchemaDefinitionException(
-            s"""Target reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} should have a type arg pointing to
+            s"""Target reference `$baseAttr` in `$baseFullNs` of $defFileName should have a type arg pointing to
                |the attribute that points to this. Something like:
                |  val $baseAttr: AnyRef = target[<baseNs>.<biAttr>.type]
                |(Since this is a recursive definitionn, we need to add a return type)""".stripMargin)
@@ -328,7 +332,6 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
     }
 
     def parseBiRefTypeArg(card: String, refStr: String, baseAttr: String, basePart: String = "", baseFullNs: String = ""): (String, String, String) = {
-      //            println(s"basePart baseFullNs baseAttr: $basePart      $baseFullNs      $baseAttr")
 
       refStr match {
 
@@ -336,21 +339,21 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"\w*Definition\.([a-z]\w*)$part\.(.*)$otherNs\.(.*)$targetAttr\.type" if s"${part}_$otherNs" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$otherNs]")
 
         // val selfRef = oneBi[ThisPartition.ThisNamespace.selfRef.type]
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"([a-z]\w*)$part\.(.*)$otherNs\.(.*)$targetAttr\.type" if s"${part}_$otherNs" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$otherNs]")
 
         // val selfRef = oneBi[ThisNamespace.selfRef.type]
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"(.*)$otherNs\.(.*)$targetAttr\.type" if otherNs == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$otherNs]")
 
 
@@ -371,14 +374,14 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"\w*Definition\.([a-z]\w*)$part\.(.*)$selfRef" if s"${part}_$selfRef" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have the attribute name specified. This is enough:\n  val $baseAttr = ${card}Bi[$selfRef]")
 
         // val selfRef = oneBi[ThisPartition.ThisNamespace]
         // should be only
         // val selfRef = oneBi[ThisNamespace]
         case r"([a-z]\w*)$part\.(.*)$selfRef" if s"${part}_$selfRef" == baseFullNs =>
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is a self-reference " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is a self-reference " +
             s"and doesn't need to have partition prefix specified. This is enough:\n  val $baseAttr = ${card}Bi[$selfRef]")
 
         // val selfRef = oneBi[ThisNamespace]
@@ -390,7 +393,7 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
         // val selfRef = oneBi[OtherNamespace]
         case dodgyNs =>
           val part = if (basePart.nonEmpty) s"$basePart." else ""
-          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of ${defFile.getName} is ambiguous. " +
+          throw new SchemaDefinitionException(s"Bidirectional reference `$baseAttr` in `$baseFullNs` of $defFileName is ambiguous. " +
             s"\nPlease choose from one of those 2 options:" +
             s"\n1. Self-reference : val $baseAttr = ${card}Bi[${baseFullNs.replace("_", ".")}]" +
             s"\n2. Other-reference: val $baseAttr = ${card}Bi[$part$dodgyNs.<reverseRefAttr>.type]" +
@@ -401,31 +404,48 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
     }
 
     def someDescr(descr: String): Option[String] = if (descr.nonEmpty) Some(descr) else None
-    def attrCmt(space: Int, comment: String): Option[String] = (space, comment) match {
+
+    def attrCmt(emptyLine: Int, comment: String): Option[String] = (emptyLine, comment) match {
       case (0, "")  => None
       case (1, "")  => Some("")
       case (_, cmt) => Some(cmt)
     }
 
-    val definition: Definition = raw.foldLeft(0, "", Definition("", -1, -1, "", "", "", Seq())) {
-      case ((s, cmt, d), line) => line.trim match {
-        case r"\/\/\s*val .*"                                              => (s, "", d)
-        case r"\/\/\s*(.*?)$comment\s*-*"                                  => (s, comment, d)
-        case r"package (.*)$pkg\.schema"                                   => (0, "", d.copy(pkg = pkg))
-        case "import molecule.schema.definition._"                         => (0, "", d)
-        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                            => (0, "", d.copy(in = inS.toString.toInt, out = outS.toString.toInt))
-        case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}Definition \{"            => (0, "", d.copy(domain = dmn))
-        case r"object\s+([a-z]\w*)$part\s*\{"                              => (0, "", d.copy(curPart = part, curPartDescr = cmt))
-        case r"object\s+(\w*)$part\s*\{"                                   => throw new SchemaDefinitionException(s"Partition name '$part' in ${defFile.getName} should start with a lowercase letter")
-        case r"trait\s+([A-Z]\w*)$ns\s*\{" if d.curPart.nonEmpty           => (0, "", d.copy(nss = d.nss :+ Namespace(d.curPart, someDescr(d.curPartDescr), d.curPart + "_" + ns, someDescr(cmt))))
-        case r"trait\s+([A-Z]\w*)$ns\s*\{"                                 => (0, "", d.copy(nss = d.nss :+ Namespace("", None, ns, someDescr(cmt))))
-        case r"trait\s+(\w*)$ns\s*\{"                                      => throw new SchemaDefinitionException(s"Unexpected namespace name '$ns' in ${defFile.getName}. Namespaces have to start with a capital letter [A-Z].")
-        case r"val\s+(\`?)$q1(\w*)$a(\`?)$q2\s*:\s*AnyRef\s*\=\s*(.*)$str" => (0, "", d.addAttr(parseAttr(q1.nonEmpty, a, str, d.curPart, d.nss.last.ns, attrCmt(s, cmt))))
-        case r"val\s+(\`?)$q1(\w*)$a(\`?)$q2\s*\=\s*(.*)$str"              => (0, "", d.addAttr(parseAttr(q1.nonEmpty, a, str, d.curPart, d.nss.last.ns, attrCmt(s, cmt))))
-        case "}"                                                           => (0, "", d)
-        case ""                                                            => (1, cmt, d)
-        case r"object .* extends .*"                                       => (0, "", d)
-        case unexpected                                                    => throw new SchemaDefinitionException(s"Unexpected definition code in ${defFile.getName}:\n" + unexpected)
+    val definition: Definition = lines.zipWithIndex.foldLeft(0, "", Definition("", -1, -1, "", "", "", Seq())) {
+      case ((emptyLine, cmt, d), (line, i)) => line.trim match {
+        case r"\/\/\s*val .*"                                   => (emptyLine, "", d)
+        case r"\/\/\s*(.*?)$comment\s*-*"                       => (emptyLine, comment, d)
+        case r"package (.*)$pkg\.schema"                        => (0, "", d.copy(pkg = pkg))
+        case r"import molecule\.schema\.definition._"           => (0, "", d)
+        case r"import molecule\.schema\.definition\.(.*)$t"     => throw new SchemaDefinitionException(s"Schema definition api in $defFileName (line ${i + 1}) should be imported with `import molecule.schema.definition._`")
+        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                 => (0, "", d.copy(in = inS.toString.toInt, out = outS.toString.toInt))
+        case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}Definition \{" => (0, "", d.copy(domain = dmn))
+
+        // Partition definitions
+        case r"object\s+(tx|db|molecule)$part\s*\{"    => throw new SchemaDefinitionException(s"Partition name '$part' in $defFileName (line ${i + 1}) is not allowed. `tx`, `db` and `molecule` are reserved partition names.")
+        case r"object\s+([a-z][a-zA-Z0-9]*)$part\s*\{" => (0, "", d.copy(curPart = part, curPartDescr = cmt, nss = d.nss :+ Namespace(part, someDescr(cmt), "", None)))
+        case r"object\s+([A-Z][a-zA-Z0-9]*)$part\s*\{" => throw new SchemaDefinitionException(s"Partition name '$part' in $defFileName (line ${i + 1}) should start with a lowercase letter and contain only [a-zA-Z0-9].")
+        case r"object\s+(.*)$part\s*\{"                => throw new SchemaDefinitionException(s"Unexpected partition name '$part' in $defFileName (line ${i + 1}).\nPartition names have to start with a lowercase letter and contain only [a-zA-Z0-9].")
+
+        // Ns definitions
+        case r"trait\s+([A-Z][a-zA-Z0-9]*)$ns\s*\{" if d.curPart.nonEmpty => (0, "", d.copy(nss = (if (d.nss.last.ns.isEmpty) d.nss.init else d.nss) :+ Namespace(d.curPart, someDescr(d.curPartDescr), d.curPart + "_" + ns, someDescr(cmt))))
+        case r"trait\s+([A-Z][a-zA-Z0-9]*)$ns\s*\{"                       => (0, "", d.copy(nss = d.nss :+ Namespace("db.part/user", None, ns, someDescr(cmt))))
+        case r"trait\s+([a-z][a-zA-Z0-9]*)$ns\s*\{"                       => throw new SchemaDefinitionException(s"Namespace name '$ns' in $defFileName (line ${i + 1}) should start with a capital letter and contain only [a-zA-Z0-9].")
+        case r"trait\s+(.*)$ns\s*\{"                                      => throw new SchemaDefinitionException(s"Unexpected namespace name '$ns' in $defFileName (line ${i + 1}).\nNamespace names have to start with a capital letter [A-Z] and contain only [a-zA-Z0-9].")
+
+        // Attribute definitions
+        case r"val\s+(\`?)${q1}get(\w*)$a(\`?)$q2\s*\=\s*(.*)$str"                       => throw new SchemaDefinitionException(s"Attribute name `get$a` not allowed to start with `get` in $defFileName (line ${i + 1}).")
+        case r"val\s+(\`?)$q1([a-z][a-zA-Z0-9]*)$a(\`?)$q2\s*:\s*AnyRef\s*\=\s*(.*)$str" => (0, "", d.addAttr(parseAttr(q1.nonEmpty, a, str, d.curPart, d.nss.last.ns, attrCmt(emptyLine, cmt))))
+        case r"val\s+(\`?)$q1([a-z][a-zA-Z0-9]*)$a(\`?)$q2\s*\=\s*(.*)$str"              => (0, "", d.addAttr(parseAttr(q1.nonEmpty, a, str, d.curPart, d.nss.last.ns, attrCmt(emptyLine, cmt))))
+        case r"val\s+(\`?)$q1([A-Z][a-zA-Z0-9]*)$a(\`?)$q2\s*:\s*AnyRef\s*\=\s*(.*)$str" => throw new SchemaDefinitionException(s"Attribute name `$a` in $defFileName (line ${i + 1}) should start with a lowercase letter and contain only [a-zA-Z0-9].")
+        case r"val\s+(\`?)$q1([A-Z][a-zA-Z0-9]*)$a(\`?)$q2\s*\=\s*(.*)$str"              => throw new SchemaDefinitionException(s"Attribute name `$a` in $defFileName (line ${i + 1}) should start with a lowercase letter and contain only [a-zA-Z0-9].")
+        case r"val\s+(\`?)$q1(.*)$a(\`?)$q2\s*:\s*AnyRef\s*\=\s*(.*)$str"                => throw new SchemaDefinitionException(s"Unexpected attribute name `$a` in $defFileName (line ${i + 1}).\nAttribute names have to start with lower letter [a-z] and contain only [a-zA-Z0-9].")
+        case r"val\s+(\`?)$q1(.*)$a(\`?)$q2\s*\=\s*(.*)$str"                             => throw new SchemaDefinitionException(s"Unexpected attribute name `$a` in $defFileName (line ${i + 1}).\nAttribute names have to start with lower letter [a-z] and contain only [a-zA-Z0-9].")
+
+        case "}"                     => (0, "", d)
+        case ""                      => (1, cmt, d)
+        case r"object .* extends .*" => (0, "", d)
+        case unexpected              => throw new SchemaDefinitionException(s"Unexpected definition code in $defFileName (line ${i + 1}):\n" + unexpected)
       }
     }._3
 
@@ -448,18 +468,12 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
     } getOrElse false
 
     if (isBaseEntity) {
-      //      println("")
-      //      println(s"=============== ${ns.ns} =================")
       val newAttrs: Seq[DefAttr] = ns.attrs.map {
         case biEdgeRefAttr@Ref(attr1, _, _, _, _, _, edgeNs1, _, Some("BiEdgeRef_"), revRef1, _) =>
-          //          println("")
-          //          println(attr1 + "     -----     " + edgeNs1 + "     -----     " + revRef1)
           nss.collectFirst {
             case Namespace(part2, _, ns2, _, _, attrs2) if part2 == ns.part && ns2 == edgeNs1 =>
-              //              println(s"   $ns2 --------------------------------------------------------------------")
               attrs2.collectFirst {
                 case ref4@Ref(attr3, _, _, _, _, _, refNs3, _, Some("BiTargetRef_"), revRef3, _) if refNs3 == ns.ns =>
-                  //                  println("      " + attr3 + "     -----     " + refNs3 + "     -----     " + revRef3)
                   biEdgeRefAttr.copy(revRef = attr3)
               } getOrElse {
                 val baseNs = ns.ns.replace("_", ".")
@@ -505,7 +519,6 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
     }
   }
 
-
   def addBackRefs(nss: Seq[Namespace], curNs: Namespace): Seq[Namespace] = {
     // Gather OneRefs (ManyRefs are treated as nested data structures)
     val refMap: Map[String, Ref] = curNs.attrs.collect {
@@ -527,5 +540,4 @@ case class DefinitionParser(defFile: File, allIndexed: Boolean = true) {
       case ns2                                                           => ns2
     }
   }
-
 }

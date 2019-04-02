@@ -7,8 +7,8 @@ case class NamespaceBuilder(d: Ast.Definition) {
 
   val crossAttrs: Seq[String] = {
     (for {
-      ns <- d.nss
-      attr <- ns.attrs
+      ns <- d.nss if ns.attrs.nonEmpty
+      attr <- ns.attrs if attr.attr.nonEmpty
     } yield attr).collect {
       case Ref(_, _, _, _, _, _, edgeNs, _, Some("BiEdgeRef_"), revRef, _)  => s"$edgeNs $revRef"
       case Ref(_, _, _, _, _, _, refNs, _, Some("BiTargetRef_"), revRef, _) => s"$refNs $revRef"
@@ -18,11 +18,17 @@ case class NamespaceBuilder(d: Ast.Definition) {
 
 
   def nsTrait(domain0: String, namesp: Namespace, in: Int, out: Int, maxIn: Int, maxOut: Int, nsArities: Map[String, Int]): String = {
-    val (domain, ns, option, attrs) = (firstLow(domain0), namesp.ns, namesp.opt, namesp.attrs)
+    val (domain, ns, _, attrs) = (firstLow(domain0), namesp.ns, namesp.opt, namesp.attrs)
     val InTypes: Seq[String] = (0 until in) map (n => "I" + (n + 1))
     val OutTypes: Seq[String] = (0 until out) map (n => (n + 'A').toChar.toString)
-    val maxTpe: Int = attrs.filter(!_.attr.startsWith("_")).map(_.tpe.length).max
-    val maxAttr: Int = attrs.map(_.attr).filter(!_.startsWith("_")).map(_.length).max
+    val maxTpe: Int = if (attrs.nonEmpty) {
+      val tps = attrs.filterNot(_.attr.startsWith("_")).map(_.tpe.length)
+      if (tps.nonEmpty) tps.max else 0
+    } else 0
+    val maxAttr: Int = if (attrs.nonEmpty) {
+      val tps = attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length)
+      if (tps.nonEmpty) tps.max else 0
+    } else 0
     val maxTpeK = {
       val tpeKs = attrs.flatMap {
         case Val(_, attr, clazz, tpe, "K", _, _, _, _, _) if !attr.startsWith("_") => Some(tpe.length)
@@ -299,8 +305,8 @@ case class NamespaceBuilder(d: Ast.Definition) {
     val outArity = d.out
     val ns = namespace.ns
     val attrs = namespace.attrs
-    val p1 = (s: String) => padS(attrs.map(_.attr).filter(!_.startsWith("_")).map(_.length).max, s)
-    val p2 = (s: String) => padS(attrs.map(_.clazz).filter(!_.startsWith("Back")).map(_.length).max, s)
+    val p1 = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length).max, s)
+    val p2 = (s: String) => padS(attrs.map(_.clazz).filterNot(_.startsWith("Back")).map(_.length).max, s)
 
     def indexedFirst(opts: Seq[Optional]): Seq[String] = {
       val classes = opts.filter(_.clazz.nonEmpty).map(_.clazz)
