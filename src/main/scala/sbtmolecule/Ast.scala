@@ -1,8 +1,7 @@
 package sbtmolecule
 
-import scala.util.matching
 
-object Ast {
+object Ast extends Helpers {
 
   class SchemaDefinitionException(message: String) extends RuntimeException(message)
 
@@ -12,19 +11,13 @@ object Ast {
       val lastNs = nss.last
       copy(nss = previousNs :+ lastNs.copy(attrs = lastNs.attrs ++ attrs))
     }
+    override def toString: String =
+      s"""Definition("$pkg", $in, $out, "$domain", "$curPart", "$curPartDescr", ${if (nss.isEmpty) "Nil" else nss.mkString("List(\n  ", ",\n  ", ")")})"""
   }
 
   case class Namespace(part: String, partDescr: Option[String], ns: String, nsDescr: Option[String], opt: Option[Extension] = None, attrs: Seq[DefAttr] = Seq()) {
     override def toString: String =
-      s"""Namespace(
-         |   part     : $part
-         |   partDescr: $partDescr
-         |   ns       : $ns
-         |   nsDescr  : $nsDescr
-         |   opt      : $opt
-         |   attrs    :
-         |     ${attrs.mkString("\n     ")}
-         |)""".stripMargin
+      s"""Namespace("$part", ${o(partDescr)}, "$ns", ${o(nsDescr)}, ${o(opt)}, ${if (attrs.isEmpty) "Nil" else attrs.mkString("List(\n    ", ",\n    ", ")")})"""
   }
 
   sealed trait Extension
@@ -40,29 +33,28 @@ object Ast {
     val attrGroup: Option[String]
   }
 
-
   case class Val(attr: String, attrClean: String, clazz: String, tpe: String, baseTpe: String, datomicTpe: String,
-                 options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr
+                 options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr {
+    override def toString: String = s"""Val("$attr", "$attrClean", "$clazz", "$tpe", "$baseTpe", "$datomicTpe", ${seq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
+  }
 
   case class Enum(attr: String, attrClean: String, clazz: String, tpe: String, baseTpe: String, enums: Seq[String],
-                  options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr
+                  options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr {
+    override def toString: String = s"""Enum("$attr", "$attrClean", "$clazz", "$tpe", "$baseTpe", ${seq(enums)}, ${seq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
+  }
 
   case class Ref(attr: String, attrClean: String, clazz: String, clazz2: String, tpe: String, baseTpe: String, refNs: String,
-                 options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr
+                 options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr {
+    override def toString: String = s"""Ref("$attr", "$attrClean", "$clazz", "$clazz2", "$tpe", "$baseTpe", "$refNs", ${seq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
+  }
 
   case class BackRef(attr: String, attrClean: String, clazz: String, clazz2: String, tpe: String, baseTpe: String, backRefNs: String,
-                     options: Seq[Optional] = Seq(), attrGroup: Option[String] = None) extends DefAttr
-
-  case class Optional(datomicKeyValue: String, clazz: String)
-
-
-  // Helpers ..........................................
-
-  def padS(longest: Int, str: String): String = pad(longest, str.length)
-  def pad(longest: Int, shorter: Int): String = if (longest > shorter) " " * (longest - shorter) else ""
-  def padI(n: Int): String = if (n < 10) s"0$n" else s"$n"
-  def firstLow(str: Any): String = str.toString.head.toLower + str.toString.tail
-  implicit class Regex(sc: StringContext) {
-    def r: matching.Regex = new scala.util.matching.Regex(sc.parts.mkString, sc.parts.tail.map(_ => "x"): _*)
+                     options: Seq[Optional] = Seq(), attrGroup: Option[String] = None) extends DefAttr {
+    override def toString: String = s"""BackRef("$attr", "$attrClean", "$clazz", "$clazz2", "$tpe", "$baseTpe", "$backRefNs", ${seq(options)}, ${o(attrGroup)})"""
   }
+
+  case class Optional(datomicKeyValue: String, clazz: String) {
+    override def toString: String = """Optional(""""" + s""""$datomicKeyValue""""" + s"""", "$clazz")"""
+  }
+
 }

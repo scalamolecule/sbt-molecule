@@ -9,7 +9,7 @@ object SchemaTransaction {
   def apply(d: Definition): String = {
 
     def attrStmts(ns: String, a: DefAttr): String = {
-      val ident = s"""":db/ident"             , ":${firstLow(ns)}/${a.attrClean}""""
+      val ident = s"""":db/ident"             , ":$ns/${a.attrClean}""""
       def tpe(t: String) = s"""":db/valueType"         , ":db.type/$t""""
       def card(c: String) = s"""":db/cardinality"       , ":db.cardinality/$c""""
       val stmts = a match {
@@ -22,17 +22,14 @@ object SchemaTransaction {
       s"Util.map(${(ident +: stmts).mkString(",\n             ")})"
     }
 
-    def enums(part: String, ns: String, a: String, es: Seq[String]): String = {
-      val partition = if (part.isEmpty) ":db.part/user" else s":$part"
-      es.map(e =>
-        s"""Util.map(":db/id", Peer.tempid("$partition"), ":db/ident", ":${firstLow(ns)}.$a/$e")""").mkString(",\n    ")
-    }
+    def enums(part: String, ns: String, a: String, es: Seq[String]): String = es.map(e =>
+      s"""Util.map(":db/id", Peer.tempid(":$part"), ":db/ident", ":$ns.$a/$e")"""
+    ).mkString(",\n    ")
+
 
     // Prepare schema for edge interlink meta data if a property edge is defined
     val (partitions: Seq[String], nss: Seq[Namespace]) = {
-      val parts = d.nss.map(_.part).filter(_.nonEmpty).distinct
-      if (parts.contains("molecule"))
-        throw new SchemaDefinitionException("Partition name `molecule` is reserved by Molecule. Please choose another partition name.")
+      val parts = d.nss.map(_.part).filterNot(_ == "db.part/user").distinct
       d.nss.collectFirst {
         case ns if ns.attrs.collectFirst {
           case Ref(_, _, _, _, _, _, _, _, Some("BiTargetRef_"), _, _) => true
@@ -48,25 +45,26 @@ object SchemaTransaction {
       } getOrElse(parts, d.nss)
     }
 
-    val partitionsList: String = {
+    val partitionDefinitions: String = if (partitions.isEmpty) {
+      "lazy val partitions = Util.list()\n"
+    } else {
       val ps = partitions.map { p =>
         s"""|Util.map(":db/ident"             , ":$p",
             |             ":db/id"                , Peer.tempid(":db.part/db"),
             |             ":db.install/_partition", ":db.part/db")""".stripMargin
       }
-      if (ps.nonEmpty) {
-        s"""|
-            |  lazy val partitions = Util.list(
-            |
-            |    ${ps.mkString(",\n\n    ")}
-            |  )
-            |""".stripMargin
-      } else "\n  lazy val partitions = Util.list()\n"
+      s"""|lazy val partitions = Util.list(
+          |
+          |    ${ps.mkString(",\n\n    ")}
+          |  )
+          |""".stripMargin
     }
 
-    val stmts: Seq[String] = nss map { ns =>
+    val attributeDefinitions: String = nss
+      .filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))) // No namespaces with no attributes or only back refs
+      .map { ns =>
       val exts = ns.opt.getOrElse("").toString
-      val header = "\n    // " + ns.ns + exts + " " + ("-" * (65 - (ns.ns.length + exts.length)))
+      val header = "// " + ns.ns + exts + " " + ("-" * (65 - (ns.ns.length + exts.length)))
       val attrs = ns.attrs.flatMap { a =>
         val attr = attrStmts(ns.ns, a)
         a match {
@@ -76,7 +74,7 @@ object SchemaTransaction {
         }
       }
       header + "\n\n    " + attrs.mkString(",\n\n    ")
-    }
+    }.mkString(",\n\n\n    ")
 
     s"""|/*
         |* AUTO-GENERATED Molecule DSL schema boilerplate code
@@ -91,9 +89,12 @@ object SchemaTransaction {
         |import datomic.{Util, Peer}
         |
         |object ${d.domain}Schema extends SchemaTransaction {
-        |  $partitionsList
+        |
+        |  $partitionDefinitions
+        |
         |  lazy val namespaces = Util.list(
-        |    ${stmts.mkString(",\n    ")}
+        |
+        |    $attributeDefinitions
         |  )
         |}""".stripMargin
   }

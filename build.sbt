@@ -3,7 +3,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.7.1",
+    version := "0.8.0",
     organization in ThisBuild := "org.scalamolecule",
     //    scalaVersion := "2.12.2",
     sbtPlugin := true,
@@ -15,7 +15,7 @@ lazy val root = (project in file("."))
 
     ),
     licenses := Seq("MIT License" -> url("https://github.com/scalamolecule/sbt-molecule/blob/master/LICENSE.txt")),
-    resolvers ++= Seq("clojars" at "http://clojars.org/repo")
+    resolvers ++= Seq("clojars" at "http://clojars.org/repo"),
   )
   .settings(publishSettings)
 

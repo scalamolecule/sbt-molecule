@@ -1,6 +1,7 @@
-version := "0.7.0"
+
+version := "0.8.0"
 organization := "org.scalamolecule"
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.8"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 resolvers ++= Seq(
@@ -10,8 +11,8 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "0.16.1",
-  "com.datomic" % "datomic-free" % "0.9.5697"
+  "org.scalamolecule" %% "molecule" % "0.18.3",
+  "com.datomic" % "datomic-free" % "0.9.5697",
 )
 
 // Molecule
