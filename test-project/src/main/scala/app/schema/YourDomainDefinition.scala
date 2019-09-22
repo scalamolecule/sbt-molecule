@@ -8,6 +8,6 @@ object YourDomainDefinition {
   trait Person {
     val name     = oneString.fulltext
     val age      = oneInt
-    val gender   = oneEnum('male, 'female)
+    val gender   = oneEnum("male", "female")
   }
 }

@@ -6,10 +6,10 @@ object Ast extends Helpers {
   class SchemaDefinitionException(message: String) extends RuntimeException(message)
 
   case class Definition(pkg: String, in: Int, out: Int, domain: String, curPart: String, curPartDescr: String, nss: Seq[Namespace]) {
-    def addAttr(attrs: Seq[DefAttr]): Definition = {
+    def addAttr(attr: DefAttr): Definition = {
       val previousNs = nss.init
       val lastNs = nss.last
-      copy(nss = previousNs :+ lastNs.copy(attrs = lastNs.attrs ++ attrs))
+      copy(nss = previousNs :+ lastNs.copy(attrs = lastNs.attrs :+ attr))
     }
     override def toString: String =
       s"""Definition("$pkg", $in, $out, "$domain", "$curPart", "$curPartDescr", ${if (nss.isEmpty) "Nil" else nss.mkString("List(\n  ", ",\n  ", ")")})"""

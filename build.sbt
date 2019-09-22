@@ -3,7 +3,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.8.0",
+    version := "0.8.2",
     organization in ThisBuild := "org.scalamolecule",
     //    scalaVersion := "2.12.2",
     sbtPlugin := true,
@@ -27,6 +27,7 @@ lazy val publishSettings = Seq(
   publishMavenStyle := true,
   publishTo := (if (isSnapshot.value) Some(snapshots) else Some(releases)),
   publishArtifact in Test := false,
+  updateOptions := updateOptions.value.withGigahorse(false),
   pomIncludeRepository := (_ => false),
   homepage := Some(url("http://scalamolecule.org")),
   licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
