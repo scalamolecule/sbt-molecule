@@ -78,127 +78,102 @@ case class DefinitionParser(defFileName: String, lines0: List[String], allIndexe
 
     val reservedAttrNames = List("a", "e", "v", "t", "tx", "txInstant", "op", "save", "insert", "update", "retract ", "self", "apply", "assert", "replace", "not", "contains", "k")
 
-    def parseAttr(backTics: Boolean, attrClean: String, str: String, curPart: String, curFullNs: String, attrGroup0: Option[String]): Seq[DefAttr] = {
+    def parseAttr(backTics: Boolean, attrClean: String, str: String, curPart: String, curFullNs: String, attrGroup0: Option[String]): DefAttr = {
       if (reservedAttrNames.contains(attrClean))
         throw new SchemaDefinitionException(s"Attribute name `$attrClean` in $defFileName not allowed " +
           s"since it collides with one of the following reserved attribute names:\n" + reservedAttrNames.mkString("\n")
         )
-      val attr = if (backTics) s"`$attrClean`" else attrClean
-      val attrK = attrClean + "K"
-      val curNs = if (curFullNs.contains('_')) curFullNs.split("_").last else curFullNs
+      val attr         = if (backTics) s"`$attrClean`" else attrClean
+      val curNs        = if (curFullNs.contains('_')) curFullNs.split("_").last else curFullNs
       val curPartDotNs = if (curFullNs.contains('_')) curFullNs.replace("_", ".") else curFullNs
 
       str match {
-        case r"oneString(.*)$str"     => Seq(Val(attr, attrClean, "OneString", "String", "", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneInt(.*)$str"        => Seq(Val(attr, attrClean, "OneInt", "Int", "", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneLong(.*)$str"       => Seq(Val(attr, attrClean, "OneLong", "Long", "", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneFloat(.*)$str"      => Seq(Val(attr, attrClean, "OneFloat", "Float", "", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneDouble(.*)$str"     => Seq(Val(attr, attrClean, "OneDouble", "Double", "", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneBigInt(.*)$str"     => Seq(Val(attr, attrClean, "OneBigInt", "BigInt", "", "bigint", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneBigDecimal(.*)$str" => Seq(Val(attr, attrClean, "OneBigDecimal", "BigDecimal", "", "bigdec", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneByte(.*)$str"       => Seq(Val(attr, attrClean, "OneByte", "Byte", "", "bytes", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneBoolean(.*)$str"    => Seq(Val(attr, attrClean, "OneBoolean", "Boolean", "", "boolean", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneDate(.*)$str"       => Seq(Val(attr, attrClean, "OneDate", "Date", "", "instant", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneUUID(.*)$str"       => Seq(Val(attr, attrClean, "OneUUID", "UUID", "", "uuid", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneURI(.*)$str"        => Seq(Val(attr, attrClean, "OneURI", "URI", "", "uri", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"oneAny(.*)$str"        => Seq(Val(attr, attrClean, "OneAny", "Any", "", "object", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
+        case r"oneString(.*)$str"     => Val(attr, attrClean, "OneString", "String", "", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneInt(.*)$str"        => Val(attr, attrClean, "OneInt", "Int", "", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneLong(.*)$str"       => Val(attr, attrClean, "OneLong", "Long", "", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneFloat(.*)$str"      => Val(attr, attrClean, "OneFloat", "Float", "", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneDouble(.*)$str"     => Val(attr, attrClean, "OneDouble", "Double", "", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneBigInt(.*)$str"     => Val(attr, attrClean, "OneBigInt", "BigInt", "", "bigint", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneBigDecimal(.*)$str" => Val(attr, attrClean, "OneBigDecimal", "BigDecimal", "", "bigdec", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneByte(.*)$str"       => Val(attr, attrClean, "OneByte", "Byte", "", "bytes", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneBoolean(.*)$str"    => Val(attr, attrClean, "OneBoolean", "Boolean", "", "boolean", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneDate(.*)$str"       => Val(attr, attrClean, "OneDate", "Date", "", "instant", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneUUID(.*)$str"       => Val(attr, attrClean, "OneUUID", "UUID", "", "uuid", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneURI(.*)$str"        => Val(attr, attrClean, "OneURI", "URI", "", "uri", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"oneAny(.*)$str"        => Val(attr, attrClean, "OneAny", "Any", "", "object", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
 
-        case r"manyString(.*)$str"     => Seq(Val(attr, attrClean, "ManyString", "Set[String]", "String", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyInt(.*)$str"        => Seq(Val(attr, attrClean, "ManyInt", "Set[Int]", "Int", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyLong(.*)$str"       => Seq(Val(attr, attrClean, "ManyLong", "Set[Long]", "Long", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyFloat(.*)$str"      => Seq(Val(attr, attrClean, "ManyFloat", "Set[Float]", "Float", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyDouble(.*)$str"     => Seq(Val(attr, attrClean, "ManyDouble", "Set[Double]", "Double", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyBigInt(.*)$str"     => Seq(Val(attr, attrClean, "ManyBigInt", "Set[BigInt]", "BigInt", "bigint", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyBigDecimal(.*)$str" => Seq(Val(attr, attrClean, "ManyBigDecimal", "Set[BigDecimal]", "BigDecimal", "bigdec", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyByte(.*)$str"       => Seq(Val(attr, attrClean, "ManyByte", "Set[Byte]", "Byte", "bytes", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyBoolean(.*)$str"    => Seq(Val(attr, attrClean, "ManyBoolean", "Set[Boolean]", "Boolean", "boolean", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyDate(.*)$str"       => Seq(Val(attr, attrClean, "ManyDate", "Set[Date]", "Date", "instant", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyUUID(.*)$str"       => Seq(Val(attr, attrClean, "ManyUUID", "Set[UUID]", "UUID", "uuid", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyURI(.*)$str"        => Seq(Val(attr, attrClean, "ManyURI", "Set[URI]", "URI", "uri", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
+        case r"manyString(.*)$str"     => Val(attr, attrClean, "ManyString", "Set[String]", "String", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyInt(.*)$str"        => Val(attr, attrClean, "ManyInt", "Set[Int]", "Int", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyLong(.*)$str"       => Val(attr, attrClean, "ManyLong", "Set[Long]", "Long", "long", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyFloat(.*)$str"      => Val(attr, attrClean, "ManyFloat", "Set[Float]", "Float", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyDouble(.*)$str"     => Val(attr, attrClean, "ManyDouble", "Set[Double]", "Double", "double", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyBigInt(.*)$str"     => Val(attr, attrClean, "ManyBigInt", "Set[BigInt]", "BigInt", "bigint", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyBigDecimal(.*)$str" => Val(attr, attrClean, "ManyBigDecimal", "Set[BigDecimal]", "BigDecimal", "bigdec", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyByte(.*)$str"       => Val(attr, attrClean, "ManyByte", "Set[Byte]", "Byte", "bytes", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyBoolean(.*)$str"    => Val(attr, attrClean, "ManyBoolean", "Set[Boolean]", "Boolean", "boolean", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyDate(.*)$str"       => Val(attr, attrClean, "ManyDate", "Set[Date]", "Date", "instant", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyUUID(.*)$str"       => Val(attr, attrClean, "ManyUUID", "Set[UUID]", "UUID", "uuid", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"manyURI(.*)$str"        => Val(attr, attrClean, "ManyURI", "Set[URI]", "URI", "uri", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
 
-        case r"mapString(.*)$str" => Seq(
-          Val(attr, attrClean, "MapString", "Map[String, String]", "String", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneString", "String", "K", "string", parseOptions(str, Nil, attr, curFullNs)))
+        case r"mapString(.*)$str"     => Val(attr, attrClean, "MapString", "Map[String, String]", "String", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapInt(.*)$str"        => Val(attr, attrClean, "MapInt", "Map[String, Int]", "Int", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapLong(.*)$str"       => Val(attr, attrClean, "MapLong", "Map[String, Long]", "Long", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapFloat(.*)$str"      => Val(attr, attrClean, "MapFloat", "Map[String, Float]", "Float", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapDouble(.*)$str"     => Val(attr, attrClean, "MapDouble", "Map[String, Double]", "Double", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapBigInt(.*)$str"     => Val(attr, attrClean, "MapBigInt", "Map[String, BigInt]", "BigInt", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapBigDecimal(.*)$str" => Val(attr, attrClean, "MapBigDecimal", "Map[String, BigDecimal]", "BigDecimal", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapByte(.*)$str"       => Val(attr, attrClean, "MapByte", "Map[String, Byte]", "Byte", "bytes", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapBoolean(.*)$str"    => Val(attr, attrClean, "MapBoolean", "Map[String, Boolean]", "Boolean", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapDate(.*)$str"       => Val(attr, attrClean, "MapDate", "Map[String, Date]", "Date", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapUUID(.*)$str"       => Val(attr, attrClean, "MapUUID", "Map[String, UUID]", "UUID", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"mapURI(.*)$str"        => Val(attr, attrClean, "MapURI", "Map[String, URI]", "URI", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
 
-        case r"mapInt(.*)$str" => Seq(
-          Val(attr, attrClean, "MapInt", "Map[String, Int]", "Int", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneInt", "Int", "K", "long", parseOptions(str, Nil, attr, curFullNs)))
+        case r"oneEnum\((.*?)$enums\)(.*)$str" =>
+          val rawEnums: Seq[String] = enums.replaceAll("\"", "").split(",").toList.map(_.trim)
+          if (rawEnums.forall(_.matches("[a-z][a-zA-Z0-9_]*")))
+            Enum(attr, attrClean, "OneEnum", "String", "", rawEnums, parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+          else
+            throw new SchemaDefinitionException("Enum values can only match `[a-z][a-zA-Z0-9_]*`. Found:\n" + rawEnums.mkString("`", "`\n`", "`"))
 
-        case r"mapLong(.*)$str" => Seq(
-          Val(attr, attrClean, "MapLong", "Map[String, Long]", "Long", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneLong", "Long", "K", "long", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapFloat(.*)$str" => Seq(
-          Val(attr, attrClean, "MapFloat", "Map[String, Float]", "Float", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneFloat", "Float", "K", "double", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapDouble(.*)$str" => Seq(
-          Val(attr, attrClean, "MapDouble", "Map[String, Double]", "Double", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneDouble", "Double", "K", "double", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapBigInt(.*)$str" => Seq(
-          Val(attr, attrClean, "MapBigInt", "Map[String, BigInt]", "BigInt", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneBigInt", "BigInt", "K", "bigint", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapBigDecimal(.*)$str" => Seq(
-          Val(attr, attrClean, "MapBigDecimal", "Map[String, BigDecimal]", "BigDecimal", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneBigDecimal", "BigDecimal", "K", "bigdec", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapByte(.*)$str" => Seq(
-          Val(attr, attrClean, "MapByte", "Map[String, Byte]", "Byte", "bytes", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneByte", "Byte", "K", "bytes", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapBoolean(.*)$str" => Seq(
-          Val(attr, attrClean, "MapBoolean", "Map[String, Boolean]", "Boolean", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneBoolean", "Boolean", "K", "boolean", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapDate(.*)$str" => Seq(
-          Val(attr, attrClean, "MapDate", "Map[String, Date]", "Date", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneDate", "Date", "K", "instant", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapUUID(.*)$str" => Seq(
-          Val(attr, attrClean, "MapUUID", "Map[String, UUID]", "UUID", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneUUID", "UUID", "K", "uuid", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"mapURI(.*)$str" => Seq(
-          Val(attr, attrClean, "MapURI", "Map[String, URI]", "URI", "string", parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0),
-          Val(attrK, attrK, "OneURI", "URI", "K", "uri", parseOptions(str, Nil, attr, curFullNs)))
-
-        case r"oneEnum\((.*?)$enums\)(.*)$str"  => Seq(Enum(attr, attrClean, "OneEnum", "String", "", enums.replaceAll("'", "").split(",").toList.map(_.trim), parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"manyEnum\((.*?)$enums\)(.*)$str" => Seq(Enum(attr, attrClean, "ManyEnums", "Set[String]", "String", enums.replaceAll("'", "").split(",").toList.map(_.trim), parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
+        case r"manyEnum\((.*?)$enums\)(.*)$str" =>
+          val rawEnums: Seq[String] = enums.replaceAll("\"", "").split(",").toList.map(_.trim)
+          if (rawEnums.forall(_.matches("[a-z][a-zA-Z0-9_]*")))
+            Enum(attr, attrClean, "ManyEnums", "Set[String]", "String", rawEnums, parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+          else
+            throw new SchemaDefinitionException("Enum values can only match [a-z][a-zA-Z0-9_]*`. Found:\n" + rawEnums.mkString("`", "`\n`", "`"))
 
 
         // Bidirectional edge ref
 
         case r"oneBiEdge\[(.*)$biRef\](.*)$str" =>
           val (refNs, revRef) = parseBiEdgeRefTypeArg("one", biRef, attr, curPart, curFullNs)
-          Seq(Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", refNs, parseOptions(str, Nil, attr, curFullNs) :+ isComponent, Some("BiEdgeRef_"), revRef, attrGroup = attrGroup0))
+          Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", refNs, parseOptions(str, Nil, attr, curFullNs) :+ isComponent, Some("BiEdgeRef_"), revRef, attrGroup = attrGroup0)
 
         case r"manyBiEdge\[(.*)$biRef\](.*)$str" =>
           val (refNs, revRef) = parseBiEdgeRefTypeArg("many", biRef, attr, curPart, curFullNs)
-          Seq(Ref(attr, attrClean, "ManyRefAttr", "ManyRef", "Set[Long]", "Long", refNs, parseOptions(str, Nil, attr, curFullNs) :+ isComponent, Some("BiEdgeRef_"), revRef, attrGroup = attrGroup0))
+          Ref(attr, attrClean, "ManyRefAttr", "ManyRef", "Set[Long]", "Long", refNs, parseOptions(str, Nil, attr, curFullNs) :+ isComponent, Some("BiEdgeRef_"), revRef, attrGroup = attrGroup0)
 
 
         // Bidirectional ref
 
         case r"oneBi\[(.*)$biRef\](.*)$str" =>
           val (refNs, bi, revRef) = parseBiRefTypeArg("one", biRef, attr, curPart, curFullNs)
-          Seq(Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", refNs, parseOptions(str, Nil, attr, curFullNs), Some(bi), revRef, attrGroup = attrGroup0))
+          Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", refNs, parseOptions(str, Nil, attr, curFullNs), Some(bi), revRef, attrGroup = attrGroup0)
 
         case r"manyBi\[(.*)$biRef\](.*)$str" =>
           val (refNs, bi, revRef) = parseBiRefTypeArg("many", biRef, attr, curPart, curFullNs)
-          Seq(Ref(attr, attrClean, "ManyRefAttr", "ManyRef", "Set[Long]", "Long", refNs, parseOptions(str, Nil, attr, curFullNs), Some(bi), revRef, attrGroup = attrGroup0))
+          Ref(attr, attrClean, "ManyRefAttr", "ManyRef", "Set[Long]", "Long", refNs, parseOptions(str, Nil, attr, curFullNs), Some(bi), revRef, attrGroup = attrGroup0)
 
         // Bidirectional edge target
         case r"target\[(.*)$biTargetRef\](.*)$str" =>
           val (targetNs, revRef) = parseTargetRefTypeArg(biTargetRef, attr, curPart, curFullNs)
-          Seq(Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", targetNs, parseOptions(str, Nil, attr, curFullNs), Some("BiTargetRef_"), revRef, attrGroup = attrGroup0))
+          Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", targetNs, parseOptions(str, Nil, attr, curFullNs), Some("BiTargetRef_"), revRef, attrGroup = attrGroup0)
 
 
         // Reference
 
-        case r"one\[(.*)$ref\](.*)$str"  => Seq(Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", parseRefTypeArg(ref, curPart), parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
-        case r"many\[(.*)$ref\](.*)$str" => Seq(Ref(attr, attrClean, "ManyRefAttr", "ManyRef", "Set[Long]", "Long", parseRefTypeArg(ref, curPart), parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0))
+        case r"one\[(.*)$ref\](.*)$str"  => Ref(attr, attrClean, "OneRefAttr", "OneRef", "Long", "", parseRefTypeArg(ref, curPart), parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
+        case r"many\[(.*)$ref\](.*)$str" => Ref(attr, attrClean, "ManyRefAttr", "ManyRef", "Set[Long]", "Long", parseRefTypeArg(ref, curPart), parseOptions(str, Nil, attr, curFullNs), attrGroup = attrGroup0)
 
 
         // Missing ref type args
@@ -473,7 +448,7 @@ case class DefinitionParser(defFileName: String, lines0: List[String], allIndexe
           nss.collectFirst {
             case Namespace(part2, _, ns2, _, _, attrs2) if part2 == ns.part && ns2 == edgeNs1 =>
               attrs2.collectFirst {
-                case ref4@Ref(attr3, _, _, _, _, _, refNs3, _, Some("BiTargetRef_"), revRef3, _) if refNs3 == ns.ns =>
+                case Ref(attr3, _, _, _, _, _, refNs3, _, Some("BiTargetRef_"), revRef3, _) if refNs3 == ns.ns =>
                   biEdgeRefAttr.copy(revRef = attr3)
               } getOrElse {
                 val baseNs = ns.ns.replace("_", ".")
