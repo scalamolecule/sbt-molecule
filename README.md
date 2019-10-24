@@ -35,7 +35,7 @@ lazy val yourProject = project.in(file("app"))
     moleculeSchemas := Seq("app") // paths to your schema definition files...
   )
 ```
-SbtMolecule 0.8.2 is available in maven central for Scala 
+SbtMolecule 0.8.3 is available in maven central for Scala 
 [2.13.1](https://oss.sonatype.org/content/repositories/releases/org/scalamolecule/sbt-molecule_2.13.1/) and
 [2.12.10](https://oss.sonatype.org/content/repositories/releases/org/scalamolecule/sbt-molecule_2.12.10/).
 
