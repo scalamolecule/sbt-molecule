@@ -380,7 +380,11 @@ case class NamespaceBuilder(d: Ast.Definition) {
         case Ref(_, _, _, _, _, baseTpe, _, _, _, _, _) if baseTpe.nonEmpty => true
         case _                                                              => false
       }
-    ) List("Nested", "Nested_In_1", "Nested_In_2", "Nested_In_3").map("molecule.composition." + _ + "._").take(inArity + 1) else Nil
+    )
+      List("nested", "Nested_In_1", "Nested_In_2", "Nested_In_3")
+        .map("molecule.composition." + _ + "._").take(inArity + 1)
+    else
+      Nil
 
     val extraImports0: Seq[String] = attrs.collect {
       case Val(_, _, _, "Date", _, _, _, _, _, _) => "java.util.Date"
