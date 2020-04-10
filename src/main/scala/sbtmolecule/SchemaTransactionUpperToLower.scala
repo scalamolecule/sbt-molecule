@@ -9,10 +9,10 @@ object SchemaTransactionUpperToLower {
   def apply(d: Definition): String = {
 
     val attributeDefinitions: String = d.nss.filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))).map {
-      case Namespace(part, _, ns, _, opt, attrs) =>
-        val exts = opt.getOrElse("").toString
+      case Namespace(_, _, ns, _, opt, attrs) =>
+        val exts   = opt.getOrElse("").toString
         val header = "// " + ns + exts + " " + ("-" * (65 - (ns.length + exts.length)))
-        val stmts = attrs.flatMap { a =>
+        val stmts  = attrs.flatMap { a =>
           val attrStmt = s"""Util.map(":db/id", ":$ns/${a.attrClean}", ":db/ident", ":${firstLow(ns)}/${a.attrClean}")"""
           a match {
             case e: Enum     => Seq(
