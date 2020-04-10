@@ -17,23 +17,23 @@ case class NamespaceBuilder(d: Ast.Definition) {
   }
 
 
-  def nsTrait(domain0: String, namesp: Namespace, in: Int, out: Int, maxIn: Int, maxOut: Int, nsArities: Map[String, Int]): String = {
+  def nsTrait(domain0: String, namesp: Namespace, in: Int, out: Int, maxIn: Int, maxOut: Int): String = {
     val (domain, ns, _, attrs) = (firstLow(domain0), namesp.ns, namesp.opt, namesp.attrs)
-    val InTypes: Seq[String] = (0 until in) map (n => "I" + (n + 1))
-    val OutTypes: Seq[String] = (0 until out) map (n => (n + 'A').toChar.toString)
-    val maxTpe: Int = if (attrs.nonEmpty) {
+    val InTypes : Seq[String]  = (0 until in) map (n => "I" + (n + 1))
+    val OutTypes: Seq[String]  = (0 until out) map (n => (n + 'A').toChar.toString)
+    val maxTpe  : Int          = if (attrs.nonEmpty) {
       val tps = attrs.filterNot(_.attr.startsWith("_")).map(_.tpe.length)
       if (tps.nonEmpty) tps.max else 0
     } else 0
-    val maxAttr: Int = if (attrs.nonEmpty) {
+    val maxAttr : Int          = if (attrs.nonEmpty) {
       val tps = attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length)
       if (tps.nonEmpty) tps.max else 0
     } else 0
-    val maxTpeK: Int = (0 +: attrs.filter(_.clazz.startsWith("Map")).map(a => a.baseTpe.length)).max
+    val maxTpeK : Int          = (0 +: attrs.filter(_.clazz.startsWith("Map")).map(a => a.baseTpe.length)).max
     def pp(n: Int) = s"P$n[" + (1 to n).map(j => "_").mkString(",") + "]"
 
     val nextStay = {
-      val ins = InTypes.mkString(", ")
+      val ins  = InTypes.mkString(", ")
       val outs = OutTypes.mkString(", ")
       (in, out) match {
         case (0, 0) if maxIn == 0 => Seq(
@@ -98,9 +98,9 @@ case class NamespaceBuilder(d: Ast.Definition) {
       case BackRef(_, _, _, _, _, _, _, _, _) => None
       case a                                  => {
         val (attr, attrClean, tpe) = (a.attr, a.attrClean, a.tpe)
-        val p1 = padS(maxAttr, attr)
-        val p2 = padS(maxAttr, attrClean)
-        val p3 = padS(maxTpe, tpe)
+        val p1                     = padS(maxAttr, attr)
+        val p2                     = padS(maxAttr, attrClean)
+        val p3                     = padS(maxTpe, tpe)
         Some(
           s"final lazy val $attr  $p1: Next[$attr$p1 , $tpe$p3] = ???",
           s"final lazy val ${attrClean}_ $p2: Stay[$attr$p1 , $tpe$p3] = ???"
@@ -113,8 +113,8 @@ case class NamespaceBuilder(d: Ast.Definition) {
       case BackRef(_, _, _, _, _, _, _, _, _) => None
       case a                                  => {
         val (attrClean, baseTpe) = (a.attrClean, a.baseTpe)
-        val p1 = padS(maxAttr, attrClean)
-        val p2 = padS(maxTpeK, baseTpe)
+        val p1                   = padS(maxAttr, attrClean)
+        val p2                   = padS(maxTpeK, baseTpe)
         a match {
           case _ if a.clazz.startsWith("Map") => Some(
             s"final lazy val ${attrClean}K $p1: String => Next[${attrClean}K$p1, $baseTpe$p2] = ???",
@@ -132,8 +132,8 @@ case class NamespaceBuilder(d: Ast.Definition) {
       case BackRef(_, _, _, _, _, _, _, _, _) => None
       case a                                  => {
         val (attrClean, tpe) = (a.attrClean, a.tpe)
-        val p1 = padS(maxAttr, attrClean)
-        val p2 = padS(maxTpe, tpe)
+        val p1               = padS(maxAttr, attrClean)
+        val p2               = padS(maxTpe, tpe)
         Some(s"final lazy val $attrClean$$ $p1: Next[$attrClean$$$p1, Option[$tpe]$p2] = ???")
       }
     }
@@ -148,20 +148,20 @@ case class NamespaceBuilder(d: Ast.Definition) {
       case BackRef(_, attrClean, _, _, _, _, _, _, _)   => attrClean.length
     }
 
-    val biDirectionals: Map[String, String] = attrs.flatMap {
-      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiSelfRef_"), revRef, _)     => Some(attr -> s" with BiSelfRef_")
-      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiOtherRef_"), revRef, _)    => Some(attr -> s" with BiOtherRef_[$domain.$refNs.$revRef[NS, NS]]")
-      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiEdgePropRef_"), revRef, _) => Some(attr -> s" with BiEdgePropRef_")
-      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiEdgeRef_"), revRef, _)     => Some(attr -> s" with BiEdgeRef_[$domain.$refNs.$revRef[NS, NS]]")
-      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiTargetRef_"), revRef, _)   => Some(attr -> s" with BiTargetRef_[$domain.$refNs.$revRef[NS, NS]]")
-      case other                                                                 => None
+    val biDirectionals   : Map[String, String] = attrs.flatMap {
+      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiSelfRef_"), _, _)        => Some(attr -> s" with BiSelfRef_")
+      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiOtherRef_"), revRef, _)  => Some(attr -> s" with BiOtherRef_[$domain.$refNs.$revRef[NS, NS]]")
+      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiEdgePropRef_"), _, _)    => Some(attr -> s" with BiEdgePropRef_")
+      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiEdgeRef_"), revRef, _)   => Some(attr -> s" with BiEdgeRef_[$domain.$refNs.$revRef[NS, NS]]")
+      case Ref(attr, _, _, _, _, _, refNs, _, Some("BiTargetRef_"), revRef, _) => Some(attr -> s" with BiTargetRef_[$domain.$refNs.$revRef[NS, NS]]")
+      case _                                                                   => None
     }.toMap
-    val maxBiDirectionals: Iterable[Int] = biDirectionals.values.map(_.length)
+    val maxBiDirectionals: Iterable[Int]       = biDirectionals.values.map(_.length)
 
     def p(i: Int) = if (i < 10) "0" + i else i
 
     val refCode: Seq[String] = attrs.foldLeft(Seq("")) {
-      case (acc, Ref(attr, attrClean, _, clazz2, _, baseType, refNs, opts, _, _, _)) => {
+      case (acc, Ref(attr, attrClean, _, clazz2, _, baseType, refNs, _, _, _, _)) => {
         val p1 = padS(maxRefs.max, attrClean)
         val p2 = padS("ManyRef".length, clazz2)
         val p3 = padS(maxRefNs.max, refNs)
@@ -205,15 +205,17 @@ case class NamespaceBuilder(d: Ast.Definition) {
         }
         acc :+ s"final def ${attrClean.capitalize} $p1: $clazz2$p2[$ns, $refNs$p3] with $ref = ???"
       }
-      case (acc, BackRef(backNs, _, _, _, _, _, backRefNs, _, _))                    =>
-        val p1 = padS(maxRefs.max, backNs)
+
+      case (acc, BackRef(_, _, _, _, _, _, backRefNs, _, _)) =>
+        val p1  = padS(maxRefs.max, backRefNs)
         val ref = (in, out) match {
           case (0, 0) => s"${backRefNs}_0$p1"
           case (0, o) => s"${backRefNs}_$o$p1[${OutTypes mkString ", "}]"
           case (i, o) => s"${backRefNs}_In_${i}_$o$p1[${(InTypes ++ OutTypes) mkString ", "}]"
         }
-        acc :+ s"final def $backNs $p1: $ref = ???"
-      case (acc, _)                                                                  => acc
+        acc :+ s"final def _$backRefNs $p1: $ref = ???"
+
+      case (acc, _) => acc
     }.distinct
 
     (in, out) match {
@@ -228,7 +230,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
       // Last output trait
       case (0, o) if o == maxOut =>
         val thisIn = if (maxIn == 0 || in == maxIn) "P" + (out + in + 1) else s"${ns}_In_1_$o"
-        val types = OutTypes mkString ", "
+        val types  = OutTypes mkString ", "
         s"""trait ${ns}_$o[$types] extends $ns with Out_$o[${ns}_$o, P${out + in + 1}, $thisIn, P${out + in + 2}, $types] {
            |  ${(nextStay ++ Seq("") ++ attrVals_ ++ attrValsK_ ++ refCode).mkString("\n  ").trim}
            |}""".stripMargin
@@ -236,7 +238,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
       // Other output traits
       case (0, o) =>
         val (thisIn, nextIn) = if (maxIn == 0 || in == maxIn) ("P" + (out + in + 1), "P" + (out + in + 2)) else (s"${ns}_In_1_$o", s"${ns}_In_1_${o + 1}")
-        val types = OutTypes mkString ", "
+        val types            = OutTypes mkString ", "
         s"""trait ${ns}_$o[$types] extends $ns with Out_$o[${ns}_$o, ${ns}_${o + 1}, $thisIn, $nextIn, $types] {
            |  ${(nextStay ++ Seq("") ++ attrVals ++ attrValsK ++ Seq("") ++ attrValsOpt ++ Seq("") ++ attrVals_ ++ attrValsK_ ++ refCode).mkString("\n  ").trim}
            |
@@ -247,9 +249,9 @@ case class NamespaceBuilder(d: Ast.Definition) {
 
       // First input trait
       case (i, 0) =>
-        val s = if (in > 1) "s" else ""
+        val s                = if (in > 1) "s" else ""
         val (thisIn, nextIn) = if (maxIn == 0 || in == maxIn) ("P" + (out + in + 1), "P" + (out + in + 2)) else (s"${ns}_In_${i + 1}_0", s"${ns}_In_${i + 1}_1")
-        val types = InTypes mkString ", "
+        val types            = InTypes mkString ", "
         s"""
            |
            |/********* Input molecules awaiting $i input$s *******************************/
@@ -262,7 +264,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
       // Last input trait
       case (i, o) if i <= maxIn && o == maxOut =>
         val thisIn = if (maxIn == 0 || i == maxIn) "P" + (out + in + 1) else s"${ns}_In_${i + 1}_$o"
-        val types = (InTypes ++ OutTypes) mkString ", "
+        val types  = (InTypes ++ OutTypes) mkString ", "
         s"""trait ${ns}_In_${i}_$o[$types] extends $ns with In_${i}_$o[${ns}_In_${i}_$o, P${out + in + 1}, $thisIn, P${out + in + 2}, $types] {
            |  ${(nextStay ++ Seq("") ++ attrVals_ ++ attrValsK_ ++ refCode).mkString("\n  ").trim}
            |}""".stripMargin
@@ -278,7 +280,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
       // Other input traits
       case (i, o) =>
         val (thisIn, nextIn) = if (i == maxIn) ("P" + (out + in + 1), "P" + (out + in + 2)) else (s"${ns}_In_${i + 1}_$o", s"${ns}_In_${i + 1}_${o + 1}")
-        val types = (InTypes ++ OutTypes) mkString ", "
+        val types            = (InTypes ++ OutTypes) mkString ", "
         s"""trait ${ns}_In_${i}_$o[$types] extends $ns with In_${i}_$o[${ns}_In_${i}_$o, ${ns}_In_${i}_${o + 1}, $thisIn, $nextIn, $types] {
            |  ${(nextStay ++ Seq("") ++ attrVals ++ attrValsK ++ Seq("") ++ attrValsOpt ++ Seq("") ++ attrVals_ ++ attrValsK_ ++ refCode).mkString("\n  ").trim}
            |
@@ -289,13 +291,13 @@ case class NamespaceBuilder(d: Ast.Definition) {
   }
 
   def nsBodies(namespace: Namespace): (String, Seq[String], Seq[(Int, String)]) = {
-    val inArity = d.in
+    val inArity  = d.in
     val outArity = d.out
-    val ns = namespace.ns
-    val attrs = namespace.attrs
-    val p1 = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length + 1).max, s)
-    val p2 = (s: String) => padS(attrs.map(_.clazz).filterNot(_.startsWith("Back")).map(_.length).max, s)
-    val p3 = (s: String) => padS(attrs.map(_.attrClean).filterNot(_.startsWith("_")).map(_.length).max, s)
+    val ns       = namespace.ns
+    val attrs    = namespace.attrs
+    val p1       = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length + 1).max, s)
+    val p2       = (s: String) => padS(attrs.map(_.clazz).filterNot(_.startsWith("Back")).map(_.length).max, s)
+    val p3       = (s: String) => padS(attrs.map(_.attrClean).filterNot(_.startsWith("_")).map(_.length).max, s)
 
     def indexedFirst(opts: Seq[Optional]): Seq[String] = {
       val classes = opts.filter(_.clazz.nonEmpty).map(_.clazz)
@@ -306,7 +308,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
     }
 
     val attrClasses: String = attrs.flatMap {
-      case Val(attr, attrClean, clazz, tpe, baseTpe, datomicTpe, opts, bi, revRef, _) if clazz.startsWith("Map") =>
+      case Val(attr, attrClean, clazz, _, baseTpe, _, opts, bi, _, _) if clazz.startsWith("Map") =>
         val extensions0 = indexedFirst(opts) ++ bi.toList
         val extensions1 = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
         val extensions2 = " with " + (extensions0 :+ "MapAttrK").mkString(" with ")
@@ -315,16 +317,16 @@ case class NamespaceBuilder(d: Ast.Definition) {
           s"final class ${attrClean}K${p3(attrClean)}[Ns, In] extends One$baseTpe${p2("One" + baseTpe)}[Ns, In]$extensions2"
         )
 
-      case Val(attr, _, clazz, _, _, _, opts, bi, revRef, _) =>
+      case Val(attr, _, clazz, _, _, _, opts, bi, _, _) =>
         val extensions0 = indexedFirst(opts) ++ bi.toList
-        val extensions = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
+        val extensions  = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
         Seq(s"final class $attr${p1(attr)}[Ns, In] extends $clazz${p2(clazz)}[Ns, In]$extensions")
 
-      case Enum(attr, _, clazz, _, _, enums, opts, bi, revRef, _) =>
+      case Enum(attr, _, clazz, _, _, enums, opts, bi, _, _) =>
         val extensions0 = indexedFirst(opts) ++ bi.toList
-        val extensions = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
-        val enumValues = s"private lazy val ${enums.mkString(", ")} = EnumValue"
-        Seq( s"""final class $attr${p1(attr)}[Ns, In] extends $clazz${p2(clazz)}[Ns, In]$extensions { $enumValues }""")
+        val extensions  = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
+        val enumValues  = s"private lazy val ${enums.mkString(", ")} = EnumValue"
+        Seq(s"""final class $attr${p1(attr)}[Ns, In] extends $clazz${p2(clazz)}[Ns, In]$extensions { $enumValues }""")
 
       case Ref(attr, _, clazz, _, _, _, revNs, opts, bi, revRef, _) =>
         val extensions0 = indexedFirst(opts) ++ (bi match {
@@ -336,27 +338,27 @@ case class NamespaceBuilder(d: Ast.Definition) {
           case Some("BiTargetRef_")   => Seq(s"BiTargetRefAttr_[$revNs.$revRef[NS, NS]]")
           case other                  => Nil
         })
-        val extensions = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
+        val extensions  = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
 
         Seq(s"final class $attr${p1(attr)}[Ns, In] extends $clazz${p2(clazz)}[Ns, In]$extensions")
 
-      case BackRef(backAttr, _, clazz, _, _, _, _, _, _) => Nil
+      case _: BackRef => Nil
     }.mkString("\n  ").trim
 
 
     val attrClassesOpt = attrs.flatMap {
-      case Val(attr, attrClean, clazz, _, _, _, opts, bi, revRef, _) =>
+      case Val(_, attrClean, clazz, _, _, _, opts, bi, _, _) =>
         val extensions0 = indexedFirst(opts) ++ bi.toList
-        val extensions = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
+        val extensions  = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
         Some(s"final class $attrClean$$${p3(attrClean)}[Ns, In] extends $clazz$$${p2(clazz)}[Ns]$extensions")
 
-      case Enum(attr, attrClean, clazz, _, _, enums, opts, bi, revRef, _) =>
+      case Enum(_, attrClean, clazz, _, _, enums, opts, bi, _, _) =>
         val extensions0 = indexedFirst(opts) ++ bi.toList
-        val extensions = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
-        val enumValues = s"private lazy val ${enums.mkString(", ")} = EnumValue"
-        Some( s"""final class $attrClean$$${p3(attrClean)}[Ns, In] extends $clazz$$${p2(clazz)}[Ns]$extensions { $enumValues }""")
+        val extensions  = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
+        val enumValues  = s"private lazy val ${enums.mkString(", ")} = EnumValue"
+        Some(s"""final class $attrClean$$${p3(attrClean)}[Ns, In] extends $clazz$$${p2(clazz)}[Ns]$extensions { $enumValues }""")
 
-      case Ref(attr, attrClean, clazz, _, _, _, revNs, opts, bi, revRef, _) =>
+      case Ref(_, attrClean, clazz, _, _, _, revNs, opts, bi, revRef, _) =>
         val extensions0 = indexedFirst(opts) ++ (bi match {
           case Some("BiSelfRef_")     => Seq(s"BiSelfRefAttr_")
           case Some("BiOtherRef_")    => Seq(s"BiOtherRefAttr_[$revNs.$revRef[NS, NS]]")
@@ -366,14 +368,12 @@ case class NamespaceBuilder(d: Ast.Definition) {
           case Some("BiTargetRef_")   => Seq(s"BiTargetRefAttr_[$revNs.$revRef[NS, NS]]")
           case other                  => Nil
         })
-        val extensions = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
+        val extensions  = if (extensions0.isEmpty) "" else " with " + extensions0.mkString(" with ")
 
         Some(s"final class $attrClean$$${p3(attrClean)}[Ns, In] extends $clazz$$${p2(clazz)}[Ns]$extensions")
 
-      case BackRef(backAttr, _, clazz, _, _, _, _, _, _) => None
+      case _: BackRef => None
     }.mkString("\n  ").trim
-
-    val nsArities: Map[String, Int] = d.nss.map(ns => ns.ns -> ns.attrs.size).toMap
 
     val nestedImports: List[String] = if (
       attrs.exists {
@@ -456,7 +456,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
          |}""".stripMargin)
 
     val outBodies: Seq[String] = (0 to outArity).map(arity =>
-      mkOutBody(nsTrait(d.domain, namespace, 0, arity, inArity, outArity, nsArities))
+      mkOutBody(nsTrait(d.domain, namespace, 0, arity, inArity, outArity))
     )
 
     val inBodies: Seq[(Int, String)] = if (inArity == 0) {
@@ -466,7 +466,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
         in <- 1 to inArity
         out <- 0 to outArity
       } yield {
-        (in, mkInBody(in, nsTrait(d.domain, namespace, in, out, inArity, outArity, nsArities)))
+        (in, mkInBody(in, nsTrait(d.domain, namespace, in, out, inArity, outArity)))
       }
     }
 

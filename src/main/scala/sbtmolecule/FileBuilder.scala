@@ -22,7 +22,9 @@ object FileBuilder {
 
       // Loop definition files in each domain directory
       definitionFiles flatMap { defFile =>
-        val d: Definition = DefinitionParser(defFile.getName, Source.fromFile(defFile).getLines().toList, allIndexed).parse
+        val defFileSource = Source.fromFile(defFile)
+        val d: Definition = DefinitionParser(defFile.getName, defFileSource.getLines().toList, allIndexed).parse
+        defFileSource.close()
 
         // Write schema file
         val schemaFile: File = d.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${d.domain}Schema.scala"
@@ -42,12 +44,12 @@ object FileBuilder {
         } else Nil
 
         val namespaceFiles: Seq[File] = {
-          val d2 = d.copy(nss = d.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
+          val d2        = d.copy(nss = d.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
           val nsBuilder = NamespaceBuilder(d2)
           d2.nss.flatMap { ns =>
             val (outBody, outBodies, inBodies) = nsBuilder.nsBodies(ns)
 
-            val path = d2.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / firstLow(d2.domain)
+            val path   = d2.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / firstLow(d2.domain)
             val folder = path / (firstLow(ns.ns) + "_")
 
             // Output namespace files
@@ -63,7 +65,7 @@ object FileBuilder {
 
             // Input namespace files
             val inFiles: Seq[File] = inBodies.zipWithIndex.map { case ((inArity, inBody), i) =>
-              val outArity = i - (inArity - 1) * d2.out - (inArity - 1)
+              val outArity     = i - (inArity - 1) * d2.out - (inArity - 1)
               val inFile: File = folder / s"${ns.ns}_In_${inArity}_$outArity.scala"
               IO.write(inFile, inBody)
               inFile

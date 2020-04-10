@@ -19,4 +19,4 @@ libraryDependencies ++= Seq(
 enablePlugins(MoleculePlugin)
 moleculeSchemas := Seq("app") // Mandatory
 moleculeAllIndexed := true // Optional, default: true
-moleculeMakeJars := true // Optional, default: true
+moleculeMakeJars := false // Optional, default: true

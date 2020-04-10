@@ -63,18 +63,18 @@ object SchemaTransaction {
     val attributeDefinitions: String = nss
       .filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))) // No namespaces with no attributes or only back refs
       .map { ns =>
-      val exts = ns.opt.getOrElse("").toString
-      val header = "// " + ns.ns + exts + " " + ("-" * (65 - (ns.ns.length + exts.length)))
-      val attrs = ns.attrs.flatMap { a =>
-        val attr = attrStmts(ns.ns, a)
-        a match {
-          case e: Enum     => Seq(attr, enums(ns.part, ns.ns, a.attrClean, e.enums))
-          case br: BackRef => Nil
-          case _           => Seq(attr)
+        val exts   = ns.opt.getOrElse("").toString
+        val header = "// " + ns.ns + exts + " " + ("-" * (65 - (ns.ns.length + exts.length)))
+        val attrs  = ns.attrs.flatMap { a =>
+          val attr = attrStmts(ns.ns, a)
+          a match {
+            case e: Enum     => Seq(attr, enums(ns.part, ns.ns, a.attrClean, e.enums))
+            case br: BackRef => Nil
+            case _           => Seq(attr)
+          }
         }
-      }
-      header + "\n\n    " + attrs.mkString(",\n\n    ")
-    }.mkString(",\n\n\n    ")
+        header + "\n\n    " + attrs.mkString(",\n\n    ")
+      }.mkString(",\n\n\n    ")
 
     s"""|/*
         |* AUTO-GENERATED Molecule DSL schema boilerplate code

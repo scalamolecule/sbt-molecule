@@ -14,6 +14,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     lazy val moleculeBoilerplate = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
     lazy val moleculeJars        = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
   }
+
   import autoImport._
 
   def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
@@ -49,18 +50,18 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
 
   def makeJars() = Def.task {
-    val moduleDirName: String = baseDirectory.value.toString.split("/").last
-    val transferDirs: Seq[String] = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
+    val moduleDirName: String      = baseDirectory.value.toString.split("/").last
+    val transferDirs : Seq[String] = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
 
     // Create source jar from generated source files
-    val sourceDir: File = (sourceManaged in Compile).value
-    val srcJar: File = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + "-sources.jar/")
+    val sourceDir   : File                = (sourceManaged in Compile).value
+    val srcJar      : File                = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + "-sources.jar/")
     val srcFilesData: Seq[(File, String)] = files2TupleRec("", sourceDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest)
 
     // Create jar from class files compiled from generated source files
-    val targetDir: File = (classDirectory in Compile).value
-    val targetJar: File = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + ".jar/")
+    val targetDir      : File                = (classDirectory in Compile).value
+    val targetJar      : File                = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + ".jar/")
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", targetDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest)
 
