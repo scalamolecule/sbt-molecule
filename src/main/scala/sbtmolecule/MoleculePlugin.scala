@@ -1,7 +1,7 @@
 package sbtmolecule
 
 import sbt.Keys._
-import sbt._
+import sbt.{Def, _}
 
 object MoleculePlugin extends sbt.AutoPlugin {
 
@@ -49,7 +49,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] = moleculeScopedSettings(Compile)
 
 
-  def makeJars() = Def.task {
+  def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
     val moduleDirName: String      = baseDirectory.value.toString.split("/").last
     val transferDirs : Seq[String] = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
 

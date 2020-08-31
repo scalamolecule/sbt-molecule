@@ -8,13 +8,13 @@ Add the following to your build files:
 `project/build.properties`:
 
 ```scala
-sbt.version=1.3.9
+sbt.version=1.3.13
 ```
 
 `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.9.0")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.10.0")
 ```
 
 `build.sbt`:
@@ -29,15 +29,15 @@ lazy val yourProject = project.in(file("app"))
       Resolver.sonatypeRepo("releases")
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.22.1",
+      "org.scalamolecule" %% "molecule" % "0.22.7",
       "com.datomic" % "datomic-free" % "0.9.5697"
     ),
     moleculeSchemas := Seq("app") // paths to your schema definition files...
   )
 ```
-The sbt-molecule plugin is available in maven central for Scala 
-[2.13.1](https://oss.sonatype.org/content/repositories/releases/org/scalamolecule/sbt-molecule_2.13.1/) and
-[2.12.10](https://oss.sonatype.org/content/repositories/releases/org/scalamolecule/sbt-molecule_2.12.10/).
+The sbt-molecule plugin is available in 
+[maven central](https://repo1.maven.org/maven2/org/scalamolecule/sbt-molecule_2.12_1.0/) 
+for Scala.
 
 
 ### Tell sbt about your Schema definition files
