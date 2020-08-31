@@ -3,7 +3,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.9.0",
+    version := "0.10.0",
     organization in ThisBuild := "org.scalamolecule",
     sbtPlugin := true,
     scalacOptions := Seq(

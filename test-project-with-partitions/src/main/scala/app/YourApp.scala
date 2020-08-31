@@ -10,8 +10,8 @@ object YourApp extends App {
   implicit val conn = recreateDbFrom(YourDomainSchema)
 
   // Save data
-  female_Character.name("Kim").mood("pissed").Question.says("What's going on?").save
-  male_Character.name("Jimmie").mood("defensive").Answer.says("It's all good, man").save
+  female_Character.name("Kim").mood("furious").Question.says("What's going on?").save
+  male_Character.name("Jimmie").mood("good").Answer.says("It's all good, man").save
 
 
   // Retrieve data

@@ -9,7 +9,7 @@ object YourDomainDefinition {
   object male {
     trait Character {
       val name   = oneString
-      val mood   = oneString
+      val mood   = oneEnum("good", "bad")
       val answer = one[story.Conversation]
     }
   }
@@ -24,7 +24,7 @@ object YourDomainDefinition {
 
   object story {
     trait Conversation {
-      val says = oneString
+      val says = oneString.fulltext.noHistory.doc("hi there")
     }
   }
 }

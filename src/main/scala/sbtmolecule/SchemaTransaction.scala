@@ -9,9 +9,9 @@ object SchemaTransaction {
   def apply(d: Definition): String = {
 
     def attrStmts(ns: String, a: DefAttr): String = {
-      val ident = s"""":db/ident"             , ":$ns/${a.attrClean}""""
-      def tpe(t: String) = s"""":db/valueType"         , ":db.type/$t""""
-      def card(c: String) = s"""":db/cardinality"       , ":db.cardinality/$c""""
+      val ident = s"""read(":db/ident")             , read(":$ns/${a.attrClean}")"""
+      def tpe(t: String) = s"""read(":db/valueType")         , read(":db.type/$t")"""
+      def card(c: String) = s"""read(":db/cardinality")       , read(":db.cardinality/$c")"""
       val stmts = a match {
         case Val(_, _, clazz, _, _, t, options, _, _, _) if clazz.take(3) == "One" => Seq(tpe(t), card("one")) ++ options.map(_.datomicKeyValue)
         case Val(_, _, _, _, _, t, options, _, _, _)                               => Seq(tpe(t), card("many")) ++ options.map(_.datomicKeyValue)
@@ -19,11 +19,11 @@ object SchemaTransaction {
         case a: DefAttr                                                            => Seq(tpe("ref"), card("many")) ++ a.options.map(_.datomicKeyValue)
         case unexpected                                                            => throw new SchemaDefinitionException(s"Unexpected attribute statement:\n" + unexpected)
       }
-      s"Util.map(${(ident +: stmts).mkString(",\n             ")})"
+      s"map(${(ident +: stmts).mkString(",\n        ")})"
     }
 
     def enums(part: String, ns: String, a: String, es: Seq[String]): String = es.map(e =>
-      s"""Util.map(":db/id", Peer.tempid(":$part"), ":db/ident", ":$ns.$a/$e")"""
+      s"""map(read(":db/id"), tempid(":$part"), read(":db/ident"), read(":$ns.$a/$e"))"""
     ).mkString(",\n    ")
 
 
@@ -36,9 +36,9 @@ object SchemaTransaction {
         }.getOrElse(false) => {
           val moleculeMetaNs = Namespace("molecule", None, "molecule_Meta", None, None, Seq(
             Ref("otherEdge", "otherEdge", "OneRefAttr", "OneRef", "Long", "", "molecule_Meta", Seq(
-              Optional("""":db/index"             , true.asInstanceOf[Object]""", "Indexed"),
+              Optional("""read(":db/index")             , true.asInstanceOf[Object]""", "Indexed"),
               // Is component so that retracts automatically retracts the other edge
-              Optional("""":db/isComponent"       , true.asInstanceOf[Object]""", "IsComponent")
+              Optional("""read(":db/isComponent")       , true.asInstanceOf[Object]""", "IsComponent")
             ))))
           (parts :+ "molecule", d.nss :+ moleculeMetaNs)
         }
@@ -46,14 +46,14 @@ object SchemaTransaction {
     }
 
     val partitionDefinitions: String = if (partitions.isEmpty) {
-      "lazy val partitions = Util.list()\n"
+      "lazy val partitions = list()\n"
     } else {
       val ps = partitions.map { p =>
-        s"""|Util.map(":db/ident"             , ":$p",
-            |             ":db/id"                , Peer.tempid(":db.part/db"),
-            |             ":db.install/_partition", ":db.part/db")""".stripMargin
+        s"""|map(read(":db/ident")             , read(":$p"),
+            |        read(":db/id")                , tempid(":db.part/db"),
+            |        read(":db.install/_partition"), read(":db.part/db"))""".stripMargin
       }
-      s"""|lazy val partitions = Util.list(
+      s"""|lazy val partitions = list(
           |
           |    ${ps.mkString(",\n\n    ")}
           |  )
@@ -86,13 +86,14 @@ object SchemaTransaction {
         |*/
         |package ${d.pkg}.schema
         |import molecule.schema.SchemaTransaction
-        |import datomic.{Util, Peer}
+        |import datomic.Util._
+        |import datomic.Peer._
         |
         |object ${d.domain}Schema extends SchemaTransaction {
         |
         |  $partitionDefinitions
         |
-        |  lazy val namespaces = Util.list(
+        |  lazy val namespaces = list(
         |
         |    $attributeDefinitions
         |  )

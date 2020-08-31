@@ -1,7 +1,7 @@
 
-version := "0.9.0"
+version := "0.10.0"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.1"
+scalaVersion := "2.13.3"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 resolvers ++= Seq(
@@ -11,7 +11,7 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "0.22.0",
+  "org.scalamolecule" %% "molecule" % "0.22.7",
   "com.datomic" % "datomic-free" % "0.9.5697",
 )
 
@@ -19,4 +19,4 @@ libraryDependencies ++= Seq(
 enablePlugins(MoleculePlugin)
 moleculeSchemas := Seq("app") // Mandatory
 moleculeAllIndexed := true // Optional, default: true
-moleculeMakeJars := true // Optional, default: true
+moleculeMakeJars := false // Optional, default: true
