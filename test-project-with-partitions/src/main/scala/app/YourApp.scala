@@ -2,12 +2,13 @@ package app
 
 import app.dsl.yourDomain._
 import app.schema._
-import molecule.api.out3._
+import molecule.datomic.api.out3._
+import molecule.datomic.peer.facade.Datomic_Peer
 
 object YourApp extends App {
 
   // Make db
-  implicit val conn = recreateDbFrom(YourDomainSchema)
+  implicit val conn = Datomic_Peer.recreateDbFrom(YourDomainSchema)
 
   // Save data
   female_Character.name("Kim").mood("furious").Question.says("What's going on?").save

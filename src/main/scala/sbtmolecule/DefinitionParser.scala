@@ -74,7 +74,7 @@ case class DefinitionParser(defFileName: String, lines0: List[String], allIndexe
       }
       if (allIndexed) (options :+ indexed).distinct else options
     }
-    val isComponent = Optional("""":db/isComponent"       , true.asInstanceOf[Object]""", "IsComponent")
+    val isComponent = Optional("""read(":db/isComponent")       , true.asInstanceOf[Object]""", "IsComponent")
 
     val reservedAttrNames = List("a", "e", "v", "t", "tx", "txInstant", "op", "save", "insert", "update", "retract ", "self", "apply", "assert", "replace", "not", "contains", "k")
 
@@ -388,13 +388,13 @@ case class DefinitionParser(defFileName: String, lines0: List[String], allIndexe
 
     val definition: Definition = lines.zipWithIndex.foldLeft(0, "", Definition("", -1, -1, "", "", "", Seq())) {
       case ((emptyLine, cmt, d), (line, i)) => line.trim match {
-        case r"\/\/\s*val .*"                                   => (emptyLine, "", d)
-        case r"\/\/\s*(.*?)$comment\s*-*"                       => (emptyLine, comment, d)
-        case r"package (.*)$pkg\.schema"                        => (0, "", d.copy(pkg = pkg))
-        case r"import molecule\.schema\.definition._"           => (0, "", d)
-        case r"import molecule\.schema\.definition\.(.*)$t"     => throw new SchemaDefinitionException(s"Schema definition api in $defFileName (line ${i + 1}) should be imported with `import molecule.schema.definition._`")
-        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                 => (0, "", d.copy(in = inS.toString.toInt, out = outS.toString.toInt))
-        case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}Definition \{" => (0, "", d.copy(domain = dmn))
+        case r"\/\/\s*val .*"                                     => (emptyLine, "", d)
+        case r"\/\/\s*(.*?)$comment\s*-*"                         => (emptyLine, comment, d)
+        case r"package (.*)$pkg\.schema"                          => (0, "", d.copy(pkg = pkg))
+        case r"import molecule\.core\.schema\.definition._"       => (0, "", d)
+        case r"import molecule\.core\.schema\.definition\.(.*)$t" => throw new SchemaDefinitionException(s"Schema definition api in $defFileName (line ${i + 1}) should be imported with `import molecule.core.schema.definition._`")
+        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                   => (0, "", d.copy(in = inS.toString.toInt, out = outS.toString.toInt))
+        case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}Definition \{"   => (0, "", d.copy(domain = dmn))
 
         // Partition definitions
         case r"object\s+(tx|db|molecule)$part\s*\{"    => throw new SchemaDefinitionException(s"Partition name '$part' in $defFileName (line ${i + 1}) is not allowed. `tx`, `db` and `molecule` are reserved partition names.")

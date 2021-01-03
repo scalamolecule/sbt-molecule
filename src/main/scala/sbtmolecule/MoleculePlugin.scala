@@ -1,7 +1,7 @@
 package sbtmolecule
 
 import sbt.Keys._
-import sbt.{Def, _}
+import sbt.{CrossVersion, Def, _}
 
 object MoleculePlugin extends sbt.AutoPlugin {
 
@@ -52,18 +52,22 @@ object MoleculePlugin extends sbt.AutoPlugin {
   def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
     val moduleDirName: String      = baseDirectory.value.toString.split("/").last
     val transferDirs : Seq[String] = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
+    val cross        : String      = if (crossScalaVersions.value.size == 1) "" else {
+      val v = CrossVersion.partialVersion(scalaVersion.value).get
+      s"/${v._1}.${v._2}"
+    }
 
     // Create source jar from generated source files
     val sourceDir   : File                = (sourceManaged in Compile).value
-    val srcJar      : File                = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + "-sources.jar/")
+    val srcJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar/")
     val srcFilesData: Seq[(File, String)] = files2TupleRec("", sourceDir, ".scala", transferDirs)
-    sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest)
+    sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest, None)
 
     // Create jar from class files compiled from generated source files
     val targetDir      : File                = (classDirectory in Compile).value
-    val targetJar      : File                = new File(baseDirectory.value + "/lib/molecule-" + moduleDirName + ".jar/")
+    val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName.jar/")
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", targetDir, ".class", transferDirs)
-    sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest)
+    sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest, None)
 
     // Cleanup now obsolete generated/compiled code
     moleculeSchemas.value.foreach { dir =>

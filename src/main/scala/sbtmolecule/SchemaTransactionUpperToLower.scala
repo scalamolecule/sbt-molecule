@@ -12,20 +12,27 @@ object SchemaTransactionUpperToLower {
       case Namespace(_, _, ns, _, opt, attrs) =>
         val exts   = opt.getOrElse("").toString
         val header = "// " + ns + exts + " " + ("-" * (65 - (ns.length + exts.length)))
-        val stmts  = attrs.flatMap { a =>
-          val attrStmt = s"""Util.map(":db/id", ":$ns/${a.attrClean}", ":db/ident", ":${firstLow(ns)}/${a.attrClean}")"""
+        val (attrsBefore, attrsAfter) = attrs.flatMap { a =>
+          val attrStmt = (ns + "/" + a.attrClean, firstLow(ns) + "/" + a.attrClean)
           a match {
-            case e: Enum     => Seq(
-              attrStmt,
-              e.enums.map(enum =>
-                s"""Util.map(":db/id", ":$ns.${a.attrClean}/$enum", ":db/ident", ":${firstLow(ns)}.${a.attrClean}/$enum")"""
-              ).mkString(",\n    ")
-            )
-            case br: BackRef => Nil
-            case _           => Seq(attrStmt)
+            case e: Enum    =>
+              attrStmt +: e.enums.map(enum =>
+                (ns + "." + a.attrClean + "/" + enum, firstLow(ns) + "." + a.attrClean + "/" + enum)
+              )
+            case _: BackRef => Nil
+            case _          => Seq(attrStmt)
           }
+        }.unzip
+        val maxLength                 = attrsBefore.map(_.length).max
+        val stmts                     = attrsBefore.zip(attrsAfter).map {
+          case (attrBefore, attrAfter) =>
+            val indent = " " * (maxLength - attrBefore.length)
+            s"""map(read(":db/id"), read(":$attrBefore")$indent, read(":db/ident"), read(":$attrAfter"))"""
         }
-        header + "\n\n    " + stmts.mkString(",\n\n    ")
+        header + "\n\n    " + stmts.mkString(",\n    ")
+
+
+
     }.mkString(",\n\n\n    ")
 
     s"""|/*
@@ -37,11 +44,11 @@ object SchemaTransactionUpperToLower {
         |* 3. Refresh and re-compile project in IDE
         |*/
         |package ${d.pkg}.schema
-        |import datomic.{Util, Peer}
+        |import datomic.Util._
         |
         |object ${d.domain}SchemaUpperToLower {
         |
-        |  lazy val namespaces = Util.list(
+        |  lazy val namespaces = list(
         |
         |    $attributeDefinitions
         |  )

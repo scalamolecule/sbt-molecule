@@ -1,6 +1,6 @@
 package app.schema
 
-import molecule.schema.definition._
+import molecule.core.schema.definition._
 
 
 @InOut(0, 5)

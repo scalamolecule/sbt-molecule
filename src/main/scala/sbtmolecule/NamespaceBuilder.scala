@@ -382,7 +382,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
       }
     )
       List("nested", "Nested_In_1", "Nested_In_2", "Nested_In_3")
-        .map("molecule.composition." + _ + "._").take(inArity + 1)
+        .map("molecule.core.composition." + _ + "._").take(inArity + 1)
     else
       Nil
 
@@ -412,11 +412,11 @@ case class NamespaceBuilder(d: Ast.Definition) {
          |package ${d.pkg}.dsl
          |package ${firstLow(d.domain)}$extraImports
          |import scala.language.higherKinds
-         |import molecule.boilerplate.attributes._
-         |import molecule.boilerplate.base._
-         |import molecule.boilerplate.dummyTypes._
-         |import molecule.boilerplate.out._
-         |import molecule.expression.AttrExpressions.?
+         |import molecule.core.boilerplate.attributes._
+         |import molecule.core.boilerplate.base._
+         |import molecule.core.boilerplate.dummyTypes._
+         |import molecule.core.boilerplate.out._
+         |import molecule.core.expression.AttrExpressions.?
          |
          |
          |$content""".stripMargin
@@ -433,10 +433,10 @@ case class NamespaceBuilder(d: Ast.Definition) {
          |package ${d.pkg}.dsl
          |package ${firstLow(d.domain)}$extraImports
          |import scala.language.higherKinds
-         |import molecule.boilerplate.attributes._
-         |import molecule.boilerplate.base._
-         |import molecule.boilerplate.dummyTypes._
-         |import molecule.boilerplate.in$in._
+         |import molecule.core.boilerplate.attributes._
+         |import molecule.core.boilerplate.base._
+         |import molecule.core.boilerplate.dummyTypes._
+         |import molecule.core.boilerplate.in$in._
          |
          |
          |$content""".stripMargin

@@ -85,7 +85,7 @@ object SchemaTransaction {
         |* 3. Refresh and re-compile project in IDE
         |*/
         |package ${d.pkg}.schema
-        |import molecule.schema.SchemaTransaction
+        |import molecule.core.schema.SchemaTransaction
         |import datomic.Util._
         |import datomic.Peer._
         |
