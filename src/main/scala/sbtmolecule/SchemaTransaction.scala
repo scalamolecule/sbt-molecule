@@ -6,7 +6,7 @@ object SchemaTransaction {
 
   // Generate ..........................................
 
-  def apply(d: Definition): String = {
+  def apply(d: Model): String = {
 
     def attrStmts(ns: String, a: DefAttr): String = {
       val ident = s"""read(":db/ident")             , read(":$ns/${a.attrClean}")"""
@@ -17,7 +17,7 @@ object SchemaTransaction {
         case Val(_, _, _, _, _, t, options, _, _, _)                               => Seq(tpe(t), card("many")) ++ options.map(_.datomicKeyValue)
         case a: DefAttr if a.clazz.take(3) == "One"                                => Seq(tpe("ref"), card("one")) ++ a.options.map(_.datomicKeyValue)
         case a: DefAttr                                                            => Seq(tpe("ref"), card("many")) ++ a.options.map(_.datomicKeyValue)
-        case unexpected                                                            => throw new SchemaDefinitionException(s"Unexpected attribute statement:\n" + unexpected)
+        case unexpected                                                            => throw new DataModelException(s"Unexpected attribute statement:\n" + unexpected)
       }
       s"map(${(ident +: stmts).mkString(",\n        ")})"
     }
@@ -77,15 +77,15 @@ object SchemaTransaction {
       }.mkString(",\n\n\n    ")
 
     s"""|/*
-        |* AUTO-GENERATED Molecule DSL schema boilerplate code
+        |* AUTO-GENERATED Datomic schema generation boilerplate code
         |*
         |* To change:
-        |* 1. edit schema definition file in `${d.pkg}.schema/`
+        |* 1. edit data model file in `${d.pkg}.dataModel/`
         |* 2. `sbt compile` in terminal
         |* 3. Refresh and re-compile project in IDE
         |*/
         |package ${d.pkg}.schema
-        |import molecule.core.schema.SchemaTransaction
+        |import molecule.core.data.SchemaTransaction
         |import datomic.Util._
         |import datomic.Peer._
         |

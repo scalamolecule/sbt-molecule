@@ -1,47 +1,102 @@
 package sbtmolecule
 
 import sbt.Keys._
+import sbt.plugins.JvmPlugin
 import sbt.{CrossVersion, Def, _}
 
 object MoleculePlugin extends sbt.AutoPlugin {
 
-  override def requires = plugins.JvmPlugin
+  override def requires: JvmPlugin.type = plugins.JvmPlugin
 
   object autoImport {
-    lazy val moleculeSchemas     = settingKey[Seq[String]]("Seq of paths to directories having a schema directory with Molecule Schema definition files.")
-    lazy val moleculeAllIndexed  = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
-    lazy val moleculeMakeJars    = settingKey[Boolean]("Whether jars are created from generated source files.")
-    lazy val moleculeBoilerplate = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
-    lazy val moleculeJars        = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
+    lazy val moleculeDataModelPaths = settingKey[Seq[String]]("Seq of paths to directories having a `dataModel` directory with data model files.")
+    lazy val moleculeAllIndexed     = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
+    lazy val moleculeMakeJars       = settingKey[Boolean]("Whether jars are created from generated source files.")
+    lazy val moleculePluginActive   = settingKey[Boolean]("Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds.")
+    lazy val moleculeBoilerplate    = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
+    lazy val moleculeJars           = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
   }
 
   import autoImport._
 
   def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
+
     moleculeBoilerplate := {
+      val cacheDir = streams.value.cacheDirectory / "moleculeBoilerplateTesting"
 
-      // Optional settings
-      val allIndexed = moleculeAllIndexed.?.value getOrElse true
+      //      println(
+      //        s"""-------------------------
+      //           |${unmanagedBase.value}
+      //           |${unmanagedClasspath.value}
+      //           |${managedClasspath.value}
+      //           |${fullClasspath.value}
+      //           |-------------------------""".stripMargin
+      //      )
 
-      // generate source files
-      val sourceFiles = FileBuilder(scalaSource.value, sourceManaged.value, moleculeSchemas.value, allIndexed)
+      if (moleculePluginActive.?.value.getOrElse(false)) {
+        println(
+          s"""------------------------------------------------------------------------------------------------------
+             |Generating Molecule boilerplate code for data models in:
+             |${moleculeDataModelPaths.?.value.getOrElse(Nil).mkString("\n")}
+             |------------------------------------------------------------------------------------------------------""".stripMargin
+        )
+        // Optional settings
+        val allIndexed = moleculeAllIndexed.?.value getOrElse true
 
-      // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
-      val cache = FileFunction.cached(
-        streams.value.cacheDirectory / "moleculeBoilerplateTesting",
-        inStyle = FilesInfo.lastModified,
-        outStyle = FilesInfo.hash
-      ) {
-        in: Set[File] => sourceFiles.toSet
+        // generate source files
+        val baseDir = baseDirectory.value.toString
+        val last    = baseDir.split('/').last
+        val isJvm   = last != ".js" && last != "js"
+        val srcDir  = last match {
+          case ".js" | ".jvm" =>
+            // todo: Ugly hack - is there a way to get this correctly from sbt?
+            // ScalaJS project, need to generate sources from original path, so changing the source path:
+            // <project-path/foo/.jvm/src/main/scala  // nothing here to generate from. So we change to..
+            // <project-path/foo/src/main/scala       // our data models are here
+            file(baseDir.split('/').init.mkString("/") + "/src/main/scala")
+          case "js"           =>
+            // todo: Ugly hack - is there a way to get this correctly from sbt?
+            // Use dataModel from jvm (should only be defined there)
+            file(baseDir.split('/').init.mkString("/") + "/jvm/src/main/scala")
+          case _              =>
+            // Non-ScalaJS project
+            scalaSource.value
+        }
+
+        //        println(
+        //          s"""-------------------------
+        //             |${baseDirectory.value}
+        //             |${sourceDirectory.value}
+        //             |${scalaSource.value}
+        //             |
+        //             |$last
+        //             |$srcDir
+        //             |$isJvm
+        //             |-------------------------""".stripMargin
+        //        )
+
+        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, allIndexed, isJvm)
+
+        // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
+        val cache = FileFunction.cached(cacheDir, inStyle = FilesInfo.lastModified, outStyle = FilesInfo.hash) {
+          in: Set[File] => sourceFiles.toSet
+        }
+        cache(sourceFiles.toSet).toSeq
+
+      } else {
+        // Plugin not active - do nothing
+        Seq.empty[File]
       }
-      cache(sourceFiles.toSet).toSeq
     },
     sourceGenerators += moleculeBoilerplate.taskValue,
+
     moleculeJars := Def.taskDyn {
-      if (moleculeMakeJars.?.value getOrElse true)
+      if (moleculePluginActive.?.value.getOrElse(false) && moleculeMakeJars.?.value.getOrElse(true)) {
         makeJars()
-      else
+      } else {
+        // Make no jars
         Def.task {}
+      }
     }.triggeredBy(compile in Compile).value
   ))
 
@@ -51,28 +106,33 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
     val moduleDirName: String      = baseDirectory.value.toString.split("/").last
-    val transferDirs : Seq[String] = moleculeSchemas.value.flatMap(dir => Seq(s"$dir/dsl/", s"$dir/schema"))
+    val transferDirs : Seq[String] = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
     val cross        : String      = if (crossScalaVersions.value.size == 1) "" else {
       val v = CrossVersion.partialVersion(scalaVersion.value).get
       s"/${v._1}.${v._2}"
     }
 
     // Create source jar from generated source files
-    val sourceDir   : File                = (sourceManaged in Compile).value
-    val srcJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar/")
-    val srcFilesData: Seq[(File, String)] = files2TupleRec("", sourceDir, ".scala", transferDirs)
+    val src_managedDir: File                = (sourceManaged in Compile).value
+    val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar/")
+    val srcFilesData  : Seq[(File, String)] = files2TupleRec("", src_managedDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest, None)
 
     // Create jar from class files compiled from generated source files
-    val targetDir      : File                = (classDirectory in Compile).value
+    val classesDir     : File                = (classDirectory in Compile).value
     val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName.jar/")
-    val targetFilesData: Seq[(File, String)] = files2TupleRec("", targetDir, ".class", transferDirs)
+    val targetFilesData: Seq[(File, String)] = files2TupleRec("", classesDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest, None)
 
     // Cleanup now obsolete generated/compiled code
-    moleculeSchemas.value.foreach { dir =>
-      sbt.IO.delete(sourceDir / dir)
-      sbt.IO.delete(targetDir / dir)
+    moleculeDataModelPaths.value.foreach { path =>
+      // Delete class files compiled from generated source files
+      // Leave other class files in paths untouched
+      sbt.IO.delete(classesDir / path / "dsl")
+      sbt.IO.delete(classesDir / path / "schema")
+
+      // Delete all generated source files
+      sbt.IO.delete(src_managedDir / path)
     }
   }
 
@@ -82,10 +142,10 @@ object MoleculePlugin extends sbt.AutoPlugin {
       case file if file.isFile &&
         file.name.endsWith(tpe) &&
         transferDirs.exists(path.startsWith(_)) &&
-        !file.name.endsWith(s"Definition$tpe") &&
-        !file.name.endsWith(s"Definition$$$tpe") => Seq((file, s"$path${file.getName}"))
-      case otherFile if otherFile.isFile         => Nil
-      case dir                                   => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
+        !file.name.endsWith(s"DataModel$tpe") &&
+        !file.name.endsWith(s"DataModel$$$tpe") => Seq((file, s"$path${file.getName}"))
+      case otherFile if otherFile.isFile        => Nil
+      case dir                                  => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
     }
   }
 }
