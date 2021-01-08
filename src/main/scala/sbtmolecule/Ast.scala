@@ -3,10 +3,10 @@ package sbtmolecule
 
 object Ast extends Helpers {
 
-  class SchemaDefinitionException(message: String) extends RuntimeException(message)
+  class DataModelException(message: String) extends RuntimeException(message)
 
-  case class Definition(pkg: String, in: Int, out: Int, domain: String, curPart: String, curPartDescr: String, nss: Seq[Namespace]) {
-    def addAttr(attr: DefAttr): Definition = {
+  case class Model(pkg: String, in: Int, out: Int, domain: String, curPart: String, curPartDescr: String, nss: Seq[Namespace]) {
+    def addAttr(attr: DefAttr): Model = {
       val previousNs = nss.init
       val lastNs = nss.last
       copy(nss = previousNs :+ lastNs.copy(attrs = lastNs.attrs :+ attr))

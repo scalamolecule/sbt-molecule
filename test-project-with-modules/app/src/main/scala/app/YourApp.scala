@@ -5,19 +5,18 @@ import app.schema._
 import molecule.datomic.api.out3._
 import molecule.datomic.peer.facade.Datomic_Peer
 
-object YourApp extends App {
+object YourApp {
 
-  // Make db
-  implicit val conn = Datomic_Peer.recreateDbFrom(YourDomainSchema)
 
-  // Load data
-  val companyId = Person.name("John").age(26).gender("male").save.eid
+  def findLisa: (String, Int, String) = {
 
-  // Retrieve data
-  val (person, age, gender) = Person.name.age.gender.get.head
+    // Make in-mem db
+    implicit val conn = Datomic_Peer.recreateDbFrom(YourDomainSchema)
 
-  // Verify
-  assert(s"$person is a $age years old $gender" == "John is a 26 years old male")
+    // Save Lisa
+    Person.name("Lisa").age(27).gender("female").save.eid
 
-  println(s"SUCCESS: $person is a $age years old $gender") //SUCCESS: John is a 26 years old male
+    // Retrieve Lisa
+    Person.name.age.gender.get.head
+  }
 }

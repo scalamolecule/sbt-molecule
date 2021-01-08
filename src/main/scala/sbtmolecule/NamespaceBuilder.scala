@@ -3,11 +3,11 @@ package sbtmolecule
 import Ast._
 
 
-case class NamespaceBuilder(d: Ast.Definition) {
+case class NamespaceBuilder(model: Ast.Model) {
 
   val crossAttrs: Seq[String] = {
     (for {
-      ns <- d.nss if ns.attrs.nonEmpty
+      ns <- model.nss if ns.attrs.nonEmpty
       attr <- ns.attrs if attr.attr.nonEmpty
     } yield attr).collect {
       case Ref(_, _, _, _, _, _, edgeNs, _, Some("BiEdgeRef_"), revRef, _)  => s"$edgeNs $revRef"
@@ -291,8 +291,8 @@ case class NamespaceBuilder(d: Ast.Definition) {
   }
 
   def nsBodies(namespace: Namespace): (String, Seq[String], Seq[(Int, String)]) = {
-    val inArity  = d.in
-    val outArity = d.out
+    val inArity  = model.in
+    val outArity = model.out
     val ns       = namespace.ns
     val attrs    = namespace.attrs
     val p1       = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length + 1).max, s)
@@ -405,12 +405,12 @@ case class NamespaceBuilder(d: Ast.Definition) {
          |* AUTO-GENERATED Molecule DSL boilerplate code for namespace `$ns`
          |*
          |* To change:
-         |* 1. edit schema definition file in `${d.pkg}.schema/`
+         |* 1. edit data model file in `${model.pkg}.dataModel/`
          |* 2. `sbt compile` in terminal
          |* 3. Refresh and re-compile project in IDE
          |*/
-         |package ${d.pkg}.dsl
-         |package ${firstLow(d.domain)}$extraImports
+         |package ${model.pkg}.dsl
+         |package ${firstLow(model.domain)}$extraImports
          |import scala.language.higherKinds
          |import molecule.core.boilerplate.attributes._
          |import molecule.core.boilerplate.base._
@@ -426,12 +426,12 @@ case class NamespaceBuilder(d: Ast.Definition) {
          |* AUTO-GENERATED Molecule DSL boilerplate code for namespace `$ns`
          |*
          |* To change:
-         |* 1. edit schema definition file in `${d.pkg}.schema/`
+         |* 1. edit data model file in `${model.pkg}.dataModel/`
          |* 2. `sbt compile` in terminal
          |* 3. Refresh and re-compile project in IDE
          |*/
-         |package ${d.pkg}.dsl
-         |package ${firstLow(d.domain)}$extraImports
+         |package ${model.pkg}.dsl
+         |package ${firstLow(model.domain)}$extraImports
          |import scala.language.higherKinds
          |import molecule.core.boilerplate.attributes._
          |import molecule.core.boilerplate.base._
@@ -456,7 +456,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
          |}""".stripMargin)
 
     val outBodies: Seq[String] = (0 to outArity).map(arity =>
-      mkOutBody(nsTrait(d.domain, namespace, 0, arity, inArity, outArity))
+      mkOutBody(nsTrait(model.domain, namespace, 0, arity, inArity, outArity))
     )
 
     val inBodies: Seq[(Int, String)] = if (inArity == 0) {
@@ -466,7 +466,7 @@ case class NamespaceBuilder(d: Ast.Definition) {
         in <- 1 to inArity
         out <- 0 to outArity
       } yield {
-        (in, mkInBody(in, nsTrait(d.domain, namespace, in, out, inArity, outArity)))
+        (in, mkInBody(in, nsTrait(model.domain, namespace, in, out, inArity, outArity)))
       }
     }
 

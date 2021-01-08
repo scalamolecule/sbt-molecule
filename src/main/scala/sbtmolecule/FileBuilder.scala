@@ -8,43 +8,62 @@ import scala.io.Source
 
 object FileBuilder {
 
-  def apply(codeDir: File, managedDir: File, defDirs: Seq[String], allIndexed: Boolean = true): Seq[File] = {
+  def apply(
+    sourceDir: File,
+    managedDir: File,
+    dataModelDirs: Seq[String],
+    allIndexed: Boolean = true,
+    isJvm: Boolean = true
+  ): Seq[File] = {
     // Loop domain directories
-    val files: Seq[File] = defDirs flatMap { defDir =>
+    val files: Seq[File] = dataModelDirs flatMap { dataModelDir =>
 
-      val schemaDirs: Array[File] = sbt.IO.listFiles(codeDir / defDir)
-      assert(schemaDirs.exists(f => f.isDirectory && f.getName == "schema"),
-        s"\nMissing `schema` package inside supplied moleculeSchema directory `$defDir`.")
+      val dataModelDirs: Array[File] = sbt.IO.listFiles(sourceDir / dataModelDir)
+      assert(
+        dataModelDirs.exists(f => f.isDirectory && f.getName == "dataModel"),
+        s"\nMissing `dataModel` package inside supplied moleculeDataModelPath:\n" + sourceDir / dataModelDir
+      )
 
-      val definitionFiles: Array[File] = sbt.IO.listFiles(codeDir / defDir / "schema").filter(f => f.isFile && f.getName.endsWith("Definition.scala"))
-      assert(definitionFiles.nonEmpty, "\nFound no definition files in path: " + codeDir / defDir +
-        "\nSchema definition file names should end with `<YourDomain...>Definition.scala`")
+      val dataModelFiles: Array[File] = sbt.IO.listFiles(sourceDir / dataModelDir / "dataModel").filter(f => f.isFile && f.getName.endsWith("DataModel.scala"))
+      assert(
+        dataModelFiles.nonEmpty,
+        "\nFound no valid data model object in " + sourceDir / dataModelDir +
+          "\nData model file names should end with `<YourDomain...>DataModel.scala`"
+      )
 
-      // Loop definition files in each domain directory
-      definitionFiles flatMap { defFile =>
-        val defFileSource = Source.fromFile(defFile)
-        val d: Definition = DefinitionParser(defFile.getName, defFileSource.getLines().toList, allIndexed).parse
-        defFileSource.close()
+      // Loop data model files in each domain directory
+      dataModelFiles flatMap { dataModelFile =>
+        val dataModelFileSource = Source.fromFile(dataModelFile)
+        val model: Model        = DataModelParser(dataModelFile.getName, dataModelFileSource.getLines().toList, allIndexed).parse
+        dataModelFileSource.close()
 
-        // Write schema file
-        val schemaFile: File = d.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${d.domain}Schema.scala"
-        IO.write(schemaFile, SchemaTransaction(d))
+        val schemaFiles = if (isJvm) {
+          // Write schema file
+          val schemaFile: File = model.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${model.domain}Schema.scala"
+          IO.write(schemaFile, SchemaTransaction(model))
 
-        // Write schema file with lower-cased namespace names when no custom partitions are defined
-        // Useful to have lower-case namespace named attributes also for data imports from the Clojure world where namespace names are lower case by convention.
-        // In Scala/Molecule code we can still use our uppercase-namespace attribute names.
-        val schemaFileModifiers: Seq[File] = if (d.curPart.isEmpty) {
-          val schemaFileLowerToUpper: File = d.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${d.domain}SchemaLowerToUpper.scala"
-          IO.write(schemaFileLowerToUpper, SchemaTransactionLowerToUpper(d))
+          // Write schema file with lower-cased namespace names when no custom partitions are defined
+          // Useful to have lower-case namespace named attributes also for data imports from the Clojure world where namespace names are lower case by convention.
+          // In Scala/Molecule code we can still use our uppercase-namespace attribute names.
+          val schemaFileModifiers: Seq[File] = if (model.curPart.isEmpty) {
+            val schemaFileLowerToUpper: File = model.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${model.domain}SchemaLowerToUpper.scala"
+            IO.write(schemaFileLowerToUpper, SchemaTransactionLowerToUpper(model))
 
-          val schemaFileUpperToLower: File = d.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${d.domain}SchemaUpperToLower.scala"
-          IO.write(schemaFileUpperToLower, SchemaTransactionUpperToLower(d))
+            val schemaFileUpperToLower: File = model.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${model.domain}SchemaUpperToLower.scala"
+            IO.write(schemaFileUpperToLower, SchemaTransactionUpperToLower(model))
 
-          Seq(schemaFileLowerToUpper, schemaFileUpperToLower)
-        } else Nil
+            Seq(schemaFileLowerToUpper, schemaFileUpperToLower)
+          } else {
+            Nil
+          }
+
+          schemaFile +: schemaFileModifiers
+        } else {
+          Nil
+        }
 
         val namespaceFiles: Seq[File] = {
-          val d2        = d.copy(nss = d.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
+          val d2        = model.copy(nss = model.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
           val nsBuilder = NamespaceBuilder(d2)
           d2.nss.flatMap { ns =>
             val (outBody, outBodies, inBodies) = nsBuilder.nsBodies(ns)
@@ -75,7 +94,7 @@ object FileBuilder {
           }
         }
 
-        (schemaFile +: schemaFileModifiers) ++ namespaceFiles
+        schemaFiles ++ namespaceFiles
       }
     }
     files

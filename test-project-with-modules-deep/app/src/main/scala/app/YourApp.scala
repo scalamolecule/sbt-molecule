@@ -1,24 +1,38 @@
 package app
 
-//import molecule.datomic.api.out3._
-//import molecule.datomic.peer.facade.Datomic_Peer
-//import app.multiple.domain1.dsl.yourDomain._
-//import app.schema._
+import molecule.datomic.api.out3._
+import molecule.datomic.peer.facade.Datomic_Peer
 
-object YourApp extends App {
 
-  // Todo
-//  // Make db
-//  implicit val conn = Datomic_Peer.recreateDbFrom(YourDomainSchema)
-//
-//  // Load data
-//  val companyId = Person.name("John").age(26).gender("male").save.eid
-//
-//  // Retrieve data
-//  val (person, age, gender) = Person.name.age.gender.one
-//
-//  // Verify
-//  assert(s"$person is a $age years old $gender" == "John is a 26 years old male")
-//
-//  println(s"SUCCESS: $person is a $age years old $gender") //SUCCESS: John is a 26 years old male
+object YourApp {
+
+
+  def getOrder: String = {
+    import app.domains.dsl.order._
+    import app.domains.schema.OrderSchema
+
+    // Make in-mem db
+    implicit val conn = Datomic_Peer.recreateDbFrom(OrderSchema)
+
+    // Save Lisa
+    Order.id("abc").save.eid
+
+    // Retrieve Lisa
+    Order.id.get.head
+  }
+
+
+  def getAnimal: String = {
+    import app.domains.nested.dsl.animal._
+    import app.domains.nested.schema.AnimalSchema
+
+    // Make in-mem db
+    implicit val conn = Datomic_Peer.recreateDbFrom(AnimalSchema)
+
+    // Save Lisa
+    Animal.name("bob").save.eid
+
+    // Retrieve Lisa
+    Animal.name.get.head
+  }
 }

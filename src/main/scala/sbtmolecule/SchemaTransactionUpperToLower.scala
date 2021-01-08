@@ -6,7 +6,7 @@ object SchemaTransactionUpperToLower {
 
   // Generate ..........................................
 
-  def apply(d: Definition): String = {
+  def apply(d: Model): String = {
 
     val attributeDefinitions: String = d.nss.filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))).map {
       case Namespace(_, _, ns, _, opt, attrs) =>
