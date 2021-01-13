@@ -4,7 +4,7 @@ name := "sbt-molecule-test-project-scalajs-full"
 
 scalaVersion in ThisBuild := "2.13.4"
 
-lazy val moleculeVersion = "0.24.0-SNAPSHOT"
+lazy val moleculeVersion = "0.23.2"
 
 lazy val foo = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
