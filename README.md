@@ -29,10 +29,16 @@ lazy val yourProject = project.in(file("app"))
       Resolver.sonatypeRepo("releases")
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.24.0",
+      "org.scalamolecule" %% "molecule" % "0.23.2",
       "com.datomic" % "datomic-free" % "0.9.5697"
     ),
-    moleculeSchemas := Seq("app") // paths to your schema definition files...
+
+    // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
+    moleculePluginActive := sys.props.get("molecule") == Some("true"),
+    moleculeDataModelPaths := Seq("app"), // path to domain model directory
+
+    // Let IDE detect created jars in unmanaged lib directory
+    exportJars := true
   )
 ```
 The sbt-molecule plugin is available in [maven central](https://repo1.maven.org/maven2/org/scalamolecule/sbt-molecule_2.12_1.0/) for Scala.
@@ -61,7 +67,7 @@ In the main Molecule project's examples module we have several Schema definition
 And we then list the paths to those like this in our `build.sbt`:
 
 ```scala
-moleculeSchemas := Seq(
+moleculeDataModelPaths := Seq(
   "molecule/examples/dayOfDatomic",
   "molecule/examples/graph",
   "molecule/examples/mbrainz",

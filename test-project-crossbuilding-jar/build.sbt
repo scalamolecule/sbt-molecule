@@ -11,7 +11,7 @@ resolvers ++= Seq(
   ("clojars" at "http://clojars.org/repo").withAllowInsecureProtocol(true)
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "0.24.0-SNAPSHOT",
+  "org.scalamolecule" %% "molecule" % "0.23.2",
   "com.datomic" % "datomic-free" % "0.9.5697",
   "org.specs2" %% "specs2-core" % "4.10.5"
 )
