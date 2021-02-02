@@ -36,7 +36,7 @@ object SchemaTransactionUpperToLower {
     }.mkString(",\n\n\n    ")
 
     s"""|/*
-        |* AUTO-GENERATED Molecule DSL schema boilerplate code
+        |* AUTO-GENERATED Datomic Schema exchange boilerplate code
         |*
         |* To change:
         |* 1. edit schema definition file in `${d.pkg}.schema/`

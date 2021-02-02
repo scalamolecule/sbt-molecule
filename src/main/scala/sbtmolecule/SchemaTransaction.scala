@@ -77,7 +77,7 @@ object SchemaTransaction {
       }.mkString(",\n\n\n    ")
 
     s"""|/*
-        |* AUTO-GENERATED Datomic schema generation boilerplate code
+        |* AUTO-GENERATED Datomic Schema generation boilerplate code
         |*
         |* To change:
         |* 1. edit data model file in `${d.pkg}.dataModel/`
@@ -85,7 +85,7 @@ object SchemaTransaction {
         |* 3. Refresh and re-compile project in IDE
         |*/
         |package ${d.pkg}.schema
-        |import molecule.core.data.SchemaTransaction
+        |import molecule.core._1_dataModel.data.SchemaTransaction
         |import datomic.Util._
         |import datomic.Peer._
         |

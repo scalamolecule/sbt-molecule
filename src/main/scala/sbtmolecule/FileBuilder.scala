@@ -3,6 +3,7 @@ package sbtmolecule
 import java.io.File
 import sbt._
 import Ast._
+import sbtmolecule.generate.{NsArity, NsBase}
 import scala.io.Source
 
 
@@ -62,39 +63,29 @@ object FileBuilder {
           Nil
         }
 
-        val namespaceFiles: Seq[File] = {
-          val d2        = model.copy(nss = model.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
-          val nsBuilder = NamespaceBuilder(d2)
-          d2.nss.flatMap { ns =>
-            val (outBody, outBodies, inBodies) = nsBuilder.nsBodies(ns)
-
-            val path   = d2.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / firstLow(d2.domain)
+        val nsFiles: Seq[File] = {
+          val cleanModel = model.copy(nss = model.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
+          cleanModel.nss.flatMap { ns =>
+            val path   = cleanModel.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / firstLow(cleanModel.domain)
             val folder = path / (firstLow(ns.ns) + "_")
 
-            // Output namespace files
-            val outFileBase: File = path / s"${ns.ns}.scala"
-            IO.write(outFileBase, outBody)
+            val nsBaseFile: File = path / s"${ns.ns}.scala"
+            IO.write(nsBaseFile, NsBase(cleanModel, ns).get)
 
-            // Create sub folder with individual arity out files
-            val outFiles: Seq[File] = outBodies.zipWithIndex.map { case (body, outArity) =>
-              val outFile = folder / s"${ns.ns}_$outArity.scala"
-              IO.write(outFile, body)
-              outFile
+            val nsArityFiles: Seq[File] = for {
+              in <- 0 to cleanModel.in
+              out <- 0 to cleanModel.out
+            } yield {
+              val file: File = folder / s"${ns.ns}_${in}_$out.scala"
+              IO.write(file, NsArity(cleanModel, ns, in, out).get)
+              file
             }
 
-            // Input namespace files
-            val inFiles: Seq[File] = inBodies.zipWithIndex.map { case ((inArity, inBody), i) =>
-              val outArity     = i - (inArity - 1) * d2.out - (inArity - 1)
-              val inFile: File = folder / s"${ns.ns}_In_${inArity}_$outArity.scala"
-              IO.write(inFile, inBody)
-              inFile
-            }
-
-            outFileBase +: (outFiles ++ inFiles)
+            nsBaseFile +: nsArityFiles
           }
         }
 
-        schemaFiles ++ namespaceFiles
+        schemaFiles ++ nsFiles
       }
     }
     files
