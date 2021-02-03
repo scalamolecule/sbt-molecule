@@ -67,14 +67,14 @@ object FileBuilder {
           val cleanModel = model.copy(nss = model.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
           cleanModel.nss.flatMap { ns =>
             val path   = cleanModel.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / firstLow(cleanModel.domain)
-            val folder = path / (firstLow(ns.ns) + "_")
+            val folder = path / ("_" + ns.ns)
 
             val nsBaseFile: File = path / s"${ns.ns}.scala"
             IO.write(nsBaseFile, NsBase(cleanModel, ns).get)
 
             val nsArityFiles: Seq[File] = for {
-              in <- 0 to cleanModel.in
-              out <- 0 to cleanModel.out
+              in <- 0 to cleanModel.maxIn
+              out <- 0 to cleanModel.maxOut
             } yield {
               val file: File = folder / s"${ns.ns}_${in}_$out.scala"
               IO.write(file, NsArity(cleanModel, ns, in, out).get)

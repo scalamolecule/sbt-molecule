@@ -63,7 +63,7 @@ case class DataModelParser(dataModelFileName: String, lines0: List[String], allI
       val indexed = Optional("""read(":db/index")             , true.asInstanceOf[Object]""", "Indexed")
       val options = str0 match {
         case r"\.doc\((.*)$msg\)(.*)$str" => parseOptions(str, acc :+ Optional(s"""read(":db/doc")               , $msg""", ""), attr, curFullNs)
-        case r"\.fulltext(.*)$str"        => parseOptions(str, acc :+ Optional("""read(":db/fulltext")          , true.asInstanceOf[Object]""", "Fulltext[Ns, In]"), attr, curFullNs)
+        case r"\.fulltext(.*)$str"        => parseOptions(str, acc :+ Optional("""read(":db/fulltext")          , true.asInstanceOf[Object]""", "Fulltext"), attr, curFullNs)
         case r"\.uniqueValue(.*)$str"     => parseOptions(str, acc :+ Optional("""read(":db/unique")            , read(":db.unique/value")""", "UniqueValue"), attr, curFullNs)
         case r"\.uniqueIdentity(.*)$str"  => parseOptions(str, acc :+ Optional("""read(":db/unique")            , read(":db.unique/identity")""", "UniqueIdentity"), attr, curFullNs)
         case r"\.isComponent(.*)$str"     => parseOptions(str, acc :+ Optional("""read(":db/isComponent")       , true.asInstanceOf[Object]""", "IsComponent"), attr, curFullNs)
@@ -393,7 +393,7 @@ case class DataModelParser(dataModelFileName: String, lines0: List[String], allI
         case r"package (.*)$pkg\.dataModel"                              => (0, "", d.copy(pkg = pkg))
         case r"import molecule\.core\._1_dataModel\.data\.model._"       => (0, "", d)
         case r"import molecule\.core\._1_dataModel\.data\.model\.(.*)$t" => throw new DataModelException(s"Data model api in $dataModelFileName (line ${i + 1}) should be imported with `import molecule.core.data.model._`")
-        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                          => (0, "", d.copy(in = inS.toString.toInt, out = outS.toString.toInt))
+        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                          => (0, "", d.copy(maxIn = inS.toString.toInt, maxOut = outS.toString.toInt))
         case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}DataModel \{"           => (0, "", d.copy(domain = dmn))
 
         // Partition definitions

@@ -10,8 +10,8 @@ class Spacing(
   level: Int = 0
 ) {
   lazy val domain0  = model.domain
-  lazy val maxIn    = model.in
-  lazy val maxOut   = model.out
+  lazy val maxIn    = model.maxIn
+  lazy val maxOut   = model.maxOut
   lazy val maxLevel = maxOut.min(7)
   lazy val domain   = firstLow(domain0)
   lazy val ns       = namespace.ns
@@ -20,34 +20,34 @@ class Spacing(
   lazy val padAttr      = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length + 1).max, s)
   lazy val padAttrClean = (s: String) => padS(attrs.map(_.attrClean).filterNot(_.startsWith("_")).map(_.length).max, s)
   lazy val padType      = (s: String) => padS(attrs.map(_.tpe).map(_.length).max, s)
+  lazy val padBaseType  = (s: String) => padS(attrs.map(_.baseTpe).map(_.length).max, s)
   lazy val padClass     = (s: String) => padS(attrs.map(_.clazz).filterNot(_.startsWith("Back")).map(_.length).max, s)
 
-
-  lazy val maxRefs : Seq[Int] = attrs.collect {
+  lazy val maxRefs    : Seq[Int] = attrs.collect {
     case Ref(_, attrClean, _, _, _, _, _, _, _, _, _) => attrClean.length
     case BackRef(_, attrClean, _, _, _, _, _, _, _)   => attrClean.length
   }
-  lazy val maxRefNs: Seq[Int] = attrs.collect {
+  lazy val maxRefNs   : Seq[Int] = attrs.collect {
     case Ref(_, _, _, _, _, _, refNs, _, _, _, _) => refNs.length
-    case BackRef(_, _, _, _, _, _, backRef, _, _) => backRef.length
   }
   lazy val maxBackRefs: Seq[Int] = attrs.collect {
     case BackRef(_, _, _, _, _, _, backRef, _, _) => backRef.length
   }
 
-  lazy val padRef   = (attrClean: String) => padS(maxRefs.max, attrClean)
-  lazy val padRefNs = (refNs: String) => padS(maxRefNs.max, refNs)
+  lazy val padRef      = (attrClean: String) => padS(maxRefs.max, attrClean)
+  lazy val padRefNs    = (refNs: String) => padS(maxRefNs.max, refNs)
   lazy val padBackRefs = (backRef: String) => padS(maxBackRefs.max, backRef)
-
 
   def formatted(a: DefAttr) = {
     val attrSp = padAttrClean(a.attrClean)
     val typeSp = padType(a.tpe)
     val ref    = a.attrClean.capitalize + padRef(a.attrClean)
     val ref_   = a.attrClean.capitalize + "_" + padRef(a.attrClean)
+    val refNsPad = (refNs: String) => refNs + "_" + padRefNs(refNs)
     (
       ns + "_" + a.attrClean + attrSp,
       ns + "_" + a.attrClean + "$" + attrSp,
+      ns + "_" + a.attrClean + "K" + attrSp,
       ns + "_" + ref,
       ns + "_" + ref_,
       a.attr + padAttr(a.attr),
@@ -57,20 +57,30 @@ class Spacing(
       a.attrClean + "K_" + attrSp,
       a.tpe + typeSp,
       "Option[" + a.tpe + typeSp + "]",
-      ref
+      a.baseTpe + padBaseType(a.baseTpe),
+      ref,
+      refNsPad
     )
   }
 
-
   def nn(i: Int) = if (i < 10) s"0$i" else s"$i"
 
-  lazy val ns_       = ns + "_"
-  lazy val ns_0_0    = ns + "_" + in + "_" + out
-  lazy val ns_0_0_L0 = ns + "_" + in + "_" + out + "_L" + level
-  lazy val ns_0_1    = if (out < maxOut) ns + "_" + in + "_" + (out + 1) else "D" + nn(out + 1)
-  lazy val ns_0_1_L0 = ns + "_" + in + "_" + (out + 1) + "_L" + level
-  lazy val ns_1_0    = if (maxIn > 0 && in < maxIn) ns + "_" + (in + 1) + "_" + out else "D" + nn(out + 1)
-  lazy val ns_1_1    = if (maxIn > 0) ns + "_" + (in + 1) + "_" + (out + 1) else "D" + nn(out + 2)
+  lazy val ns_ = ns + "_"
+
+  lazy val ns_0_0_ = ns + "_" + in + "_" + out
+  lazy val ns_0_1_ = ns + "_" + in + "_" + (out + 1)
+  lazy val ns_1_0_ = ns + "_" + (in + 1) + "_" + out
+  lazy val ns_1_1_ = ns + "_" + (in + 1) + "_" + (out + 1)
+
+  lazy val ns_0_0 = ns_0_0_
+  lazy val ns_0_1 = if (out < maxOut) ns_0_1_ else "D" + nn(in + out + 1)
+  lazy val ns_1_0 = if (maxIn > 0 && in < maxIn) ns_1_0_ else "D" + nn(in + 1 + out)
+  lazy val ns_1_1 = if (maxIn > 0 && in < maxIn && out < maxOut) ns_1_1_ else "D" + nn(in + 1 + out + 1)
+
+  lazy val ns_0_0_L0 = ns_0_0_ + "_L" + level
+  lazy val ns_0_1_L0 = if (out < maxOut) ns_0_1_ + "_L" + level else "D" + nn(in + out + 1)
+  lazy val ns_1_0_L0 = if (maxIn > 0 && in < maxIn) ns_1_0_ + "_L" + level else "D" + nn(in + 1 + out)
+  lazy val ns_1_1_L0 = if (maxIn > 0 && in < maxIn && out < maxOut) ns_1_1_ + "_L" + level else "D" + nn(in + 1 + out + 1)
 
   lazy val `o0, p0`             = (0 to level).map(l => s"o$l, p$l").mkString(", ")
   lazy val `o0[_], p0`          = (0 to level).map(l => s"o$l[_], p$l").mkString(", ")
@@ -86,10 +96,16 @@ class Spacing(
   }
   lazy val `o0, p0 with o1[p1]` = "o0, " + `p0 with o1[p1]`
 
-  lazy val `, I1, I2` = if (in == 0) "" else ", " + (1 to in).map("I" + _).mkString(", ")
-  lazy val `, A, B`   = if (out == 0) "" else ", " + (65 until (65 + out)).map(_.toChar).mkString(", ")
-  lazy val `, I1, A`  = `, I1, I2` + `, A, B`
+  // Current and next+
+  lazy val `, I1`      = if (in == 0) "" else ", " + (1 to in).map("I" + _).mkString(", ")
+  lazy val `, I1+`     = if (in == 0) "" else ", " + (1 to (in + 1)).map("I" + _).mkString(", ")
+  lazy val `, A`       = if (out == 0) "" else ", " + (65 until (65 + out)).map(_.toChar).mkString(", ")
+  lazy val `, A+`      = if (out == 0) "" else ", " + (65 until (65 + out + 1)).map(_.toChar).mkString(", ")
+  lazy val `, I1, A`   = `, I1` + `, A`
+  lazy val `, I1+, A`  = `, I1+` + `, A`
+  lazy val `, I1, A+`  = `, I1` + `, A+`
+  lazy val `, I1+, A+` = `, I1+` + `, A+`
 
-  lazy val D01 = "D" + nn(out + 1)
-  lazy val D00 = "D" + nn(out)
+  lazy val D01 = "D" + nn(in + out + 1)
+  lazy val D00 = "D" + nn(in + out)
 }

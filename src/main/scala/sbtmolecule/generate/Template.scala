@@ -11,23 +11,23 @@ object Template {
     body: String,
     extraImports: Seq[String] = Nil,
   ): String = {
+    val dataModel = domain + "DataModel"
     val imports = (Seq(
       "java.util.Date", // for txInstant
       "molecule.core._2_dsl.boilerplate.api._",
       "molecule.core._2_dsl.boilerplate.attributes._",
       "molecule.core._2_dsl.boilerplate.base._",
       "molecule.core._2_dsl.boilerplate.dummyTypes._",
-//      "molecule.core.boilerplate.obj._",
       "scala.language.higherKinds",
     ) ++ extraImports).sorted.mkString("import ", "\nimport ", "")
 
     s"""/*
-       |* AUTO-GENERATED Molecule DSL boilerplate code for namespace `$ns`
+       |* AUTO-GENERATED Molecule DSL for namespace `$ns`
        |*
        |* To change:
-       |* 1. edit data model file in `$pkg.dataModel/`
-       |* 2. `sbt compile` in terminal
-       |* 3. Refresh and re-compile project in IDE
+       |* 1. Edit data model in $pkg.dataModel/$dataModel
+       |* 2. `sbt clean compile`
+       |* 3. Re-compile project in IDE
        |*/
        |package $pkg.dsl.${firstLow(domain)}
        |

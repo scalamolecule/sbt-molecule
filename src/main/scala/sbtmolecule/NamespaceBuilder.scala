@@ -322,8 +322,8 @@ case class NamespaceBuilder(model: Ast.Model) {
   }
 
   def nsBodies(namespace: Namespace): (String, Seq[String], Seq[(Int, String)]) = {
-    val inArity  = model.in
-    val outArity = model.out
+    val inArity  = model.maxIn
+    val outArity = model.maxOut
     val ns       = namespace.ns
     val Ns       = ns.capitalize
     val attrs    = namespace.attrs

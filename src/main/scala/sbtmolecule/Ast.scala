@@ -5,14 +5,14 @@ object Ast extends Helpers {
 
   class DataModelException(message: String) extends RuntimeException(message)
 
-  case class Model(pkg: String, in: Int, out: Int, domain: String, curPart: String, curPartDescr: String, nss: Seq[Namespace]) {
+  case class Model(pkg: String, maxIn: Int, maxOut: Int, domain: String, curPart: String, curPartDescr: String, nss: Seq[Namespace]) {
     def addAttr(attr: DefAttr): Model = {
       val previousNs = nss.init
       val lastNs = nss.last
       copy(nss = previousNs :+ lastNs.copy(attrs = lastNs.attrs :+ attr))
     }
     override def toString: String =
-      s"""Definition("$pkg", $in, $out, "$domain", "$curPart", "$curPartDescr", ${if (nss.isEmpty) "Nil" else nss.mkString("List(\n  ", ",\n  ", ")")})"""
+      s"""Definition("$pkg", $maxIn, $maxOut, "$domain", "$curPart", "$curPartDescr", ${if (nss.isEmpty) "Nil" else nss.mkString("List(\n  ", ",\n  ", ")")})"""
   }
 
   case class Namespace(part: String, partDescr: Option[String], ns: String, nsDescr: Option[String], opt: Option[Extension] = None, attrs: Seq[DefAttr] = Seq()) {

@@ -16,10 +16,11 @@ case class NsArity(
     }
   ) {
     List("nested", "Nested_1", "Nested_2", "Nested_3")
-      .map("molecule.core._2_dsl.composition." + _ + "._").take(model.in + 1)
+      .map("molecule.core._2_dsl.composition." + _ + "._").take(model.maxIn + 1)
   } else {
     Nil
   }
+
 
   val extraImports: Seq[String] = attrs.collect {
     case Val(_, _, _, "UUID", _, _, _, _, _, _) => "java.util.UUID"

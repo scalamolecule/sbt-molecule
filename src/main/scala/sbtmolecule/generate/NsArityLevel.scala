@@ -358,75 +358,45 @@ case class NsArityLevel(
   //  }
 
 
-  def getRef(r: Ref) = {
-    val Ref(_, refAttrClean, _, clazz2, _, baseType, refNs0, _, _, _, _) = r
-    val ((attr, attrO, attr_, attrK, attrK_, tpe, tpO, ns_ref, ns_ref_, ref),
-    clsMan, clsOpt, ns0, ns1man, ns1opt, in1, in0, options0, options)    = nsData(r, r.bi)
+  def getRef(a: Ref) = {
+    val Ref(_, refAttrClean, _, clazz2, _, baseType, refNs0, _, _, _, _
+    )                 = a
+    val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad
+      )               = formatted(a)
+    val (clsMan, clsOpt, ns0man, ns0opt, ns0map, ns0tac, ns1man, ns1opt, ns1map, ns1tac, ns1tacK
+      )               = nsData(a, ns_attr, ns_attrO, ns_attrK, tpe, tpO, baseTpe)
+    val (opts, optsK) = getOptionLamdas(a, a.bi)
 
     val cls          = if (clazz2 == "OneRef") "OneRef " else "ManyRef"
-    val curNs        = ns + "_[p0]"
-    val refNs        = refNs0 + "_[p0]"
-    val refNs_0_0_L1 = refNs0 + "_" + in + "_" + out + "_L" + (level + 1)
+    val refNs_       = refNsPad(refNs0)
+    val refNs_0_0_L1 = refNs0 + "_" + in + "_" + out + "_L" + (level + 1) + padRefNs(refNs0)
 
     val refNsDef = refNs_0_0_L1 + "[" + `o0, p0` + s", $ns_ref_, Nothing" + `, I1, A` + "]"
 
-    val nestedDef = if (clazz2 == "ManyRef") {
-      val refNs2  = refAttrClean.capitalize
-      val ref_0_0 = if (out < maxOut) refNs0 + "_" + in + "_" + (out + 1) else "D" + nn(out + 1)
-      val ref_1_0 = if (maxIn > 0 && in < maxIn && out < maxOut) refNs0 + "_" + (in + 1) + "_" + (out + 1) else "D" + nn(out + 2)
-      val ref_2_0 = if (maxIn > 0 && in < maxIn && out < maxOut) refNs0 + "_" + (in + 2) + "_" + (out + 1) else "D" + nn(out + 3)
-      val ref_3_0 = if (maxIn > 0 && in < maxIn && out < maxOut) refNs0 + "_" + (in + 3) + "_" + (out + 1) else "D" + nn(out + 4)
-      val nsTypes = s"$ref_0_0, $ref_1_0, $ref_2_0, $ref_3_0"
+    val nestedDef = if (clazz2 == "ManyRef" && out < maxOut) {
+//      val ref_0_0 = if (out < maxOut) refNs0 + "_" + in + "_" + (out + 1) else "D" + nn(out + 1)
+//      val ref_1_0 = if (maxIn > 0 && in < maxIn && out < maxOut) refNs0 + "_" + (in + 1) + "_" + (out + 1) else "D" + nn(out + 2)
+//      val ref_2_0 = if (maxIn > 0 && in < maxIn && out < maxOut) refNs0 + "_" + (in + 2) + "_" + (out + 1) else "D" + nn(out + 3)
+//      val ref_3_0 = if (maxIn > 0 && in < maxIn && out < maxOut) refNs0 + "_" + (in + 3) + "_" + (out + 1) else "D" + nn(out + 4)
+//      val nsTypes = s"$ref_0_0, $ref_1_0, $ref_2_0, $ref_3_0"
 
-      s" with Nested${nn(out)}[$ns_ref_, " + `p0 with o1[p1]` + s", $nsTypes" + `, I1, A` + "]"
+      val nsTypes = (in to maxIn).map(i =>
+//        refNs0 + "_" + i + "_" + (out + 1) + "_L" + (level + 1) + padRefNs(refNs0)
+        refNs0 + "_" + i + "_" + (out + 1) + padRefNs(refNs0)
+      ).mkString(", ")
+
+      s" with Nested_${in}_${nn(out)}[$ns_ref_, " + `p0 with o1[p1]` + s", $nsTypes" + `, I1, A` + "]"
     } else {
       ""
     }
-    s"final def $ref: $cls[$curNs, $refNs] with $refNsDef$nestedDef = ??? "
+    s"final def $ref: $cls[$ns_[p0], $refNs_[p0]] with $refNsDef$nestedDef = ??? "
   }
-
-
-  def indexedFirst(opts: Seq[Optional]): Seq[String] = {
-    val classes = opts.filter(_.clazz.nonEmpty).map(_.clazz)
-    if (classes.contains("Indexed"))
-      "Indexed" +: classes.filterNot(_ == "Indexed")
-    else
-      classes
-  }
-
-  def nsData(a: DefAttr, bi: Option[String]) = {
-    val (ns_attr, ns_attrO, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, ref) = formatted(a)
-
-    val `,_,_`   = ",_" * (out + 1)
-    val `,_`     = ",_" * out
-    val options0 = indexedFirst(a.options) ++ bi.toList
-    (
-      (attr, attrO, attr_, attrK, attrK_, tpe, tpO, ns_ref, ns_ref_, ref),
-      a.clazz + padClass(a.clazz),
-      a.clazz + "$" + padClass(a.clazz),
-      s"$ns_0_0_L0[" + `o0, p0` + `, I1, A` + "]",
-      s"$ns_0_1_L0[" + `o0, p0` + s" with $ns_attr" + `, I1, A` + s", $tpe]",
-      s"$ns_0_1_L0[" + `o0, p0` + s" with $ns_attrO" + `, I1, A` + s", $tpO]",
-      if (maxIn == 0) s"$D01[o0,_" + `,_,_` + "]" else s"$D01[o0,_" + `,_,_` + "]", // todo
-      if (maxIn == 0) s"$D00[o0,_" + `,_` + "]" else s"$D00[o0,_" + `,_` + "]", // todo
-      options0,
-      if (options0.isEmpty) "" else " with " + options0.mkString(" with ")
-    )
-  }
-
-  val val_Attr   = mutable.MutableList.empty[String]
-  val valAttr$   = mutable.MutableList.empty[String]
-  val valAttr_   = mutable.MutableList.empty[String]
-  val val_AttrK  = mutable.MutableList.empty[String]
-  val valAttrK_  = mutable.MutableList.empty[String]
-  val defRef     = mutable.MutableList.empty[String]
-  val defBackRef = mutable.MutableList.empty[String]
 
   def getBackRef(br: BackRef) = {
     val backRefNs         = br.backRefNs
     val backRefNsPrefixed = "_" + backRefNs + padBackRefs(backRefNs)
     val backRef_0_0_L0    = backRefNs + "_" + in + "_" + out + "_L" + (level - 1)
-    val concatLast     = level match {
+    val concatLast        = level match {
       case 1 => "o0, p0 with o1[p1]"
       case 2 => "o0, p0, o1, p1 with o2[p2]"
       case 3 => "o0, p0, o1, p1, o2, p2 with o3[p3]"
@@ -438,52 +408,176 @@ case class NsArityLevel(
     s"final def $backRefNsPrefixed: $backRef_0_0_L0[$concatLast${`, I1, A`}] = ???"
   }
 
+
+  def indexedFirst(opts: Seq[Optional]): Seq[String] = {
+    val classes = opts.filter(_.clazz.nonEmpty).map(_.clazz)
+    if (classes.contains("Indexed"))
+      "Indexed" +: classes.filterNot(_ == "Indexed")
+    else
+      classes
+  }
+
+  def nsData(
+    a: DefAttr,
+    ns_attr: String,
+    ns_attrO: String,
+    ns_attrK: String,
+    tpe: String,
+    tpO: String,
+    baseTpe: String,
+  ) = {
+    val `,_,_` = ",_" * (in + out + 1)
+    val `,_`   = ",_" * (in + out)
+    (
+      //      (attr, attrO, attr_, attrK, attrK_, tpe, tpO, ns_ref, ns_ref_, baseTpe, ref, refNsPad),
+      a.clazz + padClass(a.clazz),
+      a.clazz + "$" + padClass(a.clazz),
+
+      // This, mandatory
+      s"$ns_0_1_L0[" + `o0, p0` + s" with $ns_attr" + `, I1, A` + s", $tpe]",
+
+      // This, optional
+      s"$ns_0_1_L0[" + `o0, p0` + s" with $ns_attrO" + `, I1, A` + s", $tpO]",
+
+      // This, mapK
+      s"$ns_0_1_L0[" + `o0, p0` + s" with $ns_attrK" + `, I1, A` + s", $baseTpe]",
+
+      // This, tacit
+      s"$ns_0_0_L0[" + `o0, p0` + `, I1, A` + "]",
+
+      // Next, mandatory
+      if (maxIn > 0 && in < maxIn && out < maxOut)
+        s"$ns_1_1_L0[" + `o0, p0` + s" with $ns_attr" + `, I1` + s", $tpe" + `, A` + s", $tpe]"
+      else
+        s"$D01[o0,_" + `,_,_` + "]",
+
+      // Next, optional
+      if (maxIn > 0 && in < maxIn && out < maxOut)
+        s"$ns_1_1_L0[" + `o0, p0` + s" with $ns_attrO" + `, I1` + s", $tpO" + `, A` + s", $tpO]"
+      else
+        s"$D01[o0,_" + `,_,_` + "]",
+
+      // Next, mapK
+      if (maxIn > 0 && in < maxIn && out < maxOut)
+        s"$ns_1_1_L0[" + `o0, p0` + s" with $ns_attrK" + `, I1` + s", $baseTpe" + `, A` + s", $baseTpe]"
+      else
+        s"$D01[o0,_" + `,_,_` + "]",
+
+      // Next, tacit
+      if (maxIn > 0 && in < maxIn)
+        s"$ns_1_0_L0[" + `o0, p0` + s" with $ns_attr" + `, I1` + s", $tpe" + `, A` + s"]"
+      else
+        s"$D00[o0,_" + `,_` + "]",
+
+      // Next, tacit mapK
+      if (maxIn > 0 && in < maxIn)
+        s"$ns_1_0_L0[" + `o0, p0` + s" with $ns_attrK" + `, I1` + s", $baseTpe" + `, A` + s"]"
+      else
+        s"$D00[o0,_" + `,_` + "]",
+    )
+  }
+
+  val val_Attr   = mutable.MutableList.empty[String]
+  val valAttr$   = mutable.MutableList.empty[String]
+  val valAttr_   = mutable.MutableList.empty[String]
+  val val_AttrK  = mutable.MutableList.empty[String]
+  val valAttrK_  = mutable.MutableList.empty[String]
+  val defRef     = mutable.MutableList.empty[String]
+  val defBackRef = mutable.MutableList.empty[String]
+
+  def getOptionLamdas(a: DefAttr, bi: Option[String]) = {
+    val classes            = a.options.filter(_.clazz.nonEmpty).map(_.clazz)
+    val indexed            = if (classes.contains("Indexed")) Seq("Indexed") else Nil
+    val optsWithoutIndexed = classes.filterNot(_ == "Indexed")
+    val biOptions          = bi.toList
+
+    def render(ns0: String, ns1: String, opts: Seq[String]) = if ((indexed ++ opts ++ biOptions).isEmpty) {
+      ""
+    } else {
+      val typedOpts = opts.map {
+        case "Fulltext" => s"Fulltext[$ns0, $ns1]"
+        case other      => other
+      }
+      (indexed ++ typedOpts ++ bi.toList).mkString(" with ", " with ", "")
+    }
+    (
+      (ns0: String, ns1: String) => render(ns0, ns1, optsWithoutIndexed),
+      (ns0: String, ns1: String) => render(ns0, ns1, "MapAttrK" +: optsWithoutIndexed)
+    )
+  }
+
   attrs.foreach {
     case a: Val =>
-      val ((attr, attrO, attr_, attrK, attrK_, tpe, tpO, ns_ref, ns_ref_, ref),
-      clsMan, clsOpt, ns0, ns1man, ns1opt, in1, in0, options0, options) = nsData(a, a.bi)
+      val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad
+        )               = formatted(a)
+      val (clsMan, clsOpt, ns0man, ns0opt, ns0map, ns0tac, ns1man, ns1opt, ns1map, ns1tac, ns1tacK
+        )               = nsData(a, ns_attr, ns_attrO, ns_attrK, tpe, tpO, baseTpe)
+      val (opts, optsK) = getOptionLamdas(a, a.bi)
+
       if (out < maxOut) {
-        val_Attr += s"final lazy val $attr : $clsMan[$ns1man, $in1] with $ns1man$options = ???"
-        valAttr$ += s"final lazy val $attrO: $clsOpt[$ns1opt] with $ns1opt$options = ???"
-      }
-      valAttr_ += s"final lazy val $attr_ : $clsMan[$ns0, $in0] with $ns0$options = ???"
-      if (a.clazz.startsWith("Map")) {
-        val mapAttrKOptions = " with " + (options0 :+ "MapAttrK").mkString(" with ")
-        val_AttrK += s"final lazy val $attrK  : String => $clsMan[$ns1man, $in1] with $ns1man$mapAttrKOptions = ???"
-        valAttrK_ += s"final lazy val $attrK_ : String => $clsMan[$ns1opt, $in0] with $ns1opt$mapAttrKOptions = ???"
+        val_Attr += s"final lazy val $attr : $clsMan [$ns0man, $ns1man] with $ns0man${opts(ns0man, ns1man)} = ???"
+        valAttr$ += s"final lazy val $attrO : $clsOpt[$ns0opt] with $ns0opt${opts(ns0opt, ns1opt)} = ???"
       }
 
-    case r: Ref =>
-      val ((attr, attrO, attr_, attrK, attrK_, tpe, tpO, ns_ref, ns_ref_, ref),
-      clsMan, clsOpt, ns0, ns1man, ns1opt, in1, in0, options0, options) = nsData(r, r.bi)
-      if (out < maxOut) {
-        val_Attr += s"final lazy val $attr : $clsMan[$ns1man, $in1] with $ns1man$options = ???"
-        valAttr$ += s"final lazy val $attrO: $clsOpt[$ns1opt] with $ns1opt$options = ???"
+      valAttr_ += s"final lazy val $attr_ : $clsMan [this.type, $ns1tac] with $ns0tac${opts("this.type", ns1tac)} = ???"
+//      valAttr_ += s"final lazy val $attr_ : $clsMan [$ns0tac, $ns1tac] with $ns0tac${opts(ns0tac, ns1tac)} = ???"
+
+      if (a.clazz.startsWith("Map")) {
+        val oneCls = "One" + baseTpe
+        val_AttrK += s"final lazy val $attrK  : String => $oneCls[$ns0map, $ns1map] with $ns0map${optsK(ns0map, ns1map)} = ???"
+        valAttrK_ += s"final lazy val $attrK_ : String => $oneCls[this.type, $ns1tacK] with $ns0tac${optsK("this.type", ns1tacK)} = ???"
+//        valAttrK_ += s"final lazy val $attrK_ : String => $oneCls[$ns0tac, $ns1tacK] with $ns0tac${optsK(ns0tac, ns1tacK)} = ???"
       }
-      valAttr_ += s"final lazy val $attr_ : $clsMan[$ns0, $in0] with $ns0$options = ???"
+
+    case a: Ref =>
+      val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad
+        )               = formatted(a)
+      val (clsMan, clsOpt, ns0man, ns0opt, ns0map, ns0tac, ns1man, ns1opt, ns1map, ns1tac, ns1tacK
+        )               = nsData(a, ns_attr, ns_attrO, ns_attrK, tpe, tpO, baseTpe)
+      val (opts, optsK) = getOptionLamdas(a, a.bi)
+
+      if (out < maxOut) {
+        val_Attr += s"final lazy val $attr : $clsMan [$ns0man, $ns1man] with $ns0man${opts(ns0man, ns1man)} = ???"
+        valAttr$ += s"final lazy val $attrO : $clsOpt[$ns0opt] with $ns0opt${opts(ns0opt, ns1opt)} = ???"
+      }
+      valAttr_ += s"final lazy val $attr_ : $clsMan [this.type, $ns1tac] with $ns0tac${opts("this.type", ns1tac)} = ???"
+//      valAttr_ += s"final lazy val $attr_ : $clsMan [$ns0tac, $ns1tac] with $ns0tac${opts(ns0tac, ns1tac)} = ???"
+
       if (level < maxLevel)
-        defRef += getRef(r)
+        defRef += getRef(a)
 
     case a: Enum =>
-      val ((attr, attrO, attr_, attrK, attrK_, tpe, tpO, ns_Ref, ns_Ref_, ref),
-      clsMan, clsOpt, ns0, ns1man, ns1opt, in1, in0, options0, options) = nsData(a, a.bi)
+      val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad
+        )               = formatted(a)
+      val (clsMan, clsOpt, ns0man, ns0opt, ns0map, ns0tac, ns1man, ns1opt, ns1map, ns1tac, ns1tacK
+        )               = nsData(a, ns_attr, ns_attrO, ns_attrK, tpe, tpO, baseTpe)
+      val (opts, optsK) = getOptionLamdas(a, a.bi)
+
       if (out < maxOut) {
-        val_Attr += s"final lazy val $attr : $clsMan[$ns1man, $in1] with $ns1man$options = ???"
-        valAttr$ += s"final lazy val $attrO: $clsOpt[$ns1opt] with $ns1opt$options = ???"
+        val_Attr += s"final lazy val $attr : $clsMan [$ns0man, $ns1man] with $ns0man${opts(ns0man, ns1man)} = ???"
+        valAttr$ += s"final lazy val $attrO : $clsOpt[$ns0opt] with $ns0opt${opts(ns0opt, ns1opt)} = ???"
       }
-      valAttr_ += s"final lazy val $attr_ : $clsMan[$ns0, $in0] with $ns0$options = ???"
+      valAttr_ += s"final lazy val $attr_ : $clsMan [this.type, $ns1tac] with $ns0tac${opts("this.type", ns1tac)} = ???"
+//      valAttr_ += s"final lazy val $attr_ : $clsMan [$ns0tac, $ns1tac] with $ns0tac${opts(ns0tac, ns1tac)} = ???"
 
     case br: BackRef =>
       if (level > 0)
         defBackRef += getBackRef(br)
   }
 
-  val attrsNext: Seq[String] = if (level < maxLevel) val_Attr ++ val_AttrK ++ Seq("") ++ valAttr$ ++ Seq("") else Nil
+  val selfJoinDef = s"final def Self: $ns_0_0_L0[${`o0, p0`}${`, I1, A`}] with SelfJoin = ???"
+
+  val attrsNext: Seq[String] = if (out < maxOut) {
+    val_Attr ++ Seq("") ++
+      (if (val_AttrK.nonEmpty) val_AttrK ++ Seq("") else Nil) ++
+      valAttr$ ++ Seq("")
+  } else Nil
   val attrKStay: Seq[String] = if (valAttrK_.nonEmpty) Seq("") ++ valAttrK_ else Nil
   val refs     : Seq[String] = if (defRef.nonEmpty) Seq("") ++ defRef else Nil
   val backRefs : Seq[String] = if (defBackRef.nonEmpty) Seq("") ++ defBackRef else Nil
+  val selfJoin : Seq[String] = if (out > 0) Seq("", selfJoinDef) else Nil
 
-  val body = (attrsNext ++ valAttr_ ++ attrKStay ++ refs ++ backRefs).mkString("\n  ").trim
+  val body = (attrsNext ++ valAttr_ ++ attrKStay ++ refs ++ backRefs ++ selfJoin).mkString("\n  ").trim
 
   def get: String =
     s"""trait $ns_0_0_L0[${`o0[_], p0`}${`, I1, A`}] extends $ns_0_0[${`o0, p0 with o1[p1]`}${`, I1, A`}] {
