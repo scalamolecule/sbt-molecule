@@ -47,7 +47,6 @@ case class NsArity(
     ("_" + ns + "_", s" with Api_${in}_${nn(out)}[o0, p0, $ns_0_0, $ns_0_1, $ns_1_0, $ns_1_1${`, I1, A`}]")
   }
 
-
   val body =
     s"""trait $ns_0_0[o0[_], p0${`, I1, A`}] extends $ns_[p0] with $baseNs$baseApi
        |

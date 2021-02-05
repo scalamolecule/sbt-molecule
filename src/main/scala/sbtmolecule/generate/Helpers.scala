@@ -156,13 +156,7 @@ class Helpers(
   lazy val Ns_1_0 = "Ns_" + (in + 1) + "_" + out
   lazy val Ns_1_1 = "Ns_" + (in + 1) + "_" + (out + 1)
 
-  //  lazy val p_0 = (Seq(`o0, p0`) ++ List.fill(in + out)("_")).mkString(",")
-  //  lazy val p_1 = (Seq(`o0, p0`) ++ List.fill(in + out + 1)("_")).mkString(",")
-  //  lazy val p_2 = (Seq(`o0, p0`) ++ List.fill(in + out + 2)("_")).mkString(",")
-
-
   lazy val o_  = (0 to level).map(l => s"o$l[_],_")
-  //  lazy val o_ = (0 to level).map(l => s"o[_],_")
   lazy val p_0 = (o_ ++ List.fill(in + out)("_")).mkString(",")
   lazy val p_1 = (o_ ++ List.fill(in + out + 1)("_")).mkString(",")
   lazy val p_2 = (o_ ++ List.fill(in + out + 2)("_")).mkString(",")
