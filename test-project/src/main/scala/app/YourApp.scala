@@ -1,7 +1,7 @@
 package app
 
-import app.dsl.yourDomain._
-import app.schema._
+//import app.dsl.YourDomain._
+//import app.Schema._
 import molecule.datomic.api.out5._
 import molecule.datomic.peer.facade.Datomic_Peer
 
@@ -11,16 +11,37 @@ object YourApp extends App {
 
   // Connect and recreate database
   // Since the in-memory db is new each time, we need to transact the schema on each run
-  implicit val conn = Datomic_Peer.recreateDbFrom(YourDomainSchema)
+//  implicit val conn = Datomic_Peer.recreateDbFrom(YourDomainSchema)
+
+//  trait EE
+//
+////  val xx: Int with  { private lazy val enum0, enum1 = EnumValue } = ???
+//  val xx: Int with EE { val enum0 = 7 } = ???
 
 
-    val o0 = m(A.int_.str).getObjList.head
-//    o0.int
-    o0.str
 
-    val o1 = B.int1.str1.getObjList.head
-    o1.int1
-    o1.str1
+//  val o0            = m(A.int.str).getObjList.head
+//  val o0int: Int    = o0.int
+//  val o0str: String = o0.str
+//
+//  val o0a            = m(A.int(7).str).getObjList.head
+//  val o0aint: Int    = o0a.int
+//  val o0astr: String = o0a.str
+//
+//  val o0b            = m(A.int_.str).getObjList.head
+//  val o0bstr: String = o0b.str
+//
+//  val o0c            = m(A.int_(7).str).getObjList.head
+//  val o0cstr: String = o0c.str
+//
+//  val o0d                 = m(A.int$.str).getObjList.head
+//  val o0dint: Option[Int] = o0d.int$
+//  val o0dstr: String      = o0d.str
+//
+//  val o0e                 = m(A.int$(Some(7)).str).getObjList.head
+//  val o0eint: Option[Int] = o0e.int$
+//  val o0estr: String      = o0e.str
+//
   //
   //
   //  // card-one --------------------------------------------------
@@ -97,22 +118,22 @@ object YourApp extends App {
   //    o5.RefsBB.head.str1
   //  }
   //
-//    // card-many nested
-//    val o6 = A.int.RefsBB.*(B.int1.str1.RefC.str2).getObjList.head
-//    o6.int
-//    o6.RefsBB.head.int1
-//    o6.RefsBB.head.str1
-//    o6.RefsBB.head.RefC.str2
-//
-//    val o7 = A.int.RefsBB.*(A.int.str).getObjList.head
-//    o7.int
-//    o7.RefsBB.head.int
-//    o7.RefsBB.head.str
-//
-//  val o6a = A.int.RefsBB.*(B.int1.RefsCC.*(C.str2)).getObjList.head
-//  o6a.int
-//  o6a.RefsBB.head.int1
-//  o6a.RefsBB.head.RefsCC.head.str2
+  //    // card-many nested
+  //    val o6 = A.int.RefsBB.*(B.int1.str1.RefC.str2).getObjList.head
+  //    o6.int
+  //    o6.RefsBB.head.int1
+  //    o6.RefsBB.head.str1
+  //    o6.RefsBB.head.RefC.str2
+  //
+  //    val o7 = A.int.RefsBB.*(A.int.str).getObjList.head
+  //    o7.int
+  //    o7.RefsBB.head.int
+  //    o7.RefsBB.head.str
+  //
+  //  val o6a = A.int.RefsBB.*(B.int1.RefsCC.*(C.str2)).getObjList.head
+  //  o6a.int
+  //  o6a.RefsBB.head.int1
+  //  o6a.RefsBB.head.RefsCC.head.str2
   //
   //
   //  // Composite -------------------------------------------------
@@ -186,16 +207,16 @@ object YourApp extends App {
   //  val o17: Any = A.int.Self.int.getObjList.head
 
 
-//  trait Nav[This, Next]
-//
-//  trait OneString[A, B] { self: Nav[A, B] =>
-//
-//    def <(other: String): A
-//  }
-//
-//  trait AA {
-//    val x: Nav[this.type, Int] with OneString
-//  }
+  //  trait Nav[This, Next]
+  //
+  //  trait OneString[A, B] { self: Nav[A, B] =>
+  //
+  //    def <(other: String): A
+  //  }
+  //
+  //  trait AA {
+  //    val x: Nav[this.type, Int] with OneString
+  //  }
 
 
 }

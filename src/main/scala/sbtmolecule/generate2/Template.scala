@@ -1,12 +1,11 @@
-package sbtmolecule.generate
-
-import sbtmolecule.Ast.firstLow
+package sbtmolecule.generate2
 
 object Template {
 
   def apply(
     ns: String,
     pkg: String,
+    pkgAppend: String,
     domain: String,
     body: String,
     extraImports: Seq[String] = Nil,
@@ -29,7 +28,7 @@ object Template {
        |* 2. `sbt clean compile`
        |* 3. Re-compile project in IDE
        |*/
-       |package $pkg.$domain
+       |package $pkg.$pkgAppend
        |
        |$imports
        |

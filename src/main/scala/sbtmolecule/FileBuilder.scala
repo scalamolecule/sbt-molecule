@@ -13,8 +13,9 @@ object FileBuilder {
     sourceDir: File,
     managedDir: File,
     dataModelDirs: Seq[String],
-    allIndexed: Boolean = true,
-    isJvm: Boolean = true
+    allIndexed: Boolean,
+    isJvm: Boolean,
+    genericPkg: String
   ): Seq[File] = {
     // Loop domain directories
     val files: Seq[File] = dataModelDirs flatMap { dataModelDir =>
@@ -35,7 +36,7 @@ object FileBuilder {
       // Loop data model files in each domain directory
       dataModelFiles flatMap { dataModelFile =>
         val dataModelFileSource = Source.fromFile(dataModelFile)
-        val model: Model        = DataModelParser(dataModelFile.getName, dataModelFileSource.getLines().toList, allIndexed).parse
+        val model: Model        = DataModelParser(dataModelFile.getName, dataModelFileSource.getLines().toList, allIndexed, genericPkg).parse
         dataModelFileSource.close()
 
         val schemaFiles = if (isJvm) {
@@ -66,18 +67,18 @@ object FileBuilder {
         val nsFiles: Seq[File] = {
           val cleanModel = model.copy(nss = model.nss.filterNot(_.attrs.isEmpty).map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
           cleanModel.nss.flatMap { ns =>
-            val path   = cleanModel.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / firstLow(cleanModel.domain)
+            val path   = cleanModel.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "dsl" / cleanModel.domain
             val folder = path / ("_" + ns.ns)
 
             val nsBaseFile: File = path / s"${ns.ns}.scala"
-            IO.write(nsBaseFile, NsBase(cleanModel, ns).get)
+            IO.write(nsBaseFile, NsBase(cleanModel, ns, genericPkg).get)
 
             val nsArityFiles: Seq[File] = for {
               in <- 0 to cleanModel.maxIn
               out <- 0 to cleanModel.maxOut
             } yield {
               val file: File = folder / s"${ns.ns}_${in}_$out.scala"
-              IO.write(file, NsArity(cleanModel, ns, in, out).get)
+              IO.write(file, NsArity(cleanModel, ns, in, out, genericPkg).get)
               file
             }
 

@@ -13,6 +13,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     lazy val moleculeAllIndexed     = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
     lazy val moleculeMakeJars       = settingKey[Boolean]("Whether jars are created from generated source files.")
     lazy val moleculePluginActive   = settingKey[Boolean]("Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds.")
+    lazy val moleculeGenericPkg     = settingKey[String]("Generate special generic interfaces in certain pkg. Not for public use.")
     lazy val moleculeBoilerplate    = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
     lazy val moleculeJars           = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
   }
@@ -36,12 +37,13 @@ object MoleculePlugin extends sbt.AutoPlugin {
       if (moleculePluginActive.?.value.getOrElse(false)) {
         println(
           s"""------------------------------------------------------------------------------------------------------
-             |Generating Molecule boilerplate code for data models in:
+             |Generating Molecule DSL for data models in:
              |${moleculeDataModelPaths.?.value.getOrElse(Nil).mkString("\n")}
              |------------------------------------------------------------------------------------------------------""".stripMargin
         )
         // Optional settings
         val allIndexed = moleculeAllIndexed.?.value getOrElse true
+        val genericPkg = moleculeGenericPkg.?.value getOrElse ""
 
         // generate source files
         val baseDir = baseDirectory.value.toString
@@ -75,7 +77,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         //             |-------------------------""".stripMargin
         //        )
 
-        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, allIndexed, isJvm)
+        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, allIndexed, isJvm, genericPkg)
 
         // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
         val cache = FileFunction.cached(cacheDir, inStyle = FilesInfo.lastModified, outStyle = FilesInfo.hash) {

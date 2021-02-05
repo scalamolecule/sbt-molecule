@@ -2,7 +2,12 @@ package sbtmolecule
 
 import Ast._
 
-case class DataModelParser(dataModelFileName: String, lines0: List[String], allIndexed: Boolean = true) {
+case class DataModelParser(
+  dataModelFileName: String,
+  lines0: List[String],
+  allIndexed: Boolean,
+  genericPkg: String
+) {
 
   val lines: List[String] = lines0.map(_.trim)
 
@@ -79,7 +84,7 @@ case class DataModelParser(dataModelFileName: String, lines0: List[String], allI
     val reservedAttrNames = List("a", "e", "v", "t", "tx", "txInstant", "op", "save", "insert", "update", "retract ", "self", "apply", "assert", "replace", "not", "contains", "k")
 
     def parseAttr(backTics: Boolean, attrClean: String, str: String, curPart: String, curFullNs: String, attrGroup0: Option[String]): DefAttr = {
-      if (reservedAttrNames.contains(attrClean))
+      if (genericPkg.isEmpty && reservedAttrNames.contains(attrClean))
         throw new DataModelException(s"Attribute name `$attrClean` in $dataModelFileName not allowed " +
           s"since it collides with one of the following reserved attribute names:\n" + reservedAttrNames.mkString("\n")
         )
@@ -388,13 +393,13 @@ case class DataModelParser(dataModelFileName: String, lines0: List[String], allI
 
     val dataModel: Model = lines.zipWithIndex.foldLeft(0, "", Model("", -1, -1, "", "", "", Seq())) {
       case ((emptyLine, cmt, d), (line, i)) => line.trim match {
-        case r"\/\/\s*val .*"                                            => (emptyLine, "", d)
-        case r"\/\/\s*(.*?)$comment\s*-*"                                => (emptyLine, comment, d)
-        case r"package (.*)$pkg\.dataModel"                              => (0, "", d.copy(pkg = pkg))
-        case r"import molecule\.core\._1_dataModel\.data\.model._"       => (0, "", d)
-        case r"import molecule\.core\._1_dataModel\.data\.model\.(.*)$t" => throw new DataModelException(s"Data model api in $dataModelFileName (line ${i + 1}) should be imported with `import molecule.core.data.model._`")
-        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                          => (0, "", d.copy(maxIn = inS.toString.toInt, maxOut = outS.toString.toInt))
-        case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}DataModel \{"           => (0, "", d.copy(domain = dmn))
+        case r"\/\/\s*val .*"                                  => (emptyLine, "", d)
+        case r"\/\/\s*(.*?)$comment\s*-*"                      => (emptyLine, comment, d)
+        case r"package (.*)$pkg\.dataModel"                    => (0, "", d.copy(pkg = pkg))
+        case r"import molecule\.core\.data\.model\._"          => (0, "", d)
+        case r"import molecule\.core\.data\.model\.(.*)$t"     => throw new DataModelException(s"Data model api in $dataModelFileName (line ${i + 1}) should be imported with `import molecule.core.data.model._`")
+        case r"@InOut\((\d+)$inS, (\d+)$outS\)"                => (0, "", d.copy(maxIn = inS.toInt, maxOut = outS.toInt))
+        case r"object\s+([A-Z][a-zA-Z0-9]*)${dmn}DataModel \{" => (0, "", d.copy(domain = dmn))
 
         // Partition definitions
         case r"object\s+(tx|db|molecule)$part\s*\{"    => throw new DataModelException(s"Partition name '$part' in $dataModelFileName (line ${i + 1}) is not allowed. `tx`, `db` and `molecule` are reserved partition names.")

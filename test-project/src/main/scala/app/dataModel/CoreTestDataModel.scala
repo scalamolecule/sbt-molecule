@@ -1,8 +1,8 @@
 package app.dataModel
 
-import molecule.core._1_dataModel.data.model._
+import molecule.core.data.model._
 
-@InOut(3, 5)
+@InOut(3, 22)
 object CoreTestDataModel {
 
   trait Ns {

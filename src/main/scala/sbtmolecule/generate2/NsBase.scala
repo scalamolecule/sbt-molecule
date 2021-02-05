@@ -1,4 +1,4 @@
-package sbtmolecule.generate
+package sbtmolecule.generate2
 
 import sbtmolecule.Ast._
 import scala.collection.mutable
@@ -7,10 +7,7 @@ case class NsBase(
   model: Model,
   namespace: Namespace,
   genericPkg: String
-) extends Helpers(model, namespace, genericPkg = genericPkg) {
-
-  val tpeMan = mutable.MutableList.empty[String]
-  val tpeOpt = mutable.MutableList.empty[String]
+) extends Spacing(model, namespace) {
 
   val propTraitsMan = mutable.MutableList.empty[String]
   val propTraitsOpt = mutable.MutableList.empty[String]
@@ -20,29 +17,15 @@ case class NsBase(
   attrs.foreach {
     case a: Val =>
       val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad) = formatted(a)
-      val (clsMan, clsOpt)                                                                                                    = nsData(a)
-      val (opts, optsK)                                                                                                       = getExtras(a, a.bi)
-
-      tpeMan += s"final class $attr[Stay, Next] extends $clsMan[Stay, Next]$opts"
-      tpeOpt += s"final class $attrO[Stay, Next] extends $clsOpt[Stay]$opts"
-
       propTraitsMan += s"trait $ns_attr  { lazy val $attr: $tpe = ??? }"
       propTraitsOpt += s"trait $ns_attrO { lazy val $attrO: $tpO = ??? }"
 
       if (a.clazz.startsWith("Map")) {
-        val oneCls = "One" + baseTpe
-        tpeMan += s"final class $attrK[Stay, Next] extends $oneCls [Stay, Next]$optsK"
         propTraitsMap += s"trait $ns_attrK { lazy val $attrK: $baseTpe = ??? }"
       }
 
     case a: Ref =>
       val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad) = formatted(a)
-      val (clsMan, clsOpt)                                                                                                    = nsData(a)
-      val (opts, optsK)                                                                                                       = getExtras(a, a.bi)
-
-      tpeMan += s"final class $attr[Stay, Next] extends $clsMan[Stay, Next]$opts"
-      tpeOpt += s"final class $attrO[Stay, Next] extends $clsOpt[Stay]$opts"
-
       propTraitsMan += s"trait $ns_attr  { lazy val $attr: $tpe = ??? }"
       propTraitsOpt += s"trait $ns_attrO { lazy val $attrO: $tpO = ??? }"
 
@@ -51,15 +34,6 @@ case class NsBase(
 
     case a: Enum =>
       val (ns_attr, ns_attrO, ns_attrK, ns_ref, ns_ref_, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad) = formatted(a)
-      val (clsMan, clsOpt)                                                                                                    = nsData(a)
-      val (opts, optsK)                                                                                                       = getExtras(a, a.bi)
-
-
-      val enumValues = s"private lazy val ${a.enums.mkString(", ")} = EnumValue"
-
-      tpeMan += s"final class $attr[Stay, Next] extends $clsMan[Stay, Next]$opts { $enumValues }"
-      tpeOpt += s"final class $attrO[Stay, Next] extends $clsOpt[Stay]$opts { $enumValues }"
-
       propTraitsMan += s"trait $ns_attr  { lazy val $attr: $tpe = ??? }"
       propTraitsOpt += s"trait $ns_attrO { lazy val $attrO: $tpO = ??? }"
 
@@ -68,8 +42,6 @@ case class NsBase(
 
   val qmImport = if (model.maxIn > 0) Seq("molecule.core.expression.AttrExpressions.?") else Nil
 
-  val tpeClasses = (tpeMan ++ Seq("") ++ tpeOpt).mkString(("\n  "))
-
   val propTraits = (
     propTraitsMan ++ Seq("") ++ propTraitsOpt ++
       (if (propTraitsMap.nonEmpty) Seq("") ++ propTraitsMap else Nil) ++
@@ -77,11 +49,12 @@ case class NsBase(
     ).mkString("\n").trim
 
 
-  val (pkg, genericNsImports, baseNs, extendsGenericNs) = if (isGeneric)
-    (genericPkg, Seq("molecule.core.generic.GenericNs"), ns, " extends GenericNs")
+  val (pkg, genericNsImports, extendsGenericNs) = if (genericPkg.nonEmpty)
+    (genericPkg, Seq("molecule.core.generic.GenericNs", s"$genericPkg.$domain._$ns._"), " extends GenericNs")
   else
-    (model.pkg + ".dsl", Nil, "_" + ns + "_" , "")
+    (model.pkg + ".dsl", Nil, "")
 
+  val pkgAppend    = model.domain
   val extraImports = attrs.collect {
     case Val(_, _, _, "UUID", _, _, _, _, _, _) => "java.util.UUID"
     case Val(_, _, _, "URI", _, _, _, _, _, _)  => "java.net.URI"
@@ -90,7 +63,7 @@ case class NsBase(
   val inputEids = if (model.maxIn == 0) "" else
     s"\n  final override def apply(eids: ?)               : ${ns}_1_0_L0[$ns_, Nothing, Long] = ???"
 
-  val nsObject: String = if (isGeneric) "" else
+  val nsObject: String = if(genericPkg.nonEmpty) "" else
     s"""
        |object $ns extends ${ns}_0_0_L0[$ns_, Nothing] with FirstNS {
        |  final override def apply(eid: Long, eids: Long*): ${ns}_0_0_L0[$ns_, Nothing] = ???
@@ -98,13 +71,9 @@ case class NsBase(
        |}
        |""".stripMargin
 
-
   val body: String =
-    s"""$nsObject
-       |trait $baseNs$extendsGenericNs {
-       |  $tpeClasses
-       |}
-       |
+    s"""trait $ns$extendsGenericNs
+       |$nsObject
        |// Object properties
        |
        |trait $ns_[props] { def $ns: props = ??? }
@@ -112,5 +81,5 @@ case class NsBase(
        |$propTraits
        |""".stripMargin
 
-  def get: String = Template(ns, pkg, model.domain, body, extraImports)
+  def get: String = Template(ns, pkg, pkgAppend, model.domain, body, extraImports)
 }

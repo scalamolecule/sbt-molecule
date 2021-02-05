@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-core" % "4.10.5"
 )
 
-
+//enablePlugins(SbtOptimizerPlugin)
 
 // Molecule
 enablePlugins(MoleculePlugin)
@@ -25,6 +25,7 @@ moleculePluginActive := sys.props.get("molecule") == Some("true")
 moleculeDataModelPaths := Seq("app") // Mandatory
 moleculeAllIndexed := true // Optional, default: true
 moleculeMakeJars := false
+//moleculeGenericPkg := "molecule.core.generic"
 
 // Let IDE detect created jars in unmanaged lib directory
 exportJars := true
