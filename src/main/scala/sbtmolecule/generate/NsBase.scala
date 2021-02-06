@@ -77,10 +77,12 @@ case class NsBase(
     ).mkString("\n").trim
 
 
-  val (pkg, genericNsImports, baseNs, extendsGenericNs) = if (isGeneric)
-    (genericPkg, Seq("molecule.core.generic.GenericNs"), ns, " extends GenericNs")
-  else
+  val (pkg, genericNsImports, baseNs, extendsGenericNs) = if (isGeneric) {
+    val genericNs = if(isDatom) "" else " extends GenericNs"
+    (genericPkg, Seq("molecule.core.generic.GenericNs"), ns, genericNs)
+  } else {
     (model.pkg + ".dsl", Nil, "_" + ns + "_" , "")
+  }
 
   val extraImports = attrs.collect {
     case Val(_, _, _, "UUID", _, _, _, _, _, _) => "java.util.UUID"
