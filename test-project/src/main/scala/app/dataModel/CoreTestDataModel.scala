@@ -2,7 +2,7 @@ package app.dataModel
 
 import molecule.core.data.model._
 
-@InOut(3, 22)
+@InOut(0, 1)
 object CoreTestDataModel {
 
   trait Ns {

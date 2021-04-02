@@ -8,13 +8,13 @@ Add the following to your build files:
 `project/build.properties`:
 
 ```scala
-sbt.version=1.4.6
+sbt.version=1.4.7
 ```
 
 `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.12.0")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.14.0-SNAPSHOT")
 ```
 
 `build.sbt`:
@@ -29,7 +29,7 @@ lazy val yourProject = project.in(file("app"))
       Resolver.sonatypeRepo("releases")
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.23.2",
+      "org.scalamolecule" %% "molecule" % "0.25.0",
       "com.datomic" % "datomic-free" % "0.9.5697"
     ),
 

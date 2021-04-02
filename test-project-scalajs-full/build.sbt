@@ -1,60 +1,43 @@
 
-
 name := "sbt-molecule-test-project-scalajs-full"
-
-scalaVersion in ThisBuild := "2.13.4"
-
-lazy val moleculeVersion = "0.23.2"
 
 lazy val foo = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .in(file("."))
+  .enablePlugins(MoleculePlugin)
   .settings(
     name := "foo",
     version := "0.2",
+    scalaVersion in ThisBuild := "2.13.5",
     resolvers ++= Seq(
-      ("clojars" at "http://clojars.org/repo").withAllowInsecureProtocol(true),
+      "clojars" at "https://clojars.org/repo",
     ),
     libraryDependencies ++= Seq(
-      "com.lihaoyi" %%% "utest" % "0.7.4" % Test,
-      "com.lihaoyi" %%% "scalatags" % "0.9.1",
+      "com.lihaoyi" %%% "utest" % "0.7.7" % Test,
+      "com.lihaoyi" %%% "scalatags" % "0.9.3",
     ),
-    testFrameworks += new TestFramework("utest.runner.Framework")
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+
+    // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
+    moleculePluginActive := sys.props.get("molecule").contains("true"),
+    moleculeDataModelPaths := Seq("app"),
+
+    // Let IDE detect generated jars in unmanaged lib directory
+    exportJars := true
   )
   .jsSettings(
-    // Turn project into an application that can be `run`
-    scalaJSUseMainModuleInitializer := true,
+    // Molecule without non-ScalaJS-compatible Datomic dependencies
     libraryDependencies ++= Seq(
-      ("org.scalamolecule" %%% "molecule" % moleculeVersion)
+      ("org.scalamolecule" %%% "molecule" % "0.25.2-SNAPSHOT")
         .exclude("com.datomic", "datomic-free")
     )
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % moleculeVersion,
-      "com.datomic" % "datomic-free" % "0.9.5697",
-      "org.specs2" %% "specs2-core" % "4.10.5"
+      "org.scalamolecule" %% "molecule" % "0.25.2-SNAPSHOT",
+      "com.datomic" % "datomic-free" % "0.9.5697"
     )
-  )
-  .enablePlugins(MoleculePlugin)
-  .settings(
-    // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
-    moleculePluginActive := sys.props.get("molecule") == Some("true"),
-    moleculeDataModelPaths := Seq("app"),
-    moleculeMakeJars := true,
-
-//    // Find scala version specific jars in respective libs
-//    unmanagedBase := {
-//      CrossVersion.partialVersion(scalaVersion.value) match {
-//        case Some((2, 13)) => file(unmanagedBase.value.getPath ++ "/2.13")
-//        case _             => file(unmanagedBase.value.getPath ++ "/2.12")
-//      }
-//    }
   )
 
 lazy val fooJS  = foo.js
 lazy val fooJVM = foo.jvm
-
-
-// Let IDE detect created jars in unmanaged lib directory
-exportJars := true

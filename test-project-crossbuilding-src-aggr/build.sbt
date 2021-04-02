@@ -2,8 +2,8 @@ import sbt.Keys.version
 import sbtmolecule.MoleculePlugin.autoImport.{moleculeAllIndexed, moleculeDataModelPaths}
 
 
-lazy val scala213               = "2.13.4"
-lazy val scala212               = "2.12.12"
+lazy val scala213               = "2.13.5"
+lazy val scala212               = "2.12.13"
 lazy val supportedScalaVersions = List(scala213, scala212)
 
 ThisBuild / organization := "com.example"
@@ -24,17 +24,17 @@ lazy val app = (project in file("app"))
     crossScalaVersions := supportedScalaVersions,
     // other settings
     name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "0.12.0",
+    version := "0.14.0-SNAPSHOT",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
 
     resolvers ++= Seq(
-      ("clojars" at "http://clojars.org/repo").withAllowInsecureProtocol(true)
+      "clojars" at "https://clojars.org/repo"
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.23.2",
+      "org.scalamolecule" %% "molecule" % "0.25.2-SNAPSHOT",
       "com.datomic" % "datomic-free" % "0.9.5697",
-      "org.specs2" %% "specs2-core" % "4.10.5"
+      "org.specs2" %% "specs2-core" % "4.10.6"
     ),
 
 

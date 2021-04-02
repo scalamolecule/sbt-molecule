@@ -2,8 +2,9 @@ package sbtmolecule
 
 import java.io.File
 import sbt._
-import Ast._
-import sbtmolecule.generate.{NsArity, NsBase}
+import sbtmolecule.ast.model._
+import sbtmolecule.dsl.{NsArity, NsBase}
+import sbtmolecule.schema.{SchemaTransaction, SchemaTransactionLowerToUpper, SchemaTransactionUpperToLower}
 import scala.io.Source
 
 
@@ -39,7 +40,7 @@ object FileBuilder {
         val model: Model        = DataModelParser(dataModelFile.getName, dataModelFileSource.getLines().toList, allIndexed, genericPkg).parse
         dataModelFileSource.close()
 
-        val schemaFiles = if (isJvm) {
+        val schemaFiles = {
           // Write schema file
           val schemaFile: File = model.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${model.domain}Schema.scala"
           IO.write(schemaFile, SchemaTransaction(model))
@@ -60,8 +61,6 @@ object FileBuilder {
           }
 
           schemaFile +: schemaFileModifiers
-        } else {
-          Nil
         }
 
         val nsFiles: Seq[File] = {

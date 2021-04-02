@@ -30,17 +30,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
       //           |${unmanagedBase.value}
       //           |${unmanagedClasspath.value}
       //           |${managedClasspath.value}
-      //           |${fullClasspath.value}
+      //           |//{fullClasspath.value}
       //           |-------------------------""".stripMargin
       //      )
 
       if (moleculePluginActive.?.value.getOrElse(false)) {
-        println(
-          s"""------------------------------------------------------------------------------------------------------
-             |Generating Molecule DSL for data models in:
-             |${moleculeDataModelPaths.?.value.getOrElse(Nil).mkString("\n")}
-             |------------------------------------------------------------------------------------------------------""".stripMargin
-        )
         // Optional settings
         val allIndexed = moleculeAllIndexed.?.value getOrElse true
         val genericPkg = moleculeGenericPkg.?.value getOrElse ""
@@ -52,18 +46,28 @@ object MoleculePlugin extends sbt.AutoPlugin {
         val srcDir  = last match {
           case ".js" | ".jvm" =>
             // todo: Ugly hack - is there a way to get this correctly from sbt?
-            // ScalaJS project, need to generate sources from original path, so changing the source path:
-            // <project-path/foo/.jvm/src/main/scala  // nothing here to generate from. So we change to..
-            // <project-path/foo/src/main/scala       // our data models are here
+            // ScalaJS project, use data model in shared `src` folder on top level:
+            // <project-path/foo/.jvm|.js/src/main/scala  // nothing here to generate from. So we change to..
+            // <project-path/foo/src/main/scala           // our data models should be here
             file(baseDir.split('/').init.mkString("/") + "/src/main/scala")
-          case "js"           =>
+          case "js" | "jvm"   =>
             // todo: Ugly hack - is there a way to get this correctly from sbt?
-            // Use dataModel from jvm (should only be defined there)
-            file(baseDir.split('/').init.mkString("/") + "/jvm/src/main/scala")
+            // ScalaJS project, use data model in `shared` folder on top level:
+            // <project-path/foo/jvm|js/src/main/scala  // nothing here to generate from. So we change to..
+            // <project-path/foo/shared/src/main/scala  // our data models should be here
+            file(baseDir.split('/').init.mkString("/") + "/shared/src/main/scala")
           case _              =>
             // Non-ScalaJS project
             scalaSource.value
         }
+
+        val platform = if (isJvm) "jvm" else "js"
+        println(
+          s"""------------------------------------------------------------------------
+             |Generating Molecule DSL $platform code for data models in:
+             |${moleculeDataModelPaths.?.value.getOrElse(Nil).mkString("\n")}
+             |------------------------------------------------------------------------""".stripMargin
+        )
 
         //        println(
         //          s"""-------------------------
@@ -78,6 +82,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
         //        )
 
         val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, allIndexed, isJvm, genericPkg)
+
+        //        println(
+        //          s"""${sourceFiles.mkString("\n")}
+        //             |-------------------------""".stripMargin
+        //        )
 
         // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
         val cache = FileFunction.cached(cacheDir, inStyle = FilesInfo.lastModified, outStyle = FilesInfo.hash) {
@@ -107,7 +116,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
 
   def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
-    val moduleDirName: String      = baseDirectory.value.toString.split("/").last
+    val moduleDirName: String      = baseDirectory.value.toString.split("/").last.replace(".", "")
     val transferDirs : Seq[String] = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
     val cross        : String      = if (crossScalaVersions.value.size == 1) "" else {
       val v = CrossVersion.partialVersion(scalaVersion.value).get
@@ -142,8 +151,8 @@ object MoleculePlugin extends sbt.AutoPlugin {
   def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
     sbt.IO.listFiles(directory) flatMap {
       case file if file.isFile &&
-        file.name.endsWith(tpe) &&
-        transferDirs.exists(path.startsWith(_)) &&
+        (file.name.endsWith(tpe) || file.name.endsWith(".sjsir")) &&
+        transferDirs.exists(path.startsWith) &&
         !file.name.endsWith(s"DataModel$tpe") &&
         !file.name.endsWith(s"DataModel$$$tpe") => Seq((file, s"$path${file.getName}"))
       case otherFile if otherFile.isFile        => Nil
