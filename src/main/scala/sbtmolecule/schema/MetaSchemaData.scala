@@ -6,7 +6,7 @@ import sbtmolecule.ast.model._
 
 trait MetaSchemaData extends Helpers {
 
-  def metaSchema(d: Model): MetaSchema = {
+  def getMetaSchema(d: Model): MetaSchema = {
     var prevPart  = ""
     var parts     = Seq(MetaPart(-1, "", None, None, Nil))
     var nss       = Seq.empty[MetaNs]
@@ -65,5 +65,13 @@ trait MetaSchemaData extends Helpers {
     MetaSchema((parts.init :+ parts.last.copy(nss = nss)).tail)
   }
 
+
+  def renderNsMap(metaSchema: MetaSchema): String = {
+    val parts = metaSchema.parts.map(part =>
+      part.nss.map(ns => s""""${ns.nameFull}" -> $ns""").mkString("\n      ", ",\n\n      ", "")
+    )
+    val nss   = if (parts.isEmpty) "" else parts.mkString(",\n\n      ")
+    s"Map($nss)"
+  }
 
 }

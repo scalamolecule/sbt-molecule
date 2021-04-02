@@ -38,32 +38,22 @@ object metaSchema extends Helpers {
     attrs: Seq[MetaAttr] = Nil
   ) {
     override def toString = {
-      val maxPos  = attrs.length.toString.length
-      val maxName = attrs.map(_.name.length).max
-      val maxTpe  = attrs.map(_.tpe.length).max
+      val maxPos   = attrs.length.toString.length
+      val maxName  = attrs.map(_.name.length).max
+      val maxTpe   = attrs.map(_.tpe.length).max
+      val descrStr = descr$.fold("None")(t => "Some(\"\"\"" + t + "\"\"\")")
 
       val attrsStr = if (attrs.isEmpty) "Nil" else attrs.map {
         case MetaAttr(pos, name, card, tpe, enums, refNs$, options, doc$,
         attrGroup$, entityCount$, distinctValueCount$, descrAttr$, topValues) =>
-          val padPos  = " " * (maxPos - pos.toString.length)
-          val padName = " " * (maxName - name.length)
-          val padTpe  = " " * (maxTpe - tpe.length)
-
+          val padPos       = " " * (maxPos - pos.toString.length)
+          val padName      = " " * (maxName - name.length)
+          val padTpe       = " " * (maxTpe - tpe.length)
           val topValuesStr = if (topValues.isEmpty) "Nil" else
             topValues.mkString("Seq(\n          ", ",\n          ", ")")
-
           s"""MetaAttr($pos$padPos, "$name"$padName, $card, "$tpe"$padTpe, ${seq(enums)}, ${o(refNs$)}, ${seq(options)}, ${o(doc$)}, """ +
             s"""${o(attrGroup$)}, ${o(entityCount$)}, ${o(distinctValueCount$)}, ${o(descrAttr$)}, $topValuesStr)"""
       }.mkString("Seq(\n        ", ",\n        ", ")")
-
-
-      s"""MetaNs($pos, "$name", "$nameFull", ${
-        descr$.fold("None")(t => "Some(\"\"\"" + t + "\"\"\")")
-      }, ${o(entityCount$)}, Seq(${
-        if (attrs.isEmpty) "" else attrs.mkString("\n        ", ",\n        ", "")
-      }))"""
-
-      val descrStr = descr$.fold("None")(t => "Some(\"\"\"" + t + "\"\"\")")
 
       s"""MetaNs($pos, "$name", "$nameFull", $descrStr, ${o(entityCount$)}, $attrsStr)"""
     }

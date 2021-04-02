@@ -77,6 +77,8 @@ object SchemaTransaction extends MetaSchemaData {
     val datomicPeer   = (partitionDefinitions :+ attributeDefinitions(false)).mkString("Seq(\n    ", ",\n\n\n    ", ")")
     val datomicClient = (partitionDefinitions :+ attributeDefinitions(true)).mkString("Seq(\n    ", ",\n\n\n    ", ")")
 
+    val metaSchema = getMetaSchema(d)
+
     s"""|/*
         |* AUTO-GENERATED Datomic Schema generation boilerplate code
         |*
@@ -97,7 +99,10 @@ object SchemaTransaction extends MetaSchemaData {
         |  lazy val datomicClient = $datomicClient
         |
         |
-        |  lazy val metaSchema = ${metaSchema(d).toString}
+        |  lazy val metaSchema = ${metaSchema.toString}
+        |
+        |
+        |  lazy val nsMap = ${renderNsMap(metaSchema)}
         |}""".stripMargin
   }
 }
