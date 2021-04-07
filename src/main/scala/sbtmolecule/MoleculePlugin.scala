@@ -99,16 +99,16 @@ object MoleculePlugin extends sbt.AutoPlugin {
         Seq.empty[File]
       }
     },
-    sourceGenerators += moleculeBoilerplate.taskValue,
+    Compile / sourceGenerators += moleculeBoilerplate.taskValue,
 
-    moleculeJars := Def.taskDyn {
+    Compile / moleculeJars := Def.taskDyn {
       if (moleculePluginActive.?.value.getOrElse(false) && moleculeMakeJars.?.value.getOrElse(true)) {
         makeJars()
       } else {
         // Make no jars
         Def.task {}
       }
-    }.triggeredBy(compile in Compile).value
+    }.triggeredBy(Compile / compile).value
   ))
 
 
@@ -124,13 +124,13 @@ object MoleculePlugin extends sbt.AutoPlugin {
     }
 
     // Create source jar from generated source files
-    val src_managedDir: File                = (sourceManaged in Compile).value
+    val src_managedDir: File                = (Compile / sourceManaged).value
     val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar/")
     val srcFilesData  : Seq[(File, String)] = files2TupleRec("", src_managedDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest, None)
 
     // Create jar from class files compiled from generated source files
-    val classesDir     : File                = (classDirectory in Compile).value
+    val classesDir     : File                = (Compile / classDirectory).value
     val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName.jar/")
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", classesDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest, None)

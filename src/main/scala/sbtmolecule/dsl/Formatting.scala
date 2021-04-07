@@ -24,50 +24,47 @@ class Formatting(
   lazy val Next = if (isDatom) "Next_" else "Next"
   lazy val Stay = if (isDatom) "Stay_" else "Stay"
 
-  lazy val padAttr      = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length + 1).max, s)
-  lazy val padAttrClean = (s: String) => padS(attrs.map(_.attrClean).filterNot(_.startsWith("_")).map(_.length).max, s)
-  lazy val padType      = (s: String) => padS(attrs.map(_.tpe).map(_.length).max, s)
-  lazy val padBaseType  = (s: String) => padS(attrs.map(_.baseTpe).map(_.length).max, s)
-  lazy val padClass     = (s: String) => padS(attrs.map(_.clazz).filterNot(_.startsWith("Back")).map(_.length).max, s)
+  lazy val padAttr     = (s: String) => padS(attrs.map(_.attr).filterNot(_.startsWith("_")).map(_.length).max, s)
+  lazy val padType     = (s: String) => padS(attrs.map(_.tpe).map(_.length).max, s)
+  lazy val padBaseType = (s: String) => padS(attrs.map(_.baseTpe).map(_.length).max, s)
+  lazy val padClass    = (s: String) => padS(attrs.map(_.clazz).filterNot(_.startsWith("Back")).map(_.length).max, s)
 
   lazy val maxRefs    : Seq[Int] = 0 +: attrs.collect {
-    case Ref(_, attrClean, _, _, _, _, _, _, _, _, _) => attrClean.length
-    case BackRef(_, attrClean, _, _, _, _, _, _, _)   => attrClean.length
+    case Ref(attr, _, _, _, _, _, _, _, _, _) => attr.length
+    case BackRef(attr, _, _, _, _, _, _, _)   => attr.length
   }
   lazy val maxRefNs   : Seq[Int] = 0 +: attrs.collect {
-    case Ref(_, _, _, _, _, _, refNs, _, _, _, _) => refNs.length
+    case Ref(_, _, _, _, _, refNs, _, _, _, _) => refNs.length
   }
   lazy val maxBackRefs: Seq[Int] = 0 +: attrs.collect {
-    case BackRef(_, _, _, _, _, _, backRef, _, _) => backRef.length
+    case BackRef(_, _, _, _, _, backRef, _, _) => backRef.length
   }
 
-  lazy val padRef      = (attrClean: String) => padS(maxRefs.max, attrClean)
+  lazy val padRef      = (attr: String) => padS(maxRefs.max, attr)
   lazy val padRefNs    = (refNs: String) => padS(maxRefNs.max, refNs)
   lazy val padBackRefs = (backRef: String) => padS(maxBackRefs.max, backRef)
 
   def formatted(a: DefAttr) = {
-    val attrSp   = padAttrClean(a.attrClean)
+    val attrSp   = padAttr(a.attr)
     val typeSp   = padType(a.tpe)
-    val ref      = a.attrClean.capitalize + padRef(a.attrClean)
+    val ref      = a.attr.capitalize + padRef(a.attr)
     val refNsPad = (refNs: String) => refNs + "_" + padRefNs(refNs)
     (
-      ns + "_" + a.attrClean + attrSp,
+      ns + "_" + a.attr + attrSp,
 
       // Ugly workaround, substituting $ with _ since $ as a last character in trait names somehow destroy them when
       // generated source code files are packed into jars.
       // Since object property traits are only used internally we go for this solution instead of suffixing  with `_opt`
       // or the like which would require special spacings etc.
-      ns + "_" + a.attrClean + "_" + attrSp,
-      //      ns + "_" + a.attrClean + "$" + attrSp,
+      ns + "_" + a.attr + "_" + attrSp,
 
-      ns + "_" + a.attrClean + "K" + attrSp,
+      ns + "_" + a.attr + "K" + attrSp,
       ns + "__" + ref,
-      //      ns + "_" + ref_,
       a.attr + padAttr(a.attr),
-      a.attrClean + "$" + attrSp,
-      a.attrClean + "_" + attrSp,
-      a.attrClean + "K" + attrSp,
-      a.attrClean + "K_" + attrSp,
+      a.attr + "$" + attrSp,
+      a.attr + "_" + attrSp,
+      a.attr + "K" + attrSp,
+      a.attr + "K_" + attrSp,
       a.tpe + typeSp,
       "Option[" + a.tpe + typeSp + "]",
       a.baseTpe + padBaseType(a.baseTpe),
@@ -115,12 +112,12 @@ class Formatting(
   def nsData(a: DefAttr) = (a.clazz + padClass(a.clazz), a.clazz + "$" + padClass(a.clazz))
 
   def getExtras(a: DefAttr, bi: Option[String]) = {
-    val classes            = a.options.filter(_.clazz.nonEmpty).map(_.clazz)
+    val classes            = a.options.filterNot(_.datomicKeyValue == "alias").filter(_.clazz.nonEmpty).map(_.clazz)
     val indexed            = if (classes.contains("Indexed")) Seq("Indexed") else Nil
     val optsWithoutIndexed = classes.filterNot(_ == "Indexed")
     def render(opts: Seq[String]) = {
       val biOptions = a match {
-        case Ref(_, _, _, _, _, _, refNs, _, bi, revRef, _) =>
+        case Ref(_, _, _, _, _, refNs, _, bi, revRef, _) =>
           bi match {
             case Some("BiSelfRef_")     => Seq(s"BiSelfRefAttr_")
             case Some("BiOtherRef_")    => Seq(s"BiOtherRefAttr_[${refNs}_$revRef]")
@@ -156,7 +153,6 @@ class Formatting(
   lazy val Ns_1_0 = "Ns_" + (in + 1) + "_" + out
   lazy val Ns_1_1 = "Ns_" + (in + 1) + "_" + (out + 1)
 
-  //  lazy val o_  = (0 to level).map(l => s"o$l[_],_")
   lazy val o_  = (0 to level).map(l => s"_[_],_")
   lazy val p_0 = (o_ ++ List.fill(in + out)("_")).mkString(",")
   lazy val p_1 = (o_ ++ List.fill(in + out + 1)("_")).mkString(",")

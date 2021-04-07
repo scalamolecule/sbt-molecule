@@ -10,14 +10,14 @@ object SchemaTransactionUpperToLower {
 
     val attributeDefinitions: String = d.nss.filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))).map {
       case Namespace(_, _, ns, _, opt, attrs) =>
-        val exts   = opt.getOrElse("").toString
-        val header = ";; " + ns + exts + " " + ("-" * (50 - (ns.length + exts.length)))
+        val exts                      = opt.getOrElse("").toString
+        val header                    = ";; " + ns + exts + " " + ("-" * (50 - (ns.length + exts.length)))
         val (attrsBefore, attrsAfter) = attrs.flatMap { a =>
-          val attrStmt = (ns + "/" + a.attrClean, firstLow(ns) + "/" + a.attrClean)
+          val attrStmt = (ns + "/" + a.attr, firstLow(ns) + "/" + a.attr)
           a match {
             case e: Enum    =>
               attrStmt +: e.enums.map(enum =>
-                (ns + "." + a.attrClean + "/" + enum, firstLow(ns) + "." + a.attrClean + "/" + enum)
+                (ns + "." + a.attr + "/" + enum, firstLow(ns) + "." + a.attr + "/" + enum)
               )
             case _: BackRef => Nil
             case _          => Seq(attrStmt)

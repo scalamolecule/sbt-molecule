@@ -13,11 +13,11 @@ case class NsArityLevel(
 ) extends Formatting(model, namespace, in, out, level, genericPkg) {
 
   def getRef(r: Ref) = {
-    val Ref(_, refAttrClean, _, clazz2, _, baseType, refNs, opts, bi, revRef, _)                                            = r
+    val Ref(_, _, clazz2, _, _, refNs, _, _, _, _)                                                                  = r
     val (ns_attr, ns_attrO, ns_attrK, ns__ref, attr, attrO, attr_, attrK, attrK_, tpe, tpO, baseTpe, ref, refNsPad) = formatted(r)
 
     val biDirectionals = r match {
-      case Ref(_, _, _, _, _, _, refNs, _, bi, revRef, _) =>
+      case Ref(_, _, _, _, _, refNs, _, bi, revRef, _) =>
         bi match {
           case Some("BiSelfRef_")     => Seq(s"BiSelfRef_")
           case Some("BiOtherRef_")    => Seq(s"BiOtherRef_ [${refNs}_$revRef]")
@@ -38,7 +38,6 @@ case class NsArityLevel(
       val nsTypes = (in to 3).map {
         case i if i == 0 || i <= maxIn => ns + "_" + i + "_" + (out + 1) + "_L" + level
         case _                         => "Nothing"
-        //        case i => "D" + nn(i + out) + "_L" + level
       }.mkString(", ")
       Seq(s"Nested_${in}_${nn(out)}_L${level + 1}[${`o0, p0`}, $ns__ref${`, I1, A`}, $nsTypes]")
     } else {

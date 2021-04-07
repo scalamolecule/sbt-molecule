@@ -32,7 +32,7 @@ trait MetaSchemaData extends Helpers {
           case _: BackRef => None
           case a          =>
             attrIndex += 1
-            val (attr, attrGroup)    = (a.attrClean, a.attrGroup)
+            val (attr, attrGroup)    = (a.attr, a.attrGroup)
             val card                 = a.clazz.take(3) match {
               case "One" => 1
               case "Man" => 2
@@ -41,8 +41,9 @@ trait MetaSchemaData extends Helpers {
             val opts: Seq[String]    = a.options
               .map(_.datomicKeyValue)
               .filterNot(o => o.startsWith(":db/index") || o.startsWith(":db/doc"))
-              .map {
-                case r":db/(.*)$opt\s+.*" => opt.trim
+              .flatMap {
+                case r":db/(.*)$opt\s+.*" => Some(opt.trim)
+                case "alias"              => None
               }
             val doc : Option[String] = opts.collectFirst {
               case r":db/doc(.*)$txt" => txt.trim.tail.init

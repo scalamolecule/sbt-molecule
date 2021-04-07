@@ -11,10 +11,10 @@ object SchemaTransaction extends MetaSchemaData {
       val parts = d.nss.map(_.part).filterNot(_ == "db.part/user").distinct
       d.nss.collectFirst {
         case ns if ns.attrs.collectFirst {
-          case Ref(_, _, _, _, _, _, _, _, Some("BiTargetRef_"), _, _) => true
+          case Ref(_, _, _, _, _, _, _, Some("BiTargetRef_"), _, _) => true
         }.getOrElse(false) => {
           val moleculeMetaNs = Namespace("molecule", None, "molecule_Meta", None, None, Seq(
-            Ref("otherEdge", "otherEdge", "OneRefAttr", "OneRef", "Long", "", "molecule_Meta", Seq(
+            Ref("otherEdge", "OneRefAttr", "OneRef", "Long", "", "molecule_Meta", Seq(
               Optional(":db/index         true", "Indexed"),
               // Is component so that retracts automatically retracts the other edge
               Optional(":db/isComponent   true", "IsComponent")
@@ -36,38 +36,48 @@ object SchemaTransaction extends MetaSchemaData {
 
 
     def attrStmts(ns: String, a: DefAttr, isClient: Boolean): String = {
-      val ident = s""":db/ident         :$ns/${a.attrClean}"""
+      val ident = s""":db/ident         :$ns/${a.attr}"""
       def tpe(t: String) = s""":db/valueType     :db.type/$t"""
       def card(c: String) = s""":db/cardinality   :db.cardinality/$c"""
+      var aliasIdent = ""
       def opts(os: Seq[Optional]): Seq[String] = os.flatMap {
+        case Optional("alias", alias)                                                     =>
+          aliasIdent =
+            s""";; alias
+              |       {:db/id            :$ns/${a.attr}
+              |        :db/ident         :$ns/$alias}
+              |
+              |       """.stripMargin
+          Nil
         case Optional(":db/index         true" | ":db/fulltext      true", _) if isClient => Nil
         case Optional(datomicKeyValue, _)                                                 => Seq(datomicKeyValue)
       }
       val stmts = a match {
-        case Val(_, _, clazz, _, _, t, options, _, _, _) if clazz.take(3) == "One" => Seq(tpe(t), card("one")) ++ opts(options)
-        case Val(_, _, _, _, _, t, options, _, _, _)                               => Seq(tpe(t), card("many")) ++ opts(options)
+        case Val(_, clazz, _, _, t, options, _, _, _, _) if clazz.take(3) == "One" => Seq(tpe(t), card("one")) ++ opts(options)
+        case Val(_, _, _, _, t, options, _, _, _, _)                               => Seq(tpe(t), card("many")) ++ opts(options)
         case a: DefAttr if a.clazz.take(3) == "One"                                => Seq(tpe("ref"), card("one")) ++ opts(a.options)
         case a: DefAttr                                                            => Seq(tpe("ref"), card("many")) ++ opts(a.options)
         case unexpected                                                            =>
           throw new DataModelException(s"Unexpected attribute statement:\n" + unexpected)
       }
-      s"{${(ident +: stmts).mkString("\n        ")}}"
+      aliasIdent + s"{${(ident +: stmts).mkString("\n        ")}}"
     }
 
-    def enums(part: String, ns: String, a: String, es: Seq[String]): String = es.map(e =>
-      s"""[:db/add #db/id[:$part]  :db/ident :$ns.$a/$e]"""
-    ).mkString("\n       ")
+    def enums(part: String, ns: String, a: String, es: Seq[String], alias: String = ""): String = es.map { e =>
+      val attr = if (alias.isEmpty) a else alias
+      s"""[:db/add #db/id[:$part]  :db/ident :$ns.$attr/$e]"""
+    }.mkString("\n       ")
 
     def attributeDefinitions(isClient: Boolean): String = nss
-      .filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))) // No namespaces with no attributes or only back refs
+      .filterNot(ns => ns.attrs.isEmpty || ns.attrs.forall(_.attr.startsWith("_"))) // No namespaces without attributes or only back refs
       .map { ns =>
         val exts   = ns.opt.getOrElse("").toString
         val header = ";; " + ns.ns + exts + " " + ("-" * (50 - (ns.ns.length + exts.length)))
         val attrs  = ns.attrs.flatMap {
-          case Val(_, _, _, _, _, "bytes", _, _, _, _) if isClient => Nil
+          case Val(_, _, _, _, "bytes", _, _, _, _, _) if isClient => Nil
           case _: BackRef                                          => Nil
           case e: Enum                                             =>
-            Seq(attrStmts(ns.ns, e, isClient), enums(ns.part, ns.ns, e.attrClean, e.enums))
+            Seq(attrStmts(ns.ns, e, isClient), enums(ns.part, ns.ns, e.attr, e.enums, e.alias))
           case a                                                   =>
             Seq(attrStmts(ns.ns, a, isClient))
         }

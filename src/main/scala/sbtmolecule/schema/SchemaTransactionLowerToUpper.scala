@@ -13,11 +13,11 @@ object SchemaTransactionLowerToUpper {
         val exts                      = opt.getOrElse("").toString
         val header                    = ";; " + ns + exts + " " + ("-" * (50 - (ns.length + exts.length)))
         val (attrsBefore, attrsAfter) = attrs.flatMap { a =>
-          val attrStmt = (firstLow(ns) + "/" + a.attrClean, ns + "/" + a.attrClean)
+          val attrStmt = (firstLow(ns) + "/" + a.attr, ns + "/" + a.attr)
           a match {
             case e: Enum    =>
               attrStmt +: e.enums.map(enum =>
-                (firstLow(ns) + "." + a.attrClean + "/" + enum, ns + "." + a.attrClean + "/" + enum)
+                (firstLow(ns) + "." + a.attr + "/" + enum, ns + "." + a.attr + "/" + enum)
               )
             case _: BackRef => Nil
             case _          => Seq(attrStmt)

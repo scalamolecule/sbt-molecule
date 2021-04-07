@@ -46,7 +46,8 @@ object FileBuilder {
           IO.write(schemaFile, SchemaTransaction(model))
 
           // Write schema file with lower-cased namespace names when no custom partitions are defined
-          // Useful to have lower-case namespace named attributes also for data imports from the Clojure world where namespace names are lower case by convention.
+          // Useful to have lower-case namespace named attributes also for data imports from the Clojure world
+          // where namespace names are lower case by convention.
           // In Scala/Molecule code we can still use our uppercase-namespace attribute names.
           val schemaFileModifiers: Seq[File] = if (model.curPart.isEmpty) {
             val schemaFileLowerToUpper: File = model.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${model.domain}SchemaLowerToUpper.scala"
