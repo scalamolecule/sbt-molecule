@@ -27,27 +27,32 @@ object SchemaTransaction extends MetaSchemaData {
     val partitionDefinitions: Seq[String] = if (partitions.isEmpty) {
       Nil
     } else {
-      Seq(partitions.map { p =>
-        s"""|{:db/id      "$p"
-            |        :db/ident   :$p}
-            |       [:db/add :db.part/db :db.install/partition "$p"]""".stripMargin
-      }.mkString("\"\"\"\n     [\n       ", "\n\n       ", "\n     ]\"\"\""))
+      Seq(
+        partitions.map { p =>
+          s"""|{:db/id      "$p"
+              |        :db/ident   :$p}
+              |       [:db/add :db.part/db :db.install/partition "$p"]""".stripMargin
+        }.mkString("// Partitions\n    \"\"\"\n     [\n       ", "\n\n       ", "\n     ]\n    \"\"\"")
+      )
     }
 
+    var aliasIdents = Seq.empty[String]
+    lazy val aliases: Seq[String] = if (aliasIdents.isEmpty) Nil else Seq(
+      aliasIdents.mkString("// Aliases\n    \"\"\"\n     [\n       ", "\n\n       ", "\n     ]\n    \"\"\"")
+    )
 
     def attrStmts(ns: String, a: DefAttr, isClient: Boolean): String = {
-      val ident = s""":db/ident         :$ns/${a.attr}"""
+      val origAttr = a.options.collectFirst{
+        case Optional("alias", alias) => alias
+      }.getOrElse(a.attr)
+      val ident = s""":db/ident         :$ns/$origAttr"""
       def tpe(t: String) = s""":db/valueType     :db.type/$t"""
       def card(c: String) = s""":db/cardinality   :db.cardinality/$c"""
-      var aliasIdent = ""
       def opts(os: Seq[Optional]): Seq[String] = os.flatMap {
         case Optional("alias", alias)                                                     =>
-          aliasIdent =
-            s""";; alias
-              |       {:db/id            :$ns/${a.attr}
-              |        :db/ident         :$ns/$alias}
-              |
-              |       """.stripMargin
+          aliasIdents = aliasIdents :+
+            s"""{:db/id     :$ns/$alias
+               |        :db/ident  :$ns/${a.attr}}""".stripMargin
           Nil
         case Optional(":db/index         true" | ":db/fulltext      true", _) if isClient => Nil
         case Optional(datomicKeyValue, _)                                                 => Seq(datomicKeyValue)
@@ -60,7 +65,7 @@ object SchemaTransaction extends MetaSchemaData {
         case unexpected                                                            =>
           throw new DataModelException(s"Unexpected attribute statement:\n" + unexpected)
       }
-      aliasIdent + s"{${(ident +: stmts).mkString("\n        ")}}"
+      s"{${(ident +: stmts).mkString("\n        ")}}"
     }
 
     def enums(part: String, ns: String, a: String, es: Seq[String], alias: String = ""): String = es.map { e =>
@@ -82,10 +87,15 @@ object SchemaTransaction extends MetaSchemaData {
             Seq(attrStmts(ns.ns, a, isClient))
         }
         header + "\n\n       " + attrs.mkString("\n\n       ")
-      }.mkString("\"\"\"\n     [\n       ", "\n\n\n       ", "\n     ]\"\"\"")
+      }.mkString("// Attributes\n    \"\"\"\n     [\n       ", "\n\n\n       ", "\n     ]\n    \"\"\"")
 
-    val datomicPeer   = (partitionDefinitions :+ attributeDefinitions(false)).mkString("Seq(\n    ", ",\n\n\n    ", ")")
-    val datomicClient = (partitionDefinitions :+ attributeDefinitions(true)).mkString("Seq(\n    ", ",\n\n\n    ", ")")
+    val datomicPeer = (
+      (partitionDefinitions :+ attributeDefinitions(false)) ++ aliases
+      ).mkString("Seq(\n    ", ",\n\n    ", "\n  )")
+
+    val datomicClient = (
+      (partitionDefinitions :+ attributeDefinitions(true)) ++ aliases
+      ).mkString("Seq(\n    ", ",\n\n    ", "\n  )")
 
     val metaSchema = getMetaSchema(d)
 

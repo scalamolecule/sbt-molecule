@@ -12,22 +12,29 @@ object SchemaTransactionLowerToUpper {
       case Namespace(_, _, ns, _, opt, attrs) =>
         val exts                      = opt.getOrElse("").toString
         val header                    = ";; " + ns + exts + " " + ("-" * (50 - (ns.length + exts.length)))
+
         val (attrsBefore, attrsAfter) = attrs.flatMap { a =>
-          val attrStmt = (firstLow(ns) + "/" + a.attr, ns + "/" + a.attr)
+          val origAttr = a.options.collectFirst {
+            case Optional("alias", alias) => alias
+          }.getOrElse(a.attr)
+          val attrStmt = (firstLow(ns) + "/" + origAttr, ns + "/" + a.attr)
           a match {
             case e: Enum    =>
               attrStmt +: e.enums.map(enum =>
-                (firstLow(ns) + "." + a.attr + "/" + enum, ns + "." + a.attr + "/" + enum)
+                (firstLow(ns) + "." + origAttr + "/" + enum, ns + "." + a.attr + "/" + enum)
               )
             case _: BackRef => Nil
             case _          => Seq(attrStmt)
           }
         }.unzip
-        val maxLength                 = attrsBefore.map(_.length).max
-        val stmts                     = attrsBefore.zip(attrsAfter).map {
+
+        val maxBefore = attrsBefore.map(_.length).max
+        val maxAfter  = attrsAfter.map(_.length).max
+        val stmts     = attrsBefore.zip(attrsAfter).map {
           case (attrBefore, attrAfter) =>
-            val indent = " " * (maxLength - attrBefore.length)
-            s"""{ :db/id :$attrBefore$indent   :db/ident :$attrAfter$indent }"""
+            val indent1 = " " * (maxBefore - attrBefore.length)
+            val indent2 = " " * (maxAfter - attrAfter.length)
+            s"""{ :db/id :$attrBefore$indent1   :db/ident :$attrAfter$indent2 }"""
         }
         header + "\n\n       " + stmts.mkString("\n       ")
     }.mkString("\n\n\n       ")

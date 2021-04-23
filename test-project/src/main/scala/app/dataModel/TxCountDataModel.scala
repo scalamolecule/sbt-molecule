@@ -2,7 +2,7 @@ package app.dataModel
 
 import molecule.core.data.model._
 
-@InOut(0, 1)
+@InOut(0, 2)
 object TxCountDataModel {
 
   trait TxCount {

@@ -68,17 +68,16 @@ case class DataModelParser(
       val indexed = Optional(":db/index         true", "Indexed")
       val options = str0 match {
         case r"\.alias\((.*)$a\).*" if a.contains('`') => throw new DataModelException(s"Attribute alias is not allowed to be a special name in back-ticks. Found $a in namespace $curFullNs. Please use a regular alias name.")
-        case r"\.alias\((.*)$alias\)(.*)$str"          => parseOptions(str, acc :+ Optional(s"alias", alias.init.tail.trim), attr, curFullNs)
-
-        case r"\.doc\((.*)$msg\)(.*)$str" => parseOptions(str, acc :+ Optional(s":db/doc           $msg", ""), attr, curFullNs)
-        case r"\.fulltext(.*)$str"        => parseOptions(str, acc :+ Optional(":db/fulltext      true", "Fulltext"), attr, curFullNs)
-        case r"\.uniqueValue(.*)$str"     => parseOptions(str, acc :+ Optional(":db/unique        :db.unique/value", "UniqueValue"), attr, curFullNs)
-        case r"\.uniqueIdentity(.*)$str"  => parseOptions(str, acc :+ Optional(":db/unique        :db.unique/identity", "UniqueIdentity"), attr, curFullNs)
-        case r"\.isComponent(.*)$str"     => parseOptions(str, acc :+ Optional(":db/isComponent   true", "IsComponent"), attr, curFullNs)
-        case r"\.noHistory(.*)$str"       => parseOptions(str, acc :+ Optional(":db/noHistory     true", "NoHistory"), attr, curFullNs)
-        case r"\.indexed(.*)$str"         => parseOptions(str, acc :+ indexed, attr, curFullNs)
-        case ""                           => acc
-        case unexpected                   => throw new DataModelException(s"Unexpected options code for attribute `$attr` in namespace `$curFullNs` in $dataModelFileName:\n" + unexpected)
+        case r"\.alias\((.*?)$alias\)(.*)$str"         => parseOptions(str, acc :+ Optional(s"alias", alias.init.tail.trim), attr, curFullNs)
+        case r"\.doc\((.*)$msg\)(.*)$str"              => parseOptions(str, acc :+ Optional(s":db/doc           $msg", ""), attr, curFullNs)
+        case r"\.fulltext(.*)$str"                     => parseOptions(str, acc :+ Optional(":db/fulltext      true", "Fulltext"), attr, curFullNs)
+        case r"\.uniqueValue(.*)$str"                  => parseOptions(str, acc :+ Optional(":db/unique        :db.unique/value", "UniqueValue"), attr, curFullNs)
+        case r"\.uniqueIdentity(.*)$str"               => parseOptions(str, acc :+ Optional(":db/unique        :db.unique/identity", "UniqueIdentity"), attr, curFullNs)
+        case r"\.isComponent(.*)$str"                  => parseOptions(str, acc :+ Optional(":db/isComponent   true", "IsComponent"), attr, curFullNs)
+        case r"\.noHistory(.*)$str"                    => parseOptions(str, acc :+ Optional(":db/noHistory     true", "NoHistory"), attr, curFullNs)
+        case r"\.indexed(.*)$str"                      => parseOptions(str, acc :+ indexed, attr, curFullNs)
+        case ""                                        => acc
+        case unexpected                                => throw new DataModelException(s"Unexpected options code for attribute `$attr` in namespace `$curFullNs` in $dataModelFileName:\n" + unexpected)
       }
       if (allIndexed) (options :+ indexed).distinct else options
     }
