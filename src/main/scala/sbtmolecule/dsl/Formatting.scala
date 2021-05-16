@@ -52,10 +52,8 @@ class Formatting(
     (
       ns + "_" + a.attr + attrSp,
 
-      // Ugly workaround, substituting $ with _ since $ as a last character in trait names somehow destroy them when
+      // Hack: substituting $ with _ since $ as a last character in trait names somehow destroy them when
       // generated source code files are packed into jars.
-      // Since object property traits are only used internally we go for this solution instead of suffixing  with `_opt`
-      // or the like which would require special spacings etc.
       ns + "_" + a.attr + "_" + attrSp,
 
       ns + "_" + a.attr + "K" + attrSp,

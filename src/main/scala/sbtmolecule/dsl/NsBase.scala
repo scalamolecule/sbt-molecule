@@ -24,7 +24,7 @@ case class NsBase(
       val (clsMan, clsOpt) = nsData(a)
       val (opts, optsK)    = getExtras(a, a.bi)
 
-      tpeMan += s"final class $attr[$Stay, $Next] extends $clsMan[$Stay, $Next]$opts"
+      tpeMan += s"final class $attr [$Stay, $Next] extends $clsMan[$Stay, $Next]$opts"
       tpeOpt += s"final class $attrO[$Stay, $Next] extends $clsOpt[$Stay]$opts"
 
       propTraitsMan += s"trait $ns_attr  { lazy val $attr: $tpe = ??? }"
@@ -42,7 +42,7 @@ case class NsBase(
       val (clsMan, clsOpt) = nsData(a)
       val (opts, optsK)    = getExtras(a, a.bi)
 
-      tpeMan += s"final class $attr[$Stay, $Next] extends $clsMan[$Stay, $Next]$opts"
+      tpeMan += s"final class $attr [$Stay, $Next] extends $clsMan[$Stay, $Next]$opts"
       tpeOpt += s"final class $attrO[$Stay, $Next] extends $clsOpt[$Stay]$opts"
 
       propTraitsMan += s"trait $ns_attr  { lazy val $attr: $tpe = ??? }"
@@ -59,7 +59,7 @@ case class NsBase(
 
       val enumValues = s"private lazy val ${a.enums.mkString(", ")} = EnumValue"
 
-      tpeMan += s"final class $attr[$Stay, $Next] extends $clsMan[$Stay, $Next]$opts { $enumValues }"
+      tpeMan += s"final class $attr [$Stay, $Next] extends $clsMan[$Stay, $Next]$opts { $enumValues }"
       tpeOpt += s"final class $attrO[$Stay, $Next] extends $clsOpt[$Stay]$opts { $enumValues }"
 
       propTraitsMan += s"trait $ns_attr  { lazy val $attr: $tpe = ??? }"
@@ -74,8 +74,8 @@ case class NsBase(
     propTraitsMan ++
       Seq(
         "",
-        "// Please note that `$` has been subsituted with `_` to allow packaging to jars.",
-        "// To be interpreted as optional and not tacit"
+        "// Please note that `$` has been substituted with `_` only to allow packaging to jars.",
+        "// To be interpreted as optional"
       ) ++ propTraitsOpt ++
       (if (propTraitsMap.nonEmpty) Seq("") ++ propTraitsMap else Nil) ++
       (if (propTraitsRef.nonEmpty) Seq("") ++ propTraitsRef else Nil)
