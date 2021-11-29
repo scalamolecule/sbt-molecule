@@ -8,13 +8,13 @@ Add the following to your build files:
 `project/build.properties`:
 
 ```scala
-sbt.version=1.4.7
+sbt.version=1.5.5
 ```
 
 `project/buildinfo.sbt`:
 
 ```scala
-addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "0.14.0-SNAPSHOT")
+addSbtPlugin("org.scalamolecule" % "sbt-molecule" % "1.0.0")
 ```
 
 `build.sbt`:
@@ -29,7 +29,7 @@ lazy val yourProject = project.in(file("app"))
       Resolver.sonatypeRepo("releases")
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.25.0",
+      "org.scalamolecule" %% "molecule" % "1.0.0",
       "com.datomic" % "datomic-free" % "0.9.5697"
     ),
 
@@ -130,7 +130,7 @@ import app.dsl.yourDomain._
 Person.name("John").age(26).gender("male").save
 
 // Retrieve data
-val (person, age, gender) = Person.name.age.gender.get.head
+Person.name.age.gender.get
 ```
 
 Read more on [scalamolecule.org](http://www.scalamolecule.org)

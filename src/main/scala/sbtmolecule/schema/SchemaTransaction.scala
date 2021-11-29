@@ -122,7 +122,11 @@ object SchemaTransaction extends MetaSchemaData {
         |  lazy val metaSchema = ${metaSchema.toString}
         |
         |
-        |  lazy val nsMap = ${renderNsMap(metaSchema)}
+        |  lazy val nsMap = ${metaSchema.nsMap}
+        |
+        |
+        |  // Map of Attribute -> (card, type)
+        |  lazy val attrMap: Map[String, (Int, String)] = ${metaSchema.attrMap}
         |}""".stripMargin
   }
 }

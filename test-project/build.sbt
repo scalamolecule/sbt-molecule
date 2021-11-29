@@ -1,29 +1,33 @@
 
 name := "sbt-molecule-test-project"
-version := "0.14.0-SNAPSHOT"
+version := "1.0.0"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.5"
+scalaVersion := "2.13.7"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "0.25.2-SNAPSHOT",
+  "org.scalamolecule" %% "molecule" % "1.0.0",
   "com.datomic" % "datomic-free" % "0.9.5697",
-  "org.specs2" %% "specs2-core" % "4.10.6"
+  "com.lihaoyi" %% "utest" % "0.7.10",
 )
+testFrameworks += new TestFramework("utest.runner.Framework")
+
+// Let IntelliJ detect sbt-molecule-created jars in unmanaged lib directory
+exportJars := true
 
 // Molecule
 enablePlugins(MoleculePlugin)
 
 // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
 moleculePluginActive := sys.props.get("molecule").contains("true")
+// or have it on/off for all sbt compilations:
 //moleculePluginActive := true
-moleculeDataModelPaths := Seq("app") // Mandatory
+moleculeDataModelPaths := Seq("app")
 moleculeAllIndexed := true // Optional, default: true
-moleculeMakeJars := false
-//moleculeGenericPkg := "molecule.core.generic" // turn this on for generics, otherwise off!
+moleculeMakeJars := true
 
 // Let IDE detect created jars in unmanaged lib directory
 exportJars := true

@@ -16,7 +16,8 @@ object FileBuilder {
     dataModelDirs: Seq[String],
     allIndexed: Boolean,
     isJvm: Boolean,
-    genericPkg: String
+    genericPkg: String,
+    generateSchemaConversions: Boolean
   ): Seq[File] = {
     // Loop domain directories
     val files: Seq[File] = dataModelDirs flatMap { dataModelDir =>
@@ -49,7 +50,7 @@ object FileBuilder {
           // Useful to have lower-case namespace named attributes also for data imports from the Clojure world
           // where namespace names are lower case by convention.
           // In Scala/Molecule code we can still use our uppercase-namespace attribute names.
-          val schemaFileModifiers: Seq[File] = if (model.curPart.isEmpty) {
+          val schemaFileModifiers: Seq[File] = if (generateSchemaConversions && model.curPart.isEmpty) {
             val schemaFileLowerToUpper: File = model.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema" / s"${model.domain}SchemaLowerToUpper.scala"
             IO.write(schemaFileLowerToUpper, SchemaTransactionLowerToUpper(model))
 

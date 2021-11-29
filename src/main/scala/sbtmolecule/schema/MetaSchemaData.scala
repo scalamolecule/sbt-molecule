@@ -53,7 +53,7 @@ trait MetaSchemaData extends Helpers {
                 case 1 => Some(MetaAttr(attrIndex, attr, card, v.tpe, Nil, None, opts, doc, attrGroup))
                 case _ => Some(MetaAttr(attrIndex, attr, card, v.baseTpe, Nil, None, opts, doc, attrGroup))
               }
-              case e: Enum => Some(MetaAttr(attrIndex, attr, card, "String", e.enums, None, opts, doc, attrGroup))
+              case e: Enum => Some(MetaAttr(attrIndex, attr, card, "enum", e.enums, None, opts, doc, attrGroup))
               case r: Ref  => Some(MetaAttr(attrIndex, attr, card, "ref", Nil, Some(r.refNs), opts, doc, attrGroup))
               case _       => None
             }
@@ -65,14 +65,4 @@ trait MetaSchemaData extends Helpers {
     // Add nss to last partition
     MetaSchema((parts.init :+ parts.last.copy(nss = nss)).tail)
   }
-
-
-  def renderNsMap(metaSchema: MetaSchema): String = {
-    val parts = metaSchema.parts.map(part =>
-      part.nss.map(ns => s""""${ns.nameFull}" -> $ns""").mkString("\n      ", ",\n\n      ", "")
-    )
-    val nss   = if (parts.isEmpty) "" else parts.mkString(",\n\n      ")
-    s"Map($nss)"
-  }
-
 }

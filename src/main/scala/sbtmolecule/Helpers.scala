@@ -44,7 +44,7 @@ trait Helpers {
 
   final protected def o(opt: Option[Any]): String = if (opt.isDefined) s"""Some(${cast(opt.get)})""" else "None"
 
-  final protected def seq[T](values: Seq[T]): String = values.map {
+  final protected def sq[T](values: Seq[T]): String = values.map {
     case set: Set[_] => set.map(cast).mkString("Set(", ", ", ")")
     case seq: Seq[_] => seq.map(cast).mkString("Seq(", ", ", ")")
     case (a, b)      => s"${cast(a)} -> ${cast(b)}"

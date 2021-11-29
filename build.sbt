@@ -5,9 +5,9 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "0.14.0-SNAPSHOT",
+    version := "1.0.0",
     organization := "org.scalamolecule",
-    //    scalaVersion := "2.12.13", // is implicit for plugins
+    //    scalaVersion := "2.12.15", // is implicit for plugins
     scalacOptions := Seq(
       "-unchecked",
       "-deprecation",

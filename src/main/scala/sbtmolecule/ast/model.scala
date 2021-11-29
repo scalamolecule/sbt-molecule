@@ -35,22 +35,22 @@ object model extends Helpers {
 
   case class Val(attr: String, clazz: String, tpe: String, baseTpe: String, datomicTpe: String,
                  options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None, alias: String = "") extends DefAttr {
-    override def toString: String = s"""Val("$attr", "$clazz", "$tpe", "$baseTpe", "$datomicTpe", ${seq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
+    override def toString: String = s"""Val("$attr", "$clazz", "$tpe", "$baseTpe", "$datomicTpe", ${sq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
   }
 
   case class Enum(attr: String, clazz: String, tpe: String, baseTpe: String, enums: Seq[String],
                   options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None, alias: String = "") extends DefAttr {
-    override def toString: String = s"""Enum("$attr", "$clazz", "$tpe", "$baseTpe", ${seq(enums)}, ${seq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
+    override def toString: String = s"""Enum("$attr", "$clazz", "$tpe", "$baseTpe", ${sq(enums)}, ${sq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
   }
 
   case class Ref(attr: String, clazz: String, clazz2: String, tpe: String, baseTpe: String, refNs: String,
                  options: Seq[Optional] = Seq(), bi: Option[String] = None, revRef: String = "", attrGroup: Option[String] = None) extends DefAttr {
-    override def toString: String = s"""Ref("$attr", "$clazz", "$clazz2", "$tpe", "$baseTpe", "$refNs", ${seq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
+    override def toString: String = s"""Ref("$attr", "$clazz", "$clazz2", "$tpe", "$baseTpe", "$refNs", ${sq(options)}, ${o(bi)}, "$revRef", ${o(attrGroup)})"""
   }
 
   case class BackRef(attr: String, clazz: String, clazz2: String, tpe: String, baseTpe: String, backRefNs: String,
                      options: Seq[Optional] = Seq(), attrGroup: Option[String] = None) extends DefAttr {
-    override def toString: String = s"""BackRef("$attr", "$clazz", "$clazz2", "$tpe", "$baseTpe", "$backRefNs", ${seq(options)}, ${o(attrGroup)})"""
+    override def toString: String = s"""BackRef("$attr", "$clazz", "$clazz2", "$tpe", "$baseTpe", "$backRefNs", ${sq(options)}, ${o(attrGroup)})"""
   }
 
   case class Optional(datomicKeyValue: String, clazz: String) {

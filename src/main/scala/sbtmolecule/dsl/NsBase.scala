@@ -85,7 +85,7 @@ case class NsBase(
   val pkg = if (isGeneric) genericPkg else model.pkg + ".dsl"
 
   val inputEids = if (model.maxIn == 0) "" else
-    s"\n  final override def apply(eids: ?)               : ${ns}_1_0_L0[$ns_, Init, Long] = ???"
+    s"\n  final override def apply(eids: qm)               : ${ns}_1_0_L0[$ns_, Init, Long] = ???"
 
   val (imports, body) = if (isDatom) {
     (
@@ -125,7 +125,7 @@ case class NsBase(
         "java.util.UUID",
         "molecule.core.dsl.attributes._",
         "molecule.core.dsl.base._",
-      ) ++ (if (model.maxIn > 0) Seq("molecule.core.expression.AttrExpressions.?") else Nil),
+      ) ++ (if (model.maxIn > 0) Seq("molecule.core.expression.AttrExpressions.qm") else Nil),
       s"""object $ns extends ${ns}_0_0_L0[$ns_, Init] with FirstNS {
          |  final override def apply(eid: Long, eids: Long*): ${ns}_0_0_L0[$ns_, Init] = ???
          |  final override def apply(eids: Iterable[Long])  : ${ns}_0_0_L0[$ns_, Init] = ???$inputEids

@@ -91,7 +91,7 @@ case class NsArityLevel(
       if (out < maxOut) {
         man += s"final lazy val $attr : $Next[$attr, $ns_attr, $tpe] = ???"
         if (isGeneric) {
-          if (isSchema && Seq("doc", "index", "unique", "fulltext", "isComponent", "noHistory", "enum").contains(a.attr))
+          if (isSchema && Seq("doc", "index", "unique", "fulltext", "isComponent", "noHistory", "enumm").contains(a.attr))
             opt += s"final lazy val $attrO : Next[$attrO, $ns_attrO, $tpO] = ???"
         } else {
           opt += s"final lazy val $attrO : $Next[$attrO, $ns_attrO, $tpO] = ???"

@@ -1,9 +1,8 @@
-import sbt.Keys.version
-import sbtmolecule.MoleculePlugin.autoImport.{moleculeAllIndexed, moleculeDataModelPaths}
+import sbt.Keys.{exportJars, version}
 
 
-lazy val scala213               = "2.13.5"
-lazy val scala212               = "2.12.13"
+lazy val scala213               = "2.13.7"
+lazy val scala212               = "2.12.15"
 lazy val supportedScalaVersions = List(scala213, scala212)
 
 ThisBuild / organization := "com.example"
@@ -13,10 +12,6 @@ ThisBuild / scalaVersion := scala213
 
 lazy val root = (project in file("."))
   .aggregate(app)
-  .settings(
-    // crossScalaVersions must be set to Nil on the aggregating project
-    crossScalaVersions := Nil,
-  )
 
 lazy val app = (project in file("app"))
   .enablePlugins(MoleculePlugin)
@@ -24,7 +19,7 @@ lazy val app = (project in file("app"))
     crossScalaVersions := supportedScalaVersions,
     // other settings
     name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "0.14.0-SNAPSHOT",
+    version := "1.0.0",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
 
@@ -32,7 +27,7 @@ lazy val app = (project in file("app"))
       "clojars" at "https://clojars.org/repo"
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "0.25.2-SNAPSHOT",
+      "org.scalamolecule" %% "molecule" % "1.0.0",
       "com.datomic" % "datomic-free" % "0.9.5697",
       "org.specs2" %% "specs2-core" % "4.10.6"
     ),
@@ -42,5 +37,9 @@ lazy val app = (project in file("app"))
     moleculePluginActive := sys.props.get("molecule") == Some("true"),
     moleculeDataModelPaths := Seq("app"), // Mandatory
     moleculeAllIndexed := true, // Optional, default: true
-    moleculeMakeJars := false // Optional, default: true
+    moleculeMakeJars := true, // Optional, default: true
+
+
+    // Let IntelliJ detect sbt-molecule-created jars in unmanaged lib directory
+    exportJars := true,
   )

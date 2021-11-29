@@ -9,22 +9,23 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def requires: JvmPlugin.type = plugins.JvmPlugin
 
   object autoImport {
-    lazy val moleculeDataModelPaths = settingKey[Seq[String]]("Seq of paths to directories having a `dataModel` directory with data model files.")
-    lazy val moleculeAllIndexed     = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
-    lazy val moleculeMakeJars       = settingKey[Boolean]("Whether jars are created from generated source files.")
-    lazy val moleculePluginActive   = settingKey[Boolean]("Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds.")
-    lazy val moleculeGenericPkg     = settingKey[String]("Generate special generic interfaces in certain pkg. Not for public use.")
-    lazy val moleculeBoilerplate    = taskKey[Seq[File]]("Task that generates Molecule boilerplate code.")
-    lazy val moleculeJars           = taskKey[Unit]("Task that packages the boilerplate code and then removes it.")
+    // api
+    lazy val moleculeDataModelPaths    = settingKey[Seq[String]]("Seq of paths to directories having a `dataModel` directory with data model files.")
+    lazy val moleculePluginActive      = settingKey[Boolean]("Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds.")
+    lazy val moleculeMakeJars          = settingKey[Boolean]("Whether jars are created from generated source files.")
+    lazy val moleculeSchemaConversions = settingKey[Boolean]("Generate schema to lower/upper conversions. Default false.")
+    lazy val moleculeAllIndexed        = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
+    lazy val moleculeGenericPkg        = settingKey[String]("Generate special generic interfaces in certain pkg. Not for public use.")
+
+    // Internal
+    lazy val moleculeBoilerplate = taskKey[Seq[File]]("Internal task that generates Molecule boilerplate code.")
+    lazy val moleculeJars        = taskKey[Unit]("Internal task that packages the boilerplate code and then removes it.")
   }
 
   import autoImport._
 
   def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
-
     moleculeBoilerplate := {
-      val cacheDir = streams.value.cacheDirectory / "moleculeBoilerplateTesting"
-
       //      println(
       //        s"""-------------------------
       //           |${unmanagedBase.value}
@@ -61,11 +62,22 @@ object MoleculePlugin extends sbt.AutoPlugin {
             scalaSource.value
         }
 
-        val platform = if (isJvm) "jvm" else "js"
+        val paths = moleculeDataModelPaths.?.value.getOrElse(Nil)
+        paths.foreach { path =>
+          val fullPath = srcDir + "/" + path
+          val dir      = new java.io.File(fullPath)
+          if (!dir.isDirectory)
+            throw new RuntimeException(
+              "[sbt-molecule plugin] Data model path defined in sbt build file is not a directory:\n" + fullPath
+            )
+        }
+
+        val platform   = if (isJvm) "jvm" else "js"
+        val codeOrJars = if (moleculeMakeJars.?.value.getOrElse(true)) "jars" else "source code"
         println(
           s"""------------------------------------------------------------------------
-             |Generating Molecule DSL $platform code for data models in:
-             |${moleculeDataModelPaths.?.value.getOrElse(Nil).mkString("\n")}
+             |Generating Molecule DSL $platform $codeOrJars for data models in:
+             |${paths.mkString("\n")}
              |------------------------------------------------------------------------""".stripMargin
         )
 
@@ -81,7 +93,15 @@ object MoleculePlugin extends sbt.AutoPlugin {
         //             |-------------------------""".stripMargin
         //        )
 
-        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, allIndexed, isJvm, genericPkg)
+        val sourceFiles = FileBuilder(
+          srcDir,
+          sourceManaged.value,
+          moleculeDataModelPaths.value,
+          allIndexed,
+          isJvm,
+          genericPkg,
+          moleculeSchemaConversions.?.value.getOrElse(false),
+        )
 
         //        println(
         //          s"""${sourceFiles.mkString("\n")}
@@ -89,7 +109,12 @@ object MoleculePlugin extends sbt.AutoPlugin {
         //        )
 
         // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
-        val cache = FileFunction.cached(cacheDir, inStyle = FilesInfo.lastModified, outStyle = FilesInfo.hash) {
+        val cacheDir = streams.value.cacheDirectory / "moleculeBoilerplateTesting"
+        val cache    = FileFunction.cached(
+          cacheDir,
+          inStyle = FilesInfo.lastModified,
+          outStyle = FilesInfo.hash
+        ) {
           in: Set[File] => sourceFiles.toSet
         }
         cache(sourceFiles.toSet).toSeq
@@ -99,6 +124,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         Seq.empty[File]
       }
     },
+
     Compile / sourceGenerators += moleculeBoilerplate.taskValue,
 
     Compile / moleculeJars := Def.taskDyn {
