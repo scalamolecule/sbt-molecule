@@ -28,13 +28,13 @@ lazy val foo = crossProject(JSPlatform, JVMPlatform)
   .jsSettings(
     // Molecule without non-ScalaJS-compatible Datomic dependencies
     libraryDependencies ++= Seq(
-      ("org.scalamolecule" %%% "molecule" % "1.0.0")
+      ("org.scalamolecule" %%% "molecule" % "1.0.1")
         .exclude("com.datomic", "datomic-free")
     )
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "1.0.0",
+      "org.scalamolecule" %% "molecule" % "1.0.1",
       "com.datomic" % "datomic-free" % "0.9.5697"
     )
   )

@@ -19,7 +19,7 @@ lazy val app = (project in file("app"))
     crossScalaVersions := supportedScalaVersions,
     // other settings
     name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "1.0.0",
+    version := "1.0.1",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
 
@@ -27,7 +27,7 @@ lazy val app = (project in file("app"))
       "clojars" at "https://clojars.org/repo"
     ),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "1.0.0",
+      "org.scalamolecule" %% "molecule" % "1.0.1",
       "com.datomic" % "datomic-free" % "0.9.5697",
       "org.specs2" %% "specs2-core" % "4.10.6"
     ),
