@@ -3,10 +3,10 @@
 # All abort with ctrl-c
 trap "exit" INT
 
-echo "--------------------------------------------------------------------------"
-echo "Compiling and testing: test-project-with-partitions"
-echo "--------------------------------------------------------------------------"
+echo "##########################################################################"
+echo "test-project-with-partitions"
+echo "##########################################################################"
 
 cd test-project-with-partitions
-sbt compile test -Dmolecule=true
+sbt test -Dmolecule=true
 cd ..

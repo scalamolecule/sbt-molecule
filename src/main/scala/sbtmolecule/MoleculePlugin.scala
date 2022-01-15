@@ -134,7 +134,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         // Make no jars
         Def.task {}
       }
-    }.triggeredBy(Compile / compile).value
+    }.value
   ))
 
 

@@ -1,24 +1,27 @@
 
 name := "sbt-molecule-test-project-lower"
-version := "1.0.1"
+version := "1.0.2"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.7"
+scalaVersion := "2.13.8"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo",
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "1.0.1",
-  "com.datomic" % "datomic-free" % "0.9.5697",
-  "org.specs2" %% "specs2-core" % "4.10.6"
+  "org.scalamolecule" %% "molecule" % "1.1.0",
+  "com.lihaoyi" %% "utest" % "0.7.10",
 )
+testFrameworks += new TestFramework("utest.runner.Framework")
+
+// Ensure clojure loads correctly for async tests run from sbt
+Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
 
 // Molecule
 enablePlugins(MoleculePlugin)
 
 // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
-moleculePluginActive := sys.props.get("molecule") == Some("true")
+moleculePluginActive := sys.props.get("molecule").contains("true")
 moleculeDataModelPaths := Seq("app") // Mandatory
 moleculeAllIndexed := true // Optional, default: true
 moleculeMakeJars := true // Optional, default: true

@@ -1,7 +1,7 @@
 package app.domains.dataModel
 import molecule.core.data.model._
 
-@InOut(0, 3)
+@InOut(0, 2)
 object OrderDataModel {
 
   trait Order {

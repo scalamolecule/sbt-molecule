@@ -1,16 +1,15 @@
 
 name := "sbt-molecule-test-project"
-version := "1.0.1"
+version := "1.0.2"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.7"
+scalaVersion := "2.13.8"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "1.0.1",
-  "com.datomic" % "datomic-free" % "0.9.5697",
+  "org.scalamolecule" %% "molecule" % "1.1.0",
   "com.lihaoyi" %% "utest" % "0.7.10",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
