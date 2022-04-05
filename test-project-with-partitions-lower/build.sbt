@@ -1,6 +1,6 @@
 
 name := "sbt-molecule-test-project-with-partitions-lower"
-version := "1.0.2"
+version := "1.1.0"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.8"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
@@ -9,8 +9,8 @@ resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "1.1.0",
-  "com.lihaoyi" %% "utest" % "0.7.10",
+  "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT",
+  "com.lihaoyi" %% "utest" % "0.7.11",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 

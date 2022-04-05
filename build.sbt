@@ -5,7 +5,7 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.0.2",
+    version := "1.1.0",
     organization := "org.scalamolecule",
     //    scalaVersion := "2.12.15", // is implicit for plugins
     scalacOptions := Seq(
@@ -13,6 +13,12 @@ lazy val root = (project in file("."))
       "-deprecation",
       "-feature",
       "-language:implicitConversions"
+    ),
+    resolvers ++= Seq(
+      "clojars" at "https://clojars.org/repo",
+    ),
+    libraryDependencies ++= Seq(
+      "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT"
     )
   )
   .settings(publishSettings)

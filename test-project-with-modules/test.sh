@@ -8,5 +8,11 @@ echo "test-project-with-modules"
 echo "##########################################################################"
 
 cd test-project-with-modules
+if [ -d "app/lib"  ]; then
+    rm -r app/lib
+fi
+if [ -d "app/target"  ]; then
+    rm -r app/target
+fi
 sbt test -Dmolecule=true
 cd ..

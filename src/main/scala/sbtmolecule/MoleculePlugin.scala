@@ -10,16 +10,32 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   object autoImport {
     // api
-    lazy val moleculeDataModelPaths    = settingKey[Seq[String]]("Seq of paths to directories having a `dataModel` directory with data model files.")
-    lazy val moleculePluginActive      = settingKey[Boolean]("Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds.")
-    lazy val moleculeMakeJars          = settingKey[Boolean]("Whether jars are created from generated source files.")
-    lazy val moleculeSchemaConversions = settingKey[Boolean]("Generate schema to lower/upper conversions. Default false.")
-    lazy val moleculeAllIndexed        = settingKey[Boolean]("Whether all attributes have the index flag in schema creation file - default: true")
-    lazy val moleculeGenericPkg        = settingKey[String]("Generate special generic interfaces in certain pkg. Not for public use.")
+    lazy val moleculeDataModelPaths    = settingKey[Seq[String]](
+      "Seq of paths to directories having a `dataModel` directory with data model files."
+    )
+    lazy val moleculePluginActive      = settingKey[Boolean](
+      "Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds."
+    )
+    lazy val moleculeMakeJars          = settingKey[Boolean](
+      "Whether jars are created from generated source files."
+    )
+    lazy val moleculeSchemaConversions = settingKey[Boolean](
+      "Generate schema to lower/upper conversions. Default false."
+    )
+    lazy val moleculeAllIndexed        = settingKey[Boolean](
+      "Whether all attributes have the index flag in schema creation file - default: true"
+    )
+    lazy val moleculeGenericPkg        = settingKey[String](
+      "Generate special generic interfaces in certain pkg. Not for public use."
+    )
 
     // Internal
-    lazy val moleculeBoilerplate = taskKey[Seq[File]]("Internal task that generates Molecule boilerplate code.")
-    lazy val moleculeJars        = taskKey[Unit]("Internal task that packages the boilerplate code and then removes it.")
+    lazy val moleculeBoilerplate = taskKey[Seq[File]](
+      "Internal task that generates Molecule boilerplate code."
+    )
+    lazy val moleculeJars        = taskKey[Unit](
+      "Internal task that packages the boilerplate code and then removes it."
+    )
   }
 
   import autoImport._
@@ -134,7 +150,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         // Make no jars
         Def.task {}
       }
-    }.value
+    }.triggeredBy(Compile / compile).value
   ))
 
 
@@ -151,15 +167,18 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
     // Create source jar from generated source files
     val src_managedDir: File                = (Compile / sourceManaged).value
-    val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar/")
+    val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar")
     val srcFilesData  : Seq[(File, String)] = files2TupleRec("", src_managedDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest, None)
 
     // Create jar from class files compiled from generated source files
     val classesDir     : File                = (Compile / classDirectory).value
-    val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName.jar/")
+    val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName.jar")
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", classesDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest, None)
+
+    // Hack to allow the above jars to be created in parallel before source code is deleted
+    Thread.sleep(5000)
 
     // Cleanup now obsolete generated/compiled code
     moleculeDataModelPaths.value.foreach { path =>

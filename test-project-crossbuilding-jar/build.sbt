@@ -1,6 +1,6 @@
 
 name := "sbt-molecule-test-project-crossbuilding-jar"
-version := "1.0.2"
+version := "1.1.0"
 organization := "org.scalamolecule"
 crossScalaVersions := Seq("2.12.15", "2.13.8")
 ThisBuild / scalaVersion := "2.13.8"
@@ -10,8 +10,8 @@ resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "1.1.0",
-  "com.lihaoyi" %% "utest" % "0.7.10",
+  "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT",
+  "com.lihaoyi" %% "utest" % "0.7.11",
 )
 
 testFrameworks += new TestFramework("utest.runner.Framework")
