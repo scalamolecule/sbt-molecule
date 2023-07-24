@@ -5,21 +5,9 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.1.0",
+    version := "1.2.0-SNAPSHOT",
     organization := "org.scalamolecule",
-    //    scalaVersion := "2.12.15", // is implicit for plugins
-    scalacOptions := Seq(
-      "-unchecked",
-      "-deprecation",
-      "-feature",
-      "-language:implicitConversions"
-    ),
-    resolvers ++= Seq(
-      "clojars" at "https://clojars.org/repo",
-    ),
-    libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT"
-    )
+    libraryDependencies += "org.scalamolecule" %% "molecule-base" % "0.1.0-SNAPSHOT"
   )
   .settings(publishSettings)
 
@@ -30,7 +18,6 @@ lazy val releases  = "Sonatype OSS Staging" at "https://oss.sonatype.org/service
 lazy val publishSettings: Seq[Def.Setting[_]] = Seq(
   publishMavenStyle := true,
   publishTo := (if (isSnapshot.value) Some(snapshots) else Some(releases)),
-  //  ThisBuild / versionScheme := Some("semver-spec"),
   Test / publishArtifact := false,
   pomIncludeRepository := (_ => false),
   homepage := Some(url("http://scalamolecule.org")),

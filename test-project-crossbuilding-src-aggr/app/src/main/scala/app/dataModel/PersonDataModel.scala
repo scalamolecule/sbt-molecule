@@ -1,10 +1,9 @@
 package app.dataModel
 
-import molecule.core.data.model._
+import molecule.DataModel
 
 
-@InOut(0, 2)
-object PersonDataModel {
+object PersonDataModel extends DataModel(3) {
 
   trait Person {
     val name = oneString

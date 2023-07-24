@@ -1,13 +1,14 @@
 import sbt.Keys.{exportJars, testFrameworks, version}
 
 
-lazy val scala213               = "2.13.8"
-lazy val scala212               = "2.12.15"
-lazy val supportedScalaVersions = List(scala213, scala212)
+lazy val scala212               = "2.12.17"
+lazy val scala213               = "2.13.10"
+lazy val scala3                 = "3.2.1"
+lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 ThisBuild / organization := "com.example"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := scala213
+ThisBuild / scalaVersion := scala3
 
 
 lazy val root = (project in file("."))
@@ -22,13 +23,10 @@ lazy val app = (project in file("app"))
     version := "1.1.0",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
-
-    resolvers ++= Seq(
-      "clojars" at "https://clojars.org/repo"
-    ),
+    resolvers += "clojars" at "https://clojars.org/repo",
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT",
-      "com.lihaoyi" %% "utest" % "0.7.11",
+      "org.scalamolecule" %% "molecule-datomic" % "0.1.0-SNAPSHOT",
+      "com.lihaoyi" %% "utest" % "0.8.1" % Test,
     ),
 
     testFrameworks += new TestFramework("utest.runner.Framework"),

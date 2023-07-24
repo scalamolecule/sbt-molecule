@@ -1,108 +1,61 @@
 package sbtmolecule
 
 import java.io.File
+import molecule.base.codegen.extract.DataModel2MetaSchema
+import molecule.base.codegen.render._
 import sbt.*
-import sbtmolecule.ast.schemaModel.*
-import sbtmolecule.dsl.{NsArity, NsBase}
-import sbtmolecule.schema.{SchemaTransactionCode, SchemaTransactionLowerToUpper, SchemaTransactionUpperToLower}
-import scala.io.Source
 
 
 object FileBuilder {
 
-  def apply(
-    sourceDir: File,
-    managedDir: File,
-    dataModelDirs: Seq[String],
-    allIndexed: Boolean,
-    isJvm: Boolean,
-    genericPkg: String,
-    generateSchemaConversions: Boolean
-  ): Seq[File] = {
-    // Loop domain directories
-    val files: Seq[File] = dataModelDirs flatMap { dataModelDir =>
+  def apply(sourceDir: File, managedDir: File, dataModelDirs: Seq[String], scalaVersion: String): Seq[File] = {
 
+    // Loop domain directories
+    dataModelDirs.flatMap { dataModelDir =>
       val dataModelDirs: Array[File] = sbt.IO.listFiles(sourceDir / dataModelDir)
       assert(
         dataModelDirs.exists(f => f.isDirectory && f.getName == "dataModel"),
-        s"\nMissing `dataModel` package inside supplied moleculeDataModelPath:\n" + sourceDir / dataModelDir
-      )
-
-      val dataModelFiles: Array[File] = sbt.IO.listFiles(
-        sourceDir / dataModelDir / "dataModel").filter(f => f.isFile && f.getName.endsWith("DataModel.scala")
-      )
-      assert(
-        dataModelFiles.nonEmpty,
-        "\nFound no valid data model object in " + sourceDir / dataModelDir +
-          "\nData model file names should end with `<YourDomain...>DataModel.scala`"
+        s"\nMissing `dataModel` package inside moleculeDataModelPaths:\n" + sourceDir / dataModelDir
       )
 
       // Loop data model files in each domain directory
-      dataModelFiles flatMap { dataModelFile =>
-        val dataModelFileSource = Source.fromFile(dataModelFile)
-        val model: Model        =
-          DataModelParser(dataModelFile.getName, dataModelFileSource.getLines().toList, allIndexed, genericPkg).parse
-        dataModelFileSource.close()
+      sbt.IO.listFiles(sourceDir / dataModelDir / "dataModel")
+        .filter(f => f.isFile)
+        .flatMap { dataModelFile =>
+          val schema = DataModel2MetaSchema(dataModelFile.getPath, scalaVersion)
 
-        val schemaFiles = {
-          // Write schema file
-          val schemaFile: File = model.pkg.split('.').toList.foldLeft(managedDir)(
-            (dir, pkg) => dir / pkg
-          ) / "schema" / s"${model.domain}Schema.scala"
-          IO.write(schemaFile, SchemaTransactionCode(model).getCode)
-
-          // Write schema file with lower-cased namespace names when no custom partitions are defined
-          // Useful to have lower-case namespace named attributes also for data imports from the Clojure world
-          // where namespace names are lower case by convention.
-          // In Scala/Molecule code we can still use our uppercase-namespace attribute names.
-          val schemaFileModifiers: Seq[File] = if (generateSchemaConversions && model.curPart.isEmpty) {
-            val schemaFileLowerToUpper: File = model.pkg.split('.').toList.foldLeft(managedDir)(
-              (dir, pkg) => dir / pkg
-            ) / "schema" / s"${model.domain}SchemaLowerToUpper.scala"
-            IO.write(schemaFileLowerToUpper, SchemaTransactionLowerToUpper(model))
-
-            val schemaFileUpperToLower: File = model.pkg.split('.').toList.foldLeft(managedDir)(
-              (dir, pkg) => dir / pkg
-            ) / "schema" / s"${model.domain}SchemaUpperToLower.scala"
-            IO.write(schemaFileUpperToLower, SchemaTransactionUpperToLower(model))
-
-            Seq(schemaFileLowerToUpper, schemaFileUpperToLower)
-          } else {
-            Nil
-          }
-
-          schemaFile +: schemaFileModifiers
-        }
-
-        val nsFiles: Seq[File] = {
-          val cleanModel = model.copy(nss = model.nss
-            .filterNot(_.attrs.isEmpty)
-            .map(ns => ns.copy(attrs = ns.attrs.filterNot(_.attr.isEmpty))))
-          cleanModel.nss.flatMap { ns =>
-            val path   = cleanModel.pkg.split('.').toList.foldLeft(managedDir)(
-              (dir, pkg) => dir / pkg
-            ) / "dsl" / cleanModel.domain
-            val folder = path / ("_" + ns.ns)
-
-            val nsBaseFile: File = path / s"${ns.ns}.scala"
-            IO.write(nsBaseFile, NsBase(cleanModel, ns, genericPkg).get)
-
-            val nsArityFiles: Seq[File] = for {
-              in <- 0 to cleanModel.maxIn
-              out <- 0 to cleanModel.maxOut
+          val dslFiles: Seq[File] = {
+            for {
+              part <- schema.parts
+              ns <- part.nss
             } yield {
-              val file: File = folder / s"${ns.ns}_${in}_$out.scala"
-              IO.write(file, NsArity(cleanModel, ns, in, out, genericPkg).get)
-              file
+              val nsFile     = schema.pkg.split('.').toList.foldLeft(managedDir)(
+                (dir, pkg) => dir / pkg
+              ) / "dsl" / schema.domain / s"${ns.ns}.scala"
+              val partPrefix = if (part.part.isEmpty) "" else part.part + "_"
+              val code       = Dsl(schema, partPrefix, ns).get
+              IO.write(nsFile, code)
+              nsFile
             }
-
-            nsBaseFile +: nsArityFiles
           }
-        }
 
-        schemaFiles ++ nsFiles
-      }
+          val schemaFiles: Seq[File] = {
+            val basePath = schema.pkg.split('.').toList.foldLeft(managedDir)((dir, pkg) => dir / pkg) / "schema"
+
+            val schemaFile: File = basePath / s"${schema.domain}Schema.scala"
+            IO.write(schemaFile, Schema(schema).get)
+
+            val schemaFile_Datomic: File = basePath / s"${schema.domain}Schema_Datomic.scala"
+            IO.write(schemaFile_Datomic, Schema_Datomic(schema).get)
+
+            val schemaFile_Sql: File = basePath / s"${schema.domain}Schema_Sql.scala"
+            IO.write(schemaFile_Sql, Schema_Sql(schema).get)
+
+            Seq(schemaFile, schemaFile_Datomic, schemaFile_Sql)
+          }
+
+          dslFiles ++ schemaFiles
+        }
     }
-    files
   }
 }

@@ -2,15 +2,16 @@
 name := "sbt-molecule-test-project"
 version := "1.1.0"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.8"
+//scalaVersion := "2.13.10"
+scalaVersion := "3.2.1"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
-
-resolvers ++= Seq(
-  "clojars" at "https://clojars.org/repo"
-)
+resolvers += "clojars" at "https://clojars.org/repo",
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT",
-  "com.lihaoyi" %% "utest" % "0.7.11",
+//  "org.scalamolecule" %% "molecule-boilerplate" % "1.2.0-SNAPSHOT",
+//  "org.scalamolecule" %% "molecule-base" % "0.1.0-SNAPSHOT",
+//  "org.scalamolecule" %% "molecule-base" % "0.1.0-SNAPSHOT",
+  "org.scalamolecule" %% "molecule-datomic" % "0.1.0-SNAPSHOT",
+  "com.lihaoyi" %% "utest" % "0.8.1" % Test,
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 
@@ -23,7 +24,8 @@ moleculePluginActive := sys.props.get("molecule").contains("true")
 //moleculePluginActive := true
 moleculeDataModelPaths := Seq("app")
 moleculeAllIndexed := true // Optional, default: true
-moleculeMakeJars := true
+moleculeMakeJars := true // created jars from generated sources (default)
+//moleculeMakeJars := false
 
 // Let IDE detect created jars in unmanaged lib directory
 exportJars := true

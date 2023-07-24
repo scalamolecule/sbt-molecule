@@ -10,7 +10,7 @@ resolvers ++= Seq(
 )
 libraryDependencies ++= Seq(
   "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT",
-  "com.lihaoyi" %% "utest" % "0.7.11",
+  "com.lihaoyi" %% "utest" % "0.8.1",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 

@@ -1,8 +1,8 @@
 package sbtmolecule
 
-import sbt.Keys._
+import sbt.Keys.*
 import sbt.plugins.JvmPlugin
-import sbt.{CrossVersion, Def, _}
+import sbt.{CrossVersion, Def, *}
 
 object MoleculePlugin extends sbt.AutoPlugin {
 
@@ -19,14 +19,8 @@ object MoleculePlugin extends sbt.AutoPlugin {
     lazy val moleculeMakeJars          = settingKey[Boolean](
       "Whether jars are created from generated source files."
     )
-    lazy val moleculeSchemaConversions = settingKey[Boolean](
-      "Generate schema to lower/upper conversions. Default false."
-    )
     lazy val moleculeAllIndexed        = settingKey[Boolean](
       "Whether all attributes have the index flag in schema creation file - default: true"
-    )
-    lazy val moleculeGenericPkg        = settingKey[String](
-      "Generate special generic interfaces in certain pkg. Not for public use."
     )
 
     // Internal
@@ -42,19 +36,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
     moleculeBoilerplate := {
-      //      println(
-      //        s"""-------------------------
-      //           |${unmanagedBase.value}
-      //           |${unmanagedClasspath.value}
-      //           |${managedClasspath.value}
-      //           |//{fullClasspath.value}
-      //           |-------------------------""".stripMargin
-      //      )
-
       if (moleculePluginActive.?.value.getOrElse(false)) {
-        // Optional settings
-        val allIndexed = moleculeAllIndexed.?.value getOrElse true
-        val genericPkg = moleculeGenericPkg.?.value getOrElse ""
 
         // generate source files
         val baseDir = baseDirectory.value.toString
@@ -109,20 +91,13 @@ object MoleculePlugin extends sbt.AutoPlugin {
         //             |-------------------------""".stripMargin
         //        )
 
-        val sourceFiles = FileBuilder(
-          srcDir,
-          sourceManaged.value,
-          moleculeDataModelPaths.value,
-          allIndexed,
-          isJvm,
-          genericPkg,
-          moleculeSchemaConversions.?.value.getOrElse(false),
-        )
+        val scalaVers = CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 13)) => "213"
+          case Some((2, 12)) => "212"
+          case _             => "3"
+        }
 
-        //        println(
-        //          s"""${sourceFiles.mkString("\n")}
-        //             |-------------------------""".stripMargin
-        //        )
+        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, scalaVers)
 
         // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
         val cacheDir = streams.value.cacheDirectory / "moleculeBoilerplateTesting"
@@ -131,7 +106,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
           inStyle = FilesInfo.lastModified,
           outStyle = FilesInfo.hash
         ) {
-          in: Set[File] => sourceFiles.toSet
+          (in: Set[File]) => sourceFiles.toSet
         }
         cache(sourceFiles.toSet).toSeq
 
@@ -158,23 +133,33 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
 
   def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
-    val moduleDirName: String      = baseDirectory.value.toString.split("/").last.replace(".", "")
-    val transferDirs : Seq[String] = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
-    val cross        : String      = if (crossScalaVersions.value.size == 1) "" else {
+    val pathSegments              = baseDirectory.value.toString.split("/")
+    val last        : String      = pathSegments.last
+    val jarFileIdentifier         = last match {
+      case ".js" | ".jvm" => pathSegments.init.last + "-" + last.replace(".", "")
+      case "js" | "jvm"   => pathSegments.init.last + "-" + last
+      case _              => last
+    }
+    val transferDirs: Seq[String] = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
+    val cross       : String      = if (crossScalaVersions.value.size == 1) "" else {
       val v = CrossVersion.partialVersion(scalaVersion.value).get
       s"/${v._1}.${v._2}"
     }
 
     // Create source jar from generated source files
     val src_managedDir: File                = (Compile / sourceManaged).value
-    val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName-sources.jar")
+    val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier-sources.jar")
     val srcFilesData  : Seq[(File, String)] = files2TupleRec("", src_managedDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest, None)
 
     // Create jar from class files compiled from generated source files
     val classesDir     : File                = (Compile / classDirectory).value
-    val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$moduleDirName.jar")
+    val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier.jar")
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", classesDir, ".class", transferDirs)
+
+//    val man = new java.util.jar.Manifest
+//    man.+("Scala-Compiler-Version: 2.12.17")
+//    sbt.IO.jar(targetFilesData, targetJar, man, None)
     sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest, None)
 
     // Hack to allow the above jars to be created in parallel before source code is deleted
@@ -191,7 +176,6 @@ object MoleculePlugin extends sbt.AutoPlugin {
       sbt.IO.delete(src_managedDir / path)
     }
   }
-
 
   def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
     sbt.IO.listFiles(directory) flatMap {
