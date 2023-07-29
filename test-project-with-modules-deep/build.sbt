@@ -10,8 +10,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
     "clojars" at "https://clojars.org/repo",
   ),
   libraryDependencies ++= Seq(
-    "org.scalamolecule" %% "molecule" % "1.2.0-SNAPSHOT",
-    "com.lihaoyi" %% "utest" % "0.7.11",
+    "org.scalamolecule" %% "molecule-datalog-datomic" % "0.1.0",
+    "com.lihaoyi" %% "utest" % "0.8.1",
   ),
   testFrameworks += new TestFramework("utest.runner.Framework")
 )

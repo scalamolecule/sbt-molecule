@@ -7,7 +7,7 @@ lazy val scala3                 = "3.2.1"
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 ThisBuild / organization := "com.example"
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "1.1.0"
 ThisBuild / scalaVersion := scala3
 
 

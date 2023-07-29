@@ -1,9 +1,9 @@
 package sbtmolecule
 
 import java.io.File
-import molecule.base.codegen.extract.DataModel2MetaSchema
-import molecule.base.codegen.render._
 import sbt.*
+import sbtmolecule.parse.DataModel2MetaSchema
+import sbtmolecule.render.*
 
 
 object FileBuilder {

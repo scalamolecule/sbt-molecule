@@ -1,8 +1,10 @@
 package sbtmolecule
 
+import java.util.jar.{Attributes, Manifest}
 import sbt.Keys.*
 import sbt.plugins.JvmPlugin
 import sbt.{CrossVersion, Def, *}
+
 
 object MoleculePlugin extends sbt.AutoPlugin {
 
@@ -10,16 +12,16 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   object autoImport {
     // api
-    lazy val moleculeDataModelPaths    = settingKey[Seq[String]](
+    lazy val moleculeDataModelPaths = settingKey[Seq[String]](
       "Seq of paths to directories having a `dataModel` directory with data model files."
     )
-    lazy val moleculePluginActive      = settingKey[Boolean](
+    lazy val moleculePluginActive   = settingKey[Boolean](
       "Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds."
     )
-    lazy val moleculeMakeJars          = settingKey[Boolean](
+    lazy val moleculeMakeJars       = settingKey[Boolean](
       "Whether jars are created from generated source files."
     )
-    lazy val moleculeAllIndexed        = settingKey[Boolean](
+    lazy val moleculeAllIndexed     = settingKey[Boolean](
       "Whether all attributes have the index flag in schema creation file - default: true"
     )
 
@@ -32,7 +34,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     )
   }
 
-  import autoImport._
+  import autoImport.*
 
   def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
     moleculeBoilerplate := {
@@ -150,17 +152,20 @@ object MoleculePlugin extends sbt.AutoPlugin {
     val src_managedDir: File                = (Compile / sourceManaged).value
     val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier-sources.jar")
     val srcFilesData  : Seq[(File, String)] = files2TupleRec("", src_managedDir, ".scala", transferDirs)
-    sbt.IO.jar(srcFilesData, srcJar, new java.util.jar.Manifest, None)
+    sbt.IO.jar(srcFilesData, srcJar, new Manifest, None)
 
     // Create jar from class files compiled from generated source files
     val classesDir     : File                = (Compile / classDirectory).value
     val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier.jar")
     val targetFilesData: Seq[(File, String)] = files2TupleRec("", classesDir, ".class", transferDirs)
 
-//    val man = new java.util.jar.Manifest
-//    man.+("Scala-Compiler-Version: 2.12.17")
-//    sbt.IO.jar(targetFilesData, targetJar, man, None)
-    sbt.IO.jar(targetFilesData, targetJar, new java.util.jar.Manifest, None)
+    // Tried to add this but didn't help scala 3.3 find the jar/classes
+    //    val manifestClasses = new Manifest
+    //    manifestClasses.getMainAttributes().putValue(
+    //      Attributes.Name.CLASS_PATH.toString(), "./lib/molecule-test-project.jar");
+    //    sbt.IO.jar(targetFilesData, targetJar, manifestClasses, None)
+
+    sbt.IO.jar(targetFilesData, targetJar, new Manifest, None)
 
     // Hack to allow the above jars to be created in parallel before source code is deleted
     Thread.sleep(5000)
