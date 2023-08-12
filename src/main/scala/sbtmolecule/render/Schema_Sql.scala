@@ -9,28 +9,29 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
   private val nss: Seq[MetaNs] = schema.parts.flatMap(_.nss)
 
   private def field(max: Int, a: MetaAttr): String = {
-    val indent  = padS(max, a.attr) + " "
-    val array = if(a.card == CardSet) " ARRAY" else ""
-    val t       = a.baseTpe match {
+    val indent = padS(max, a.attr) + " "
+    val array  = if (a.card == CardSet) " ARRAY" else ""
+    val t      = a.baseTpe match {
       case "UUID" => "uuid"
       case "URI"  => "uri"
       case other  => "" + other.head.toLower + other.tail
     }
-    val options = a.baseTpe match {
-      case "BigDecimal" => if (a.options.isEmpty) {
-        // Default precision and modest scale
-        // todo: make default configurable
-        "(65535, 25)"
-      } else {
-        a.options.flatMap {
-          case r"(\d+)$precision,(\d+)$scale" => Some(s"($precision, $scale)")
-          case _                              => None
-        }.mkString("")
-      }
-      case _            => ""
-    }
-    val tpe     = "$" + (if (a.refNs.isEmpty) t else "ref")
-    "       |  " + a.attr + indent + tpe + options + array
+    //    val options = a.baseTpe match {
+    //      case "BigDecimal" => if (a.options.isEmpty) {
+    //        // Default precision and modest scale
+    //        // todo: make default configurable
+    //        "(65535, 25)"
+    //      } else {
+    //        a.options.flatMap {
+    //          case r"(\d+)$precision,(\d+)$scale" => Some(s"($precision, $scale)")
+    //          case _                              => None
+    //        }.mkString("")
+    //      }
+    //      case _            => ""
+    //    }
+    val tpe    = "$" + (if (a.refNs.isEmpty) t else "ref")
+    //    "       |  " + a.attr + indent + tpe + options + array
+    "       |  " + a.attr + indent + tpe + array
   }
 
   private def table(metaNs: MetaNs): Seq[String] = {
@@ -90,21 +91,21 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |  )
         |
         |  private val types = List(
-        |    //                    h2             mysql
-        |    "String"     -> List("LONGVARCHAR", "LONGVARCHAR"),
-        |    "Int"        -> List("INT"        , "INT"),
-        |    "Long"       -> List("BIGINT"     , "BIGINT"),
-        |    "Float"      -> List("DOUBLE"     , "DOUBLE"),
-        |    "Double"     -> List("DOUBLE"     , "DOUBLE"),
-        |    "Boolean"    -> List("BOOLEAN"    , "BOOLEAN"),
-        |    "BigInt"     -> List("DECIMAL"    , "DECIMAL"),
-        |    "BigDecimal" -> List("DECIMAL"    , "DECIMAL"),
-        |    "Date"       -> List("DATE"       , "DATE"),
-        |    "UUID"       -> List("UUID"       , "UUID"),
-        |    "URI"        -> List("VARCHAR"    , "VARCHAR"),
-        |    "Byte"       -> List("TINYINT"    , "TINYINT"),
-        |    "Short"      -> List("SMALLINT"   , "SMALLINT"),
-        |    "Char"       -> List("CHAR"       , "CHAR"),
+        |    //                    h2                    mysql   + more dialects...
+        |    "String"     -> List("LONGVARCHAR"        , "LONGVARCHAR"),
+        |    "Int"        -> List("INT"                , "INT"),
+        |    "Long"       -> List("BIGINT"             , "BIGINT"),
+        |    "Float"      -> List("DOUBLE"             , "DOUBLE"),
+        |    "Double"     -> List("DOUBLE"             , "DOUBLE"),
+        |    "Boolean"    -> List("BOOLEAN"            , "BOOLEAN"),
+        |    "BigInt"     -> List("DECIMAL(100, 0)"    , "DECIMAL"),
+        |    "BigDecimal" -> List("DECIMAL(65535, 25)" , "DECIMAL"),
+        |    "Date"       -> List("DATE"               , "DATE"),
+        |    "UUID"       -> List("UUID"               , "UUID"),
+        |    "URI"        -> List("VARCHAR"            , "VARCHAR"),
+        |    "Byte"       -> List("TINYINT"            , "TINYINT"),
+        |    "Short"      -> List("SMALLINT"           , "SMALLINT"),
+        |    "Char"       -> List("CHAR"               , "CHAR"),
         |  )
         |
         |  def sqlSchema(db: String) = {
