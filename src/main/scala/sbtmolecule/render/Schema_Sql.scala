@@ -95,8 +95,8 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |    "String"     -> List("LONGVARCHAR"        , "LONGVARCHAR"),
         |    "Int"        -> List("INT"                , "INT"),
         |    "Long"       -> List("BIGINT"             , "BIGINT"),
-        |    "Float"      -> List("DOUBLE"             , "DOUBLE"),
-        |    "Double"     -> List("DOUBLE"             , "DOUBLE"),
+        |    "Float"      -> List("REAL"               , "REAL"),
+        |    "Double"     -> List("DOUBLE PRECISION"   , "DOUBLE"),
         |    "Boolean"    -> List("BOOLEAN"            , "BOOLEAN"),
         |    "BigInt"     -> List("DECIMAL(100, 0)"    , "DECIMAL"),
         |    "BigDecimal" -> List("DECIMAL(65535, 25)" , "DECIMAL"),
@@ -137,6 +137,13 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |    lazy val ref = long
         |
         |    s\"\"\"
+        |       |CREATE TABLE CompositeJoin (
+        |       |  a    VARCHAR,
+        |       |  b    VARCHAR,
+        |       |  a_id BIGINT,
+        |       |  b_id BIGINT
+        |       |);
+        |       |
         |$tables\"\"\".stripMargin
         |  }
         |}""".stripMargin

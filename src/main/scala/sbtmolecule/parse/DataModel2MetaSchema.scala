@@ -22,9 +22,10 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     case "213" => dialects.Scala213(virtualFile)
     case "212" => dialects.Scala212(virtualFile)
   }
-  private val tree        = dialect.parse[Source].get
 
-  private      val reservedAttrNames   = List(
+  private val tree = dialect.parse[Source].get
+
+  private val reservedAttrNames = List(
     // Actions
     "save", "insert", "update", "delete",
 
@@ -40,7 +41,8 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     // Model elements access
     "elements"
   )
-  private      val reservedTxAttrNames = List(
+
+  private val reservedTxAttrNames = List(
     "tx",
     "id",
     "created",
@@ -51,7 +53,8 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     //    "nss",
     //    "attrs",
   )
-  private      val standardTxMetaAttrs = Seq(
+
+  private val standardTxMetaAttrs = Seq(
     MetaAttr("id", CardOne, "Long", None, Nil, Some("Transaction id"), None, Nil, Nil, Nil),
     MetaAttr("created", CardOne, "Long", None, Nil, Some("Creation time"), None, Nil, Nil, Nil),
     MetaAttr("updated", CardOne, "Long", None, Nil, Some("Update time"), None, Nil, Nil, Nil),
@@ -61,7 +64,8 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     //    MetaAttr("nss", CardOne, "Long", None, Nil, Some("Namespaces involved"), None, Nil, Nil, Nil),
     //    MetaAttr("attrs", CardOne, "Long", None, Nil, Some("Attributes involved"), None, Nil, Nil, Nil),
   )
-  private lazy val standardTxMetaNs    = MetaNs("Tx", standardTxMetaAttrs)
+
+  private lazy val standardTxMetaNs = MetaNs("Tx", standardTxMetaAttrs)
 
   private var backRefs   = Map.empty[String, Seq[String]]
   private val valueAttrs = ListBuffer.empty[String]
