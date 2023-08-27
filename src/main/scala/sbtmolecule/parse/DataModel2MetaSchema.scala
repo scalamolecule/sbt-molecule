@@ -36,36 +36,11 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     "apply", "not", "add", "swap", "remove",
 
     // Generic attributes
-    "id", "tx",
+    "id",
 
     // Model elements access
     "elements"
   )
-
-  private val reservedTxAttrNames = List(
-    "tx",
-    "id",
-    "created",
-    "updated",
-    //    "deleted",
-    //    "ns",
-    //    "nsId",
-    //    "nss",
-    //    "attrs",
-  )
-
-  private val standardTxMetaAttrs = Seq(
-    MetaAttr("id", CardOne, "Long", None, Nil, Some("Transaction id"), None, Nil, Nil, Nil),
-    MetaAttr("created", CardOne, "Long", None, Nil, Some("Creation time"), None, Nil, Nil, Nil),
-    MetaAttr("updated", CardOne, "Long", None, Nil, Some("Update time"), None, Nil, Nil, Nil),
-    //    MetaAttr("deleted", CardOne, "Long", None, Nil, Some("Deletion time"), None, Nil, Nil, Nil),
-    //    MetaAttr("ns", CardOne, "Long", None, Nil, Some("First namespaces involved (could relate to other nss)"), None, Nil, Nil, Nil),
-    //    MetaAttr("nsId", CardOne, "Long", None, Nil, Some("Id of initial namespace row involved"), None, Nil, Nil, Nil),
-    //    MetaAttr("nss", CardOne, "Long", None, Nil, Some("Namespaces involved"), None, Nil, Nil, Nil),
-    //    MetaAttr("attrs", CardOne, "Long", None, Nil, Some("Attributes involved"), None, Nil, Nil, Nil),
-  )
-
-  private lazy val standardTxMetaNs = MetaNs("Tx", standardTxMetaAttrs)
 
   private var backRefs   = Map.empty[String, Seq[String]]
   private val valueAttrs = ListBuffer.empty[String]
@@ -108,40 +83,35 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       case _                     => false
     }
     val parts         = if (hasPartitions) {
-      var hasCustomTxPartition = false
-      val parts1               = body.map {
-        case q"trait Tx extends TxBase { ..$txAttrs }" =>
-          hasCustomTxPartition = true
-          // Place Tx namespace in no-name partition
-          MetaPart("", Seq(getTxNs(txAttrs)))
-
+      body.map {
         case q"object $part { ..$nss }" =>
           MetaPart(part.toString, getNss(part.toString + "_", nss))
 
         case q"trait $ns $template" => noMix()
       }
-      if (hasCustomTxPartition) parts1 else MetaPart("", Seq(standardTxMetaNs)) +: parts1
     } else {
       Seq(MetaPart("", getNss("", body)))
     }
     checkCircularMandatoryRefs(parts)
     val parts1 = addBackRefs(parts)
 
-    // Add one/many refs in Tx to all other namespaces
-    val (txRefsOne, txRefsMany) = (for {
-      part <- parts1
-      ns <- part.nss if ns.ns != "Tx"
-    } yield (
-      MetaAttr("one" + ns.ns, CardOne, "Long", Some(ns.ns)),
-      MetaAttr("many" + ns.ns, CardSet, "Long", Some(ns.ns))
-    )).unzip
+//    // Add one/many refs in Tx to all other namespaces
+//    val (txRefsOne, txRefsMany) = (for {
+//      part <- parts1
+//      ns <- part.nss if ns.ns != "Tx"
+//    } yield (
+//      MetaAttr("one" + ns.ns, CardOne, "Long", Some(ns.ns)),
+//      MetaAttr("many" + ns.ns, CardSet, "Long", Some(ns.ns))
+//    )).unzip
+//
+//    val firstPart = parts1.head
+//    val txNs      = firstPart.nss.head
+//    val txNs1     = txNs.copy(attrs = txNs.attrs ++ txRefsOne ++ txRefsMany)
+//    val parts2    = firstPart.copy(nss = txNs1 +: firstPart.nss.tail) +: parts1.tail
+//    val parts2    = firstPart.copy(nss = firstPart.nss.tail) +: parts1.tail
 
-    val firstPart = parts1.head
-    val txNs      = firstPart.nss.head
-    val txNs1     = txNs.copy(attrs = txNs.attrs ++ txRefsOne ++ txRefsMany)
-    val parts2    = firstPart.copy(nss = txNs1 +: firstPart.nss.tail) +: parts1.tail
-
-    MetaSchema(pkg, domain, maxArity, parts2)
+//    MetaSchema(pkg, domain, maxArity, parts2)
+    MetaSchema(pkg, domain, maxArity, parts1)
   }
 
   private def checkCircularMandatoryRefs(parts: Seq[MetaPart]): Unit = {
@@ -188,20 +158,11 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
   }
 
   private def getNss(partPrefix: String, nss: Seq[Stat]): Seq[MetaNs] = {
-    var hasTxNs = false
-    val metaNss = nss.map {
-      case q"trait Tx extends TxBase { ..$txAttrs }" =>
-        if (partPrefix.isEmpty) {
-          hasTxNs = true
-          getTxNs(txAttrs)
-        } else {
-          err("Please define custom Tx namespace trait first in the model (not inside object)")
-        }
-      case q"trait $nsTpe { ..$attrs }"              => getNs(partPrefix, nsTpe, attrs)
-      case q"object $o { ..$_ }"                     => noMix()
-      case other                                     => unexpected(other)
+    nss.map {
+      case q"trait $nsTpe { ..$attrs }" => getNs(partPrefix, nsTpe, attrs)
+      case q"object $o { ..$_ }"        => noMix()
+      case other                        => unexpected(other)
     }
-    if (!hasTxNs && partPrefix.isEmpty) standardTxMetaNs +: metaNss else metaNss
   }
 
   private def getNs(partPrefix: String, nsTpe: Name, attrs: Seq[Stat]): MetaNs = {
@@ -232,11 +193,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     }.distinct
 
     val reqAttrs     = reqGroupsMerged.flatten
-    val genericAttrs = Seq(
-      MetaAttr("id", CardOne, "Long"),
-      MetaAttr("tx", CardOne, "Long", Some("Tx")),
-    )
-    val metaAttrs1   = genericAttrs ++ metaAttrs.map { a =>
+    val metaAttrs1   = MetaAttr("id", CardOne, "Long") +: metaAttrs.map { a =>
       val attr = a.attr
       if (reqAttrs.contains(attr)) {
         val otherAttrs = reqGroupsMerged.collectFirst {
@@ -249,34 +206,9 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     MetaNs(partPrefix + ns, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
-  private def getTxNs(txAttrs: Seq[Stat]): MetaNs = {
-    if (txAttrs.isEmpty) {
-      err(s"Please define custom attribute(s) in generic Tx namespace (or omit it overall if standard attributes are enough)")
-    }
-    val customTxAttrs = getAttrs("Tx", txAttrs)
-    customTxAttrs.foreach {
-      case a if a.options.nonEmpty
-        || a.alias.nonEmpty
-        || a.requiredAttrs.nonEmpty
-        || a.valueAttrs.nonEmpty
-        || a.validations.nonEmpty =>
-        err("Generic Tx attributes can't have options/required/valueAttrs/validations defined.")
-
-      case _ => ()
-    }
-
-    MetaNs("Tx", standardTxMetaAttrs ++ customTxAttrs, Nil, Nil, Nil)
-  }
-
   private def getAttrs(ns: String, attrs: Seq[Stat]): Seq[MetaAttr] = attrs.map {
     case q"val $attr = $defs" =>
       val a = attr.toString
-      if (ns == "Tx" && reservedTxAttrNames.contains(a)) {
-        err(
-          s"Please change attribute name Tx.$a to avoid colliding with reserved Tx attribute names:\n  " +
-            reservedTxAttrNames.mkString("\n  ")
-        )
-      }
       if (reservedAttrNames.contains(a)) {
         err(
           s"Please change attribute name $ns.$a to avoid colliding with reserved attribute names:\n  " +

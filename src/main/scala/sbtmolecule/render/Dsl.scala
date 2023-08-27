@@ -6,7 +6,7 @@ import molecule.base.ast.SchemaAST._
 case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
   extends DslFormatting(schema, namespace) {
 
-  val imports: String = {
+  private val imports: String = {
     val baseImports = Seq(
       "molecule.base.ast.SchemaAST._",
       "molecule.boilerplate.api.Keywords._",
@@ -23,9 +23,9 @@ case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
     (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
   }
 
-  val validationExtractor = Dsl_Validations(schema, namespace)
+  private val validationExtractor = Dsl_Validations(schema, namespace)
 
-  val baseNs: String = {
+  private val baseNs: String = {
     val man = List.newBuilder[String]
     val opt = List.newBuilder[String]
     val tac = List.newBuilder[String]
@@ -68,9 +68,7 @@ case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
        |}""".stripMargin
   }
 
-  val txs_ = if (ns == "Tx") Dsl_CompositeTxs(maxArity).content else ""
-
-  val nss: String = (0 to schema.maxArity).map(Dsl_Arities(schema, partPrefix, namespace, _).get).mkString("\n\n")
+  private val nss: String = (0 to schema.maxArity).map(Dsl_Arities(schema, partPrefix, namespace, _).get).mkString("\n\n")
 
   def get: String = {
     s"""/*
@@ -90,7 +88,7 @@ case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
        |object $ns extends $ns_0[Nothing](Nil) {
        |  final def apply(id: Long, ids: Long*) = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, id +: ids)))
        |  final def apply(ids: Iterable[Long])  = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, ids.toSeq)))
-       |}$txs_
+       |}
        |
        |
        |$nss

@@ -54,8 +54,6 @@ class DslFormatting(schema: MetaSchema, namespace: MetaNs, arity: Int = 0) {
   val n0 = padN(arity)
   val n1 = padN(arity + 1)
 
-  //  val txs_    = (0 to 22).map(i => s"Tx$i[" + Seq.fill(i + 1)("_").mkString(",") + "]").mkString(", ")
-  //  val txs     = (0 to 22).map(i => s"Tx$i").mkString(", ")
   val dummies = if (maxArity == 22) "" else (maxArity + 2 to 23).map(i => s"X$i").mkString(", ", ", ", "")
   val tx_n    = (0 to maxArity).map(i => s"Tx_$i").mkString(", ") + dummies
 }

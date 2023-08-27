@@ -6,10 +6,9 @@ import molecule.base.util.RegexMatching
 
 case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
 
-  // Exclude Tx namespace since tx entities are given by Datomic
-  val flatNss: Seq[MetaNs] = schema.parts.flatMap(_.nss).filterNot(_.ns == "Tx")
+  private val flatNss: Seq[MetaNs] = schema.parts.flatMap(_.nss)
 
-  val datomicPartitions: String = {
+  private val datomicPartitions: String = {
     val parts = schema.parts.filterNot(_.part.isEmpty).map(_.part)
     if (parts.isEmpty) "\"\"" else {
       edn(parts.map { part =>
@@ -20,7 +19,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
   }
 
-  val datomicAliases: String = {
+  private val datomicAliases: String = {
     val attrsWithAlias = flatNss.flatMap(_.attrs).filter(_.alias.nonEmpty)
     if (attrsWithAlias.isEmpty) "\"\"" else {
       edn(attrsWithAlias.map { a =>
@@ -31,13 +30,13 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
   }
 
-  def datomicCardinality(a: MetaAttr): String = a.card match {
+  private def datomicCardinality(a: MetaAttr): String = a.card match {
     case CardOne => "one"
     case CardSet => "many"
     case other   => throw new Exception("Yet unsupported cardinality: " + other)
   }
 
-  def datomicType(a: MetaAttr): String = a.baseTpe match {
+  private def datomicType(a: MetaAttr): String = a.baseTpe match {
     case "String"                   => "string"
     case "Char"                     => "string"
     case "Byte"                     => "long"
@@ -55,7 +54,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     case "URI"                      => "uri"
   }
 
-  def attrStmts(ns: String, a: MetaAttr): String = {
+  private def attrStmts(ns: String, a: MetaAttr): String = {
     val mandatory = Seq(
       s""":db/ident         :$ns/${a.attr}""",
       s""":db/valueType     :db.type/${datomicType(a)}""",
@@ -76,18 +75,18 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     (mandatory ++ options ++ descr).distinct.mkString("\n         ")
   }
 
-  def attrDefs(ns: MetaNs): String = ns.attrs
+  private def attrDefs(ns: MetaNs): String = ns.attrs
     .map(attrStmts(ns.ns, _))
     .mkString("{", "}\n\n        {", "}")
 
-  val datomicSchema: String = edn(flatNss.map { ns =>
+  private val datomicSchema: String = edn(flatNss.map { ns =>
     val delimiter = "-" * (50 - ns.ns.length)
     s"""|        ;; ${ns.ns} $delimiter
         |
         |        ${attrDefs(ns)}""".stripMargin
   }.mkString("\n\n\n"))
 
-  def edn(defs: String): String =
+  private def edn(defs: String): String =
     s"""|
         |    \"\"\"
         |      [

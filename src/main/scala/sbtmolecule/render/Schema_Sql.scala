@@ -16,21 +16,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
       case "URI"  => "uri"
       case other  => "" + other.head.toLower + other.tail
     }
-    //    val options = a.baseTpe match {
-    //      case "BigDecimal" => if (a.options.isEmpty) {
-    //        // Default precision and modest scale
-    //        // todo: make default configurable
-    //        "(65535, 25)"
-    //      } else {
-    //        a.options.flatMap {
-    //          case r"(\d+)$precision,(\d+)$scale" => Some(s"($precision, $scale)")
-    //          case _                              => None
-    //        }.mkString("")
-    //      }
-    //      case _            => ""
-    //    }
     val tpe    = "$" + (if (a.refNs.isEmpty) t else "ref")
-    //    "       |  " + a.attr + indent + tpe + options + array
     "       |  " + a.attr + indent + tpe + array
   }
 
@@ -137,13 +123,6 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |    lazy val ref = long
         |
         |    s\"\"\"
-        |       |CREATE TABLE CompositeJoin (
-        |       |  a    VARCHAR,
-        |       |  b    VARCHAR,
-        |       |  a_id BIGINT,
-        |       |  b_id BIGINT
-        |       |);
-        |       |
         |$tables\"\"\".stripMargin
         |  }
         |}""".stripMargin
