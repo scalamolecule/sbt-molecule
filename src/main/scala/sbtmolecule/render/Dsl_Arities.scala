@@ -141,17 +141,13 @@ case class Dsl_Arities(schema: MetaSchema, partPrefix: String, namespace: MetaNs
       val pRefAttr      = padRefAttr(attr)
       val pRefNs        = padRefNs(refNs)
       val refObj        = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card)"""
-      val refObjBi      = s"""Model.Ref("$ns", "$attr", "$refNs", $card, true)"""
       val nested        = if (hasCardSet) {
         if (arity < maxArity)
           if (card == CardOne) nestedPad else withNestedInit
         else
           ""
       } else ""
-      val nestedBi      = if (card == CardOne || arity == maxArity) "" else withNestedInit
-      val bidirectional = if (ns == refNs)
-        s""" { def apply(makeDirectional: bi) = new $refNs${_0}$pRefNs[${`A..V, `}t](elements.init :+ $refObjBi)$nestedBi }""" else ""
-      ref += s"""object $refCls$pRefAttr extends $refNs${_0}$pRefNs[${`A..V, `}t](elements :+ $refObj)$nested$bidirectional"""
+      ref += s"""object $refCls$pRefAttr extends $refNs${_0}$pRefNs[${`A..V, `}t](elements :+ $refObj)$nested"""
   }
 
   private val manAttrs = if (last) "" else man.result().mkString("", "\n  ", "\n\n  ")
