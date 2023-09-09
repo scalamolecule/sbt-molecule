@@ -94,7 +94,41 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |    "Char"       -> List("CHAR"               , "CHAR"),
         |  )
         |
-        |  def sqlSchema(db: String) = {
+        |  private val customVendorFunctions = Map(
+        |    "h2" ->
+        |      \"\"\"
+        |        |CREATE ALIAS IF NOT EXISTS has_String     FOR "molecule.sql.jdbc.vendor.h2.functions.has_String";
+        |        |CREATE ALIAS IF NOT EXISTS has_Int        FOR "molecule.sql.jdbc.vendor.h2.functions.has_Int";
+        |        |CREATE ALIAS IF NOT EXISTS has_Long       FOR "molecule.sql.jdbc.vendor.h2.functions.has_Long";
+        |        |CREATE ALIAS IF NOT EXISTS has_Float      FOR "molecule.sql.jdbc.vendor.h2.functions.has_Float";
+        |        |CREATE ALIAS IF NOT EXISTS has_Double     FOR "molecule.sql.jdbc.vendor.h2.functions.has_Double";
+        |        |CREATE ALIAS IF NOT EXISTS has_Boolean    FOR "molecule.sql.jdbc.vendor.h2.functions.has_Boolean";
+        |        |CREATE ALIAS IF NOT EXISTS has_BigInt     FOR "molecule.sql.jdbc.vendor.h2.functions.has_BigInt";
+        |        |CREATE ALIAS IF NOT EXISTS has_BigDecimal FOR "molecule.sql.jdbc.vendor.h2.functions.has_BigDecimal";
+        |        |CREATE ALIAS IF NOT EXISTS has_Date       FOR "molecule.sql.jdbc.vendor.h2.functions.has_Date";
+        |        |CREATE ALIAS IF NOT EXISTS has_UUID       FOR "molecule.sql.jdbc.vendor.h2.functions.has_UUID";
+        |        |CREATE ALIAS IF NOT EXISTS has_URI        FOR "molecule.sql.jdbc.vendor.h2.functions.has_URI";
+        |        |CREATE ALIAS IF NOT EXISTS has_Byte       FOR "molecule.sql.jdbc.vendor.h2.functions.has_Byte";
+        |        |CREATE ALIAS IF NOT EXISTS has_Short      FOR "molecule.sql.jdbc.vendor.h2.functions.has_Short";
+        |        |CREATE ALIAS IF NOT EXISTS has_Char       FOR "molecule.sql.jdbc.vendor.h2.functions.has_Char";
+        |        |
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_String     FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_String";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Int        FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Int";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Long       FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Long";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Float      FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Float";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Double     FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Double";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Boolean    FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Boolean";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_BigInt     FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_BigInt";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_BigDecimal FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_BigDecimal";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Date       FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Date";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_UUID       FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_UUID";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_URI        FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_URI";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Byte       FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Byte";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Short      FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Short";
+        |        |CREATE ALIAS IF NOT EXISTS hasNo_Char       FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Char";\"\"\"
+        |  )
+        |
+        |  override def sqlSchema(db: String): String = {
         |    val dbIndex = dbs.indexOf(db, 0) match {
         |      case -1 => throw new Exception(
         |        s"Database `$$db` not found among databases with implemented jdbc drivers:\\n  " + dbs.mkString("\\n  ")
@@ -121,9 +155,12 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |    lazy val char       = tpe("Char")
         |
         |    lazy val ref = long
+        |    val customFunctions = customVendorFunctions.getOrElse(db, "")
         |
         |    s\"\"\"
-        |$tables\"\"\".stripMargin
+        |$tables
+        |       |$$customFunctions
+        |       |\"\"\".stripMargin
         |  }
         |}""".stripMargin
 }

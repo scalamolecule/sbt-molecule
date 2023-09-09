@@ -4,10 +4,6 @@ import molecule.DataModel
 
 object Partitions extends DataModel(3) {
 
-//  trait Tx extends TxBase {
-//    val myTxAttr = oneInt
-//  }
-
   object partA {
     trait Ns {
       val int    = oneInt

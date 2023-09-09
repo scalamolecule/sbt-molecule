@@ -4,12 +4,6 @@ import molecule.DataModel
 
 object Refs extends DataModel(10) {
 
-  trait Tx extends TxBase {
-    val myTxAttr = oneInt
-    val category = one[B]
-    val tags     = many[C]
-  }
-
   trait A {
     val i    = oneInt
     val s    = oneString

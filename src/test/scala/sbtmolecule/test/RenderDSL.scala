@@ -19,7 +19,6 @@ object RenderDSL extends TestSuite {
   lazy val refsNss       = DataModel2MetaSchema(basePath + "Refs.scala", "213")
   lazy val validationNss = DataModel2MetaSchema(basePath + "Validation.scala", "213")
   lazy val partitionsNss = DataModel2MetaSchema(basePath + "Partitions.scala", "213")
-  lazy val txTestNss     = DataModel2MetaSchema(basePath + "TxTest.scala", "213")
 
 
   override def tests: Tests = Tests {
@@ -45,7 +44,6 @@ object RenderDSL extends TestSuite {
       //      Dsl(refsNss, "", refsNss.parts.head.nss(1)).get ==> "check"
       //
       //      Schema(typesNss).get ==> "check"
-      //            Schema(txTestNss).get ==> "check"
       //            Schema(partitionsNss).get ==> "check"
       //
       //            Schema_Datomic(typesNss).get ==> "check"
