@@ -1,10 +1,10 @@
 package sbtmolecule.render
 
-import molecule.base.ast.SchemaAST.*
-import molecule.base.util.RegexMatching
+import molecule.base.ast.*
+import molecule.base.util.{BaseHelpers, RegexMatching}
 
 
-case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
+case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers {
 
   private val nss: Seq[MetaNs] = schema.parts.flatMap(_.nss)
 
@@ -27,7 +27,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
     val fields = attrs.map(a => field(max, a)).tail.mkString(s",\n|") // without id
     val id     = "id" + padS(max, "id") + " $id,"
     val table  =
-      s"""       |CREATE TABLE $ns (
+      s"""       |CREATE TABLE IF NOT EXISTS $ns (
          |       |  $id
          |$fields
          |       |);
@@ -38,7 +38,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         val (id1, id2) = if (ns == refNs) ("1_id", "2_id") else ("id", "id")
         val (l1, l2)   = (ns.length, refNs.length)
         val (p1, p2)   = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
-        s"""       |CREATE TABLE ${ns}_${refAttr}_$refNs (
+        s"""       |CREATE TABLE IF NOT EXISTS ${ns}_${refAttr}_$refNs (
            |       |  ${ns}_$id1$p1 BIGINT,
            |       |  ${refNs}_$id2$p2 BIGINT
            |       |);
@@ -61,7 +61,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching {
         |package ${schema.pkg}.schema
         |
         |import molecule.base.api.Schema
-        |import molecule.base.ast.SchemaAST._
+        |import molecule.base.ast._
         |
         |
         |trait ${schema.domain}Schema_Sql extends Schema {

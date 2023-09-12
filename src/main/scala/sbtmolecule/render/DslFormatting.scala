@@ -1,9 +1,10 @@
 package sbtmolecule.render
 
-import molecule.base.ast.SchemaAST.*
+import molecule.base.ast.*
+import molecule.base.util.BaseHelpers
 
 
-class DslFormatting(schema: MetaSchema, namespace: MetaNs, arity: Int = 0) {
+class DslFormatting(schema: MetaSchema, namespace: MetaNs, arity: Int = 0) extends BaseHelpers {
   val pkg      = schema.pkg + ".dsl"
   val domain   = schema.domain
   val maxArity = schema.maxArity

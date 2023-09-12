@@ -1,11 +1,12 @@
 package sbtmolecule.parse
 
 import java.nio.file.{Files, Paths}
-import molecule.base.ast.SchemaAST._
+import molecule.base.ast.*
 import molecule.base.error.ModelError
+import molecule.base.util.BaseHelpers
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.meta._
+import scala.meta.*
 
 object DataModel2MetaSchema {
   def apply(filePath: String, scalaVersion: String = "3"): MetaSchema = {
@@ -15,7 +16,7 @@ object DataModel2MetaSchema {
   }
 }
 
-class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: String) {
+class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: String) extends BaseHelpers {
   private val virtualFile = Input.VirtualFile(filePath, pkgPath)
   private val dialect     = scalaVersion match {
     case "3"   => dialects.Scala3(virtualFile)
@@ -94,23 +95,6 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     }
     checkCircularMandatoryRefs(parts)
     val parts1 = addBackRefs(parts)
-
-//    // Add one/many refs in Tx to all other namespaces
-//    val (txRefsOne, txRefsMany) = (for {
-//      part <- parts1
-//      ns <- part.nss if ns.ns != "Tx"
-//    } yield (
-//      MetaAttr("one" + ns.ns, CardOne, "Long", Some(ns.ns)),
-//      MetaAttr("many" + ns.ns, CardSet, "Long", Some(ns.ns))
-//    )).unzip
-//
-//    val firstPart = parts1.head
-//    val txNs      = firstPart.nss.head
-//    val txNs1     = txNs.copy(attrs = txNs.attrs ++ txRefsOne ++ txRefsMany)
-//    val parts2    = firstPart.copy(nss = txNs1 +: firstPart.nss.tail) +: parts1.tail
-//    val parts2    = firstPart.copy(nss = firstPart.nss.tail) +: parts1.tail
-
-//    MetaSchema(pkg, domain, maxArity, parts2)
     MetaSchema(pkg, domain, maxArity, parts1)
   }
 
@@ -192,8 +176,8 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       }.distinct.sorted
     }.distinct
 
-    val reqAttrs     = reqGroupsMerged.flatten
-    val metaAttrs1   = MetaAttr("id", CardOne, "Long") +: metaAttrs.map { a =>
+    val reqAttrs   = reqGroupsMerged.flatten
+    val metaAttrs1 = MetaAttr("id", CardOne, "Long") +: metaAttrs.map { a =>
       val attr = a.attr
       if (reqAttrs.contains(attr)) {
         val otherAttrs = reqGroupsMerged.collectFirst {

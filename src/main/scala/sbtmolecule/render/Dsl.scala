@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.SchemaAST._
+import molecule.base.ast._
 
 
 case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
@@ -8,7 +8,7 @@ case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
 
   private val imports: String = {
     val baseImports = Seq(
-      "molecule.base.ast.SchemaAST._",
+      "molecule.base.ast._",
       "molecule.boilerplate.api.Keywords._",
       "molecule.boilerplate.api._",
       "molecule.boilerplate.api.expression._",

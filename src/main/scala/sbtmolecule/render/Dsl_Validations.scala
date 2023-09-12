@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.SchemaAST.*
+import molecule.base.ast.*
 
 
 case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)

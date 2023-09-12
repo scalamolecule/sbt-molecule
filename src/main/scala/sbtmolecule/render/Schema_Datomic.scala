@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.SchemaAST.*
+import molecule.base.ast.*
 import molecule.base.util.RegexMatching
 
 
@@ -105,7 +105,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
         |package ${schema.pkg}.schema
         |
         |import molecule.base.api.Schema
-        |import molecule.base.ast.SchemaAST._
+        |import molecule.base.ast._
         |
         |
         |trait ${schema.domain}Schema_Datomic extends Schema {
