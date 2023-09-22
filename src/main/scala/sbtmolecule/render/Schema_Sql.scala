@@ -20,7 +20,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
     "       |  " + a.attr + indent + tpe + array
   }
 
-  private def table(metaNs: MetaNs): Seq[String] = {
+  private def createTable(metaNs: MetaNs): Seq[String] = {
     val ns     = metaNs.ns
     val attrs  = metaNs.attrs.filterNot(a => a.card == CardSet && a.refNs.nonEmpty)
     val max    = attrs.map(a => a.attr.length).max.max(2)
@@ -48,7 +48,18 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
     table +: joinTables
   }
 
-  private val tables: String = nss.flatMap(table).mkString(s"\n|")
+  private val createTables: String = nss.flatMap(createTable).mkString(s"\n|")
+
+  private def dropTable(metaNs: MetaNs): Seq[String] = {
+    val ns         = metaNs.ns
+    val table      = s"       |DROP TABLE IF EXISTS $ns;"
+    val joinTables = metaNs.attrs.collect {
+      case MetaAttr(refAttr, CardSet, _, Some(refNs), _, _, _, _, _, _) =>
+        s"       |DROP TABLE IF EXISTS ${ns}_${refAttr}_$refNs;"
+    }
+    table +: joinTables
+  }
+  private val dropTables: String = nss.flatMap(dropTable).mkString(s"\n|")
 
   def get: String =
     s"""|/*
@@ -68,6 +79,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |
         |  private val dbs = List(
         |    "h2",
+        |    "postgres",
         |    "mysql",
         |    "mssql",
         |    "oracle",
@@ -75,23 +87,33 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |    "db2",
         |    // etc..
         |  )
+        |  
+        |  val primaryKeys = Map(
+        |    "h2"       -> "BIGINT AUTO_INCREMENT PRIMARY KEY",
+        |    "postgres" -> "BIGSERIAL PRIMARY KEY",
+        |    "mysql"    -> "BIGSERIAL PRIMARY KEY",
+        |    "mssql"    -> "BIGSERIAL PRIMARY KEY",
+        |    "oracle"   -> "BIGSERIAL PRIMARY KEY",
+        |    "derby"    -> "BIGSERIAL PRIMARY KEY",
+        |    "db2"      -> "BIGSERIAL PRIMARY KEY",
+        |  )
         |
         |  private val types = List(
-        |    //                    h2                    mysql   + more dialects...
-        |    "String"     -> List("LONGVARCHAR"        , "LONGVARCHAR"),
-        |    "Int"        -> List("INT"                , "INT"),
-        |    "Long"       -> List("BIGINT"             , "BIGINT"),
-        |    "Float"      -> List("REAL"               , "REAL"),
-        |    "Double"     -> List("DOUBLE PRECISION"   , "DOUBLE"),
-        |    "Boolean"    -> List("BOOLEAN"            , "BOOLEAN"),
-        |    "BigInt"     -> List("DECIMAL(100, 0)"    , "DECIMAL"),
-        |    "BigDecimal" -> List("DECIMAL(65535, 25)" , "DECIMAL"),
-        |    "Date"       -> List("DATE"               , "DATE"),
-        |    "UUID"       -> List("UUID"               , "UUID"),
-        |    "URI"        -> List("VARCHAR"            , "VARCHAR"),
-        |    "Byte"       -> List("TINYINT"            , "TINYINT"),
-        |    "Short"      -> List("SMALLINT"           , "SMALLINT"),
-        |    "Char"       -> List("CHAR"               , "CHAR"),
+        |    //                    h2                    postgres
+        |    "String"     -> List("LONGVARCHAR"        , "TEXT COLLATE ucs_basic"),
+        |    "Int"        -> List("INT"                , "INTEGER"               ),
+        |    "Long"       -> List("BIGINT"             , "BIGINT"                ),
+        |    "Float"      -> List("REAL"               , "REAL"                  ),
+        |    "Double"     -> List("DOUBLE PRECISION"   , "DOUBLE PRECISION"      ),
+        |    "Boolean"    -> List("BOOLEAN"            , "BOOLEAN"               ),
+        |    "BigInt"     -> List("DECIMAL(100, 0)"    , "DECIMAL(100, 0)"       ),
+        |    "BigDecimal" -> List("DECIMAL(65535, 25)" , "DECIMAL(100, 25)"      ),
+        |    "Date"       -> List("DATE"               , "DATE"                  ),
+        |    "UUID"       -> List("UUID"               , "UUID"                  ),
+        |    "URI"        -> List("VARCHAR"            , "VARCHAR"               ),
+        |    "Byte"       -> List("TINYINT"            , "SMALLINT"              ),
+        |    "Short"      -> List("SMALLINT"           , "SMALLINT"              ),
+        |    "Char"       -> List("CHAR"               , "CHAR(1)"               ),
         |  )
         |
         |  private val customVendorFunctions = Map(
@@ -128,7 +150,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |        |CREATE ALIAS IF NOT EXISTS hasNo_Char       FOR "molecule.sql.jdbc.vendor.h2.functions.hasNo_Char";\"\"\"
         |  )
         |
-        |  override def sqlSchema(db: String): String = {
+        |  override def sqlCreateTables(db: String): String = {
         |    val dbIndex = dbs.indexOf(db, 0) match {
         |      case -1 => throw new Exception(
         |        s"Database `$$db` not found among databases with implemented jdbc drivers:\\n  " + dbs.mkString("\\n  ")
@@ -137,7 +159,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |    }
         |    
         |    val tpe = types.map { case (scalaType, sqlTpes) => scalaType -> sqlTpes(dbIndex) }.toMap
-        |    val id  = "BIGINT AUTO_INCREMENT PRIMARY KEY"
+        |    val id  = primaryKeys(db)
         |
         |    lazy val string     = tpe("String")
         |    lazy val int        = tpe("Int")
@@ -158,9 +180,14 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |    val customFunctions = customVendorFunctions.getOrElse(db, "")
         |
         |    s\"\"\"
-        |$tables
+        |$createTables
         |       |$$customFunctions
         |       |\"\"\".stripMargin
         |  }
+        |
+        |  override val sqlDropTables: String =
+        |    s\"\"\"
+        |$dropTables
+        |       |\"\"\".stripMargin
         |}""".stripMargin
 }

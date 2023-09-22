@@ -49,7 +49,7 @@ object RenderDSL extends TestSuite {
       //            Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-      Schema_Sql(typesNss).get ==> "check"
+      Schema_Sql2(typesNss).get ==> "check"
       //      Schema_Sql(refsNss).get ==> "check"
     }
   }

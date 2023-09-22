@@ -49,7 +49,7 @@ object FileBuilder {
             IO.write(schemaFile_Datomic, Schema_Datomic(schema).get)
 
             val schemaFile_Sql: File = basePath / s"${schema.domain}Schema_Sql.scala"
-            IO.write(schemaFile_Sql, Schema_Sql(schema).get)
+            IO.write(schemaFile_Sql, Schema_Sql2(schema).get)
 
             Seq(schemaFile, schemaFile_Datomic, schemaFile_Sql)
           }

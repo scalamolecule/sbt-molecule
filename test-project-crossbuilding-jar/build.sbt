@@ -1,16 +1,16 @@
 
 name := "sbt-molecule-test-project-crossbuilding-jar"
-version := "1.2.0"
+version := "1.3.0"
 organization := "org.scalamolecule"
-crossScalaVersions := Seq("2.12.15", "2.13.8")
-ThisBuild / scalaVersion := "2.13.8"
+crossScalaVersions := Seq("2.12.18", "2.13.12")
+ThisBuild / scalaVersion := "2.13.12"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.2.0",
+  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.3.0",
   "com.lihaoyi" %% "utest" % "0.8.1",
 )
 

@@ -1,12 +1,12 @@
 
 name := "sbt-molecule-test-project"
-version := "1.2.0"
+version := "1.3.0"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.12"
 
 libraryDependencies ++= Seq(
   "com.lihaoyi" %% "utest" % "0.8.1",
-  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.2.0",
+  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.3.0",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 Test / parallelExecution := false
