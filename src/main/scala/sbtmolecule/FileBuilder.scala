@@ -25,6 +25,8 @@ object FileBuilder {
           val schema = DataModel2MetaSchema(dataModelFile.getPath, scalaVersion)
 
           val dslFiles: Seq[File] = {
+            var nsIndex = 0
+            var attrIndex = 0
             for {
               part <- schema.parts
               ns <- part.nss
@@ -33,7 +35,9 @@ object FileBuilder {
                 (dir, pkg) => dir / pkg
               ) / "dsl" / schema.domain / s"${ns.ns}.scala"
               val partPrefix = if (part.part.isEmpty) "" else part.part + "_"
-              val code       = Dsl(schema, partPrefix, ns).get
+              val code       = Dsl(schema, partPrefix, ns, nsIndex, attrIndex).get
+              nsIndex += 1
+              attrIndex += ns.attrs.length
               IO.write(nsFile, code)
               nsFile
             }
@@ -49,7 +53,7 @@ object FileBuilder {
             IO.write(schemaFile_Datomic, Schema_Datomic(schema).get)
 
             val schemaFile_Sql: File = basePath / s"${schema.domain}Schema_Sql.scala"
-            IO.write(schemaFile_Sql, Schema_Sql2(schema).get)
+            IO.write(schemaFile_Sql, Schema_Sql(schema).get)
 
             Seq(schemaFile, schemaFile_Datomic, schemaFile_Sql)
           }

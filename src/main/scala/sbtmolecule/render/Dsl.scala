@@ -3,8 +3,15 @@ package sbtmolecule.render
 import molecule.base.ast._
 
 
-case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
-  extends DslFormatting(schema, namespace) {
+case class Dsl(
+  schema: MetaSchema,
+  partPrefix: String,
+  namespace: MetaNs,
+  nsIndex: Int = 0,
+  attrIndexPrev: Int = 0
+) extends DslFormatting(schema, namespace) {
+
+  var attrIndex = attrIndexPrev
 
   private val imports: String = {
     val baseImports = Seq(
@@ -49,15 +56,18 @@ case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
         } else ""
         val padA    = padAttr(attr)
         val padT0   = padType(tpe)
+        val coord   = s""", coord = Seq($nsIndex, $attrIndex)"""
         val refNs   = refNsOpt.fold("")(refNs => s""", refNs = Some("$refNs")""")
         val attrMan = "Attr" + card._marker + "Man" + tpe
         val attrOpt = "Attr" + card._marker + "Opt" + tpe
         val attrTac = "Attr" + card._marker + "Tac" + tpe
-        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$refNs$valids)"""
+        attrIndex += 1
+
+        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
         if (attr != "id" && attr != "tx") {
-          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$refNs$valids)"""
+          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
         }
-        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$refNs$valids)"""
+        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
     }
     val vas1     = vas.result()
     val vas2     = if (vas1.isEmpty) Nil else "" +: vas1
@@ -68,7 +78,11 @@ case class Dsl(schema: MetaSchema, partPrefix: String, namespace: MetaNs)
        |}""".stripMargin
   }
 
-  private val nss: String = (0 to schema.maxArity).map(Dsl_Arities(schema, partPrefix, namespace, _).get).mkString("\n\n")
+  private val nsList  : Seq[String] = schema.parts.flatMap(_.nss.map(_.ns))
+  private val attrList: Seq[String] = schema.parts.flatMap(_.nss.flatMap(_.attrs.map(_.attr)))
+
+  private val nss: String = (0 to schema.maxArity)
+    .map(Dsl_Arities(schema, partPrefix, nsList, attrList, namespace, _).get).mkString("\n\n")
 
   def get: String = {
     s"""/*

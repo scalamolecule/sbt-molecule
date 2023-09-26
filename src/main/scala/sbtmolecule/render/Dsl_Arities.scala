@@ -3,8 +3,14 @@ package sbtmolecule.render
 import molecule.base.ast.*
 
 
-case class Dsl_Arities(schema: MetaSchema, partPrefix: String, namespace: MetaNs, arity: Int)
-  extends DslFormatting(schema, namespace, arity) {
+case class Dsl_Arities(
+  schema: MetaSchema,
+  partPrefix: String,
+  nsList: Seq[String],
+  attrList: Seq[String],
+  namespace: MetaNs,
+  arity: Int
+) extends DslFormatting(schema, namespace, arity) {
 
   private val man = List.newBuilder[String]
   private val opt = List.newBuilder[String]
@@ -131,17 +137,23 @@ case class Dsl_Arities(schema: MetaSchema, partPrefix: String, namespace: MetaNs
     res += s"$one4[$tA___](addSort  (elements, sort  ))"
   }
 
-  private val hasCardSet = refs.exists(_.card == CardSet)
+  private      val hasCardSet     = refs.exists(_.card == CardSet)
   lazy private val withNestedInit = s" with NestedInit"
   lazy private val nestedPad      = " " * withNestedInit.length
   refs.collect {
     case MetaAttr(attr, card, _, refNsOpt, _, _, _, _, _, _) =>
-      val refCls        = partPrefix + camel(attr)
-      val refNs         = partPrefix + refNsOpt.get
-      val pRefAttr      = padRefAttr(attr)
-      val pRefNs        = padRefNs(refNs)
-      val refObj        = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card)"""
-      val nested        = if (hasCardSet) {
+      val refCls   = partPrefix + camel(attr)
+      val refNs    = partPrefix + refNsOpt.get
+      val pRefAttr = padRefAttr(attr)
+      val pRefNs   = padRefNs(refNs)
+
+      val nsIndex      = nsList.indexOf(ns)
+      val refAttrIndex = attrList.indexOf(attr)
+      val refNsIndex   = nsList.indexOf(refNs)
+      val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
+
+      val refObj = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card, $coord)"""
+      val nested = if (hasCardSet) {
         if (arity < maxArity)
           if (card == CardOne) nestedPad else withNestedInit
         else
@@ -156,8 +168,8 @@ case class Dsl_Arities(schema: MetaSchema, partPrefix: String, namespace: MetaNs
 
   private val elements = "override val elements: List[Element]"
 
-  private val lastNs        = if (last) s"X${arity + 2}" else ns_1
-  private val modelOps      = s"ModelOps_$arity[${`A..V, `}t, $ns_0, $lastNs]"
+  private val lastNs   = if (last) s"X${arity + 2}" else ns_1
+  private val modelOps = s"ModelOps_$arity[${`A..V, `}t, $ns_0, $lastNs]"
 
   private val resolvers = res.result().mkString("\n  ")
 
@@ -197,8 +209,11 @@ case class Dsl_Arities(schema: MetaSchema, partPrefix: String, namespace: MetaNs
     backRefs.flatMap { backRef0 =>
       val backRef = partPrefix + backRef0
       if (ns == backRef) None else {
-        val pad = padS(max, backRef)
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ Model.BackRef("$backRef", "$ns"))""")
+        val pad         = padS(max, backRef)
+        val prevNsIndex = nsList.indexOf(backRef)
+        val curNsIndex  = nsList.indexOf(ns)
+        val coord       = s"Seq($prevNsIndex, $curNsIndex)"
+        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ Model.BackRef("$backRef", "$ns", $coord))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }

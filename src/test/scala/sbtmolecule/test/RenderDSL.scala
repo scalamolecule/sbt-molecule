@@ -39,7 +39,7 @@ object RenderDSL extends TestSuite {
 
 
       //      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
-      //      Dsl(typesNss, "", typesNss.parts.head.nss(1)).get ==> "check"
+      //            Dsl(typesNss, "", typesNss.parts.head.nss(1), 1, 36).get ==> "check"
       //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
       //      Dsl(refsNss, "", refsNss.parts.head.nss(1)).get ==> "check"
       //
@@ -49,7 +49,7 @@ object RenderDSL extends TestSuite {
       //            Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-      Schema_Sql2(typesNss).get ==> "check"
+      Schema_Sql(typesNss).get ==> "check"
       //      Schema_Sql(refsNss).get ==> "check"
     }
   }

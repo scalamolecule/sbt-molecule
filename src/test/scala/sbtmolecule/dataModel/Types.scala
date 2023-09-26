@@ -26,7 +26,7 @@ object Types extends DataModel(5) {
     val short      = oneShort
     val char       = oneChar
     val ref        = one[Ref]
-    val other      = one[Other]
+    val other      = one[Select]
 
     // Cardinality many (Set)
     val strings     = setString
@@ -86,7 +86,7 @@ object Types extends DataModel(5) {
     val nss = many[Ns]
   }
 
-  trait Other {
+  trait Select {
     val i = oneInt
     val s = oneString
 
