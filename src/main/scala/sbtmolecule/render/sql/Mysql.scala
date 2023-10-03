@@ -17,7 +17,7 @@ object Mysql extends Dialect {
         case "Boolean"    => "TINYINT(1)"
         case "BigInt"     => "DECIMAL(65, 0)"
         case "BigDecimal" => "DECIMAL(65, 30)"
-        case "Date"       => "DATETIME"
+        case "Date"       => "BIGINT" // Using UNIX timestamp
         case "UUID"       => "TINYTEXT"
         case "URI"        => "TEXT"
         case "Byte"       => "TINYINT"
