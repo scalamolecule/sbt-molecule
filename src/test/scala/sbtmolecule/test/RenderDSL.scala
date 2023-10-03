@@ -17,6 +17,7 @@ object RenderDSL extends TestSuite {
   lazy val basePath      = projectRoot + "/src/test/scala/sbtmolecule/dataModel/"
   lazy val typesNss      = DataModel2MetaSchema(basePath + "Types.scala", "213")
   lazy val refsNss       = DataModel2MetaSchema(basePath + "Refs.scala", "213")
+  lazy val uniqueNss     = DataModel2MetaSchema(basePath + "Uniques.scala", "213")
   lazy val validationNss = DataModel2MetaSchema(basePath + "Validation.scala", "213")
   lazy val partitionsNss = DataModel2MetaSchema(basePath + "Partitions.scala", "213")
 
@@ -39,7 +40,11 @@ object RenderDSL extends TestSuite {
 
 
       //      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
-      //            Dsl(typesNss, "", typesNss.parts.head.nss(1), 1, 36).get ==> "check"
+      //      Dsl(typesNss, "", typesNss.parts.head.nss(1), 1, 36).get ==> "check"
+
+      //      Dsl(uniqueNss, "", uniqueNss.parts.head.nss(0)).get ==> "check"
+      //      Dsl(uniqueNss, "", uniqueNss.parts.head.nss(1)).get ==> "check"
+
       //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
       //      Dsl(refsNss, "", refsNss.parts.head.nss(1)).get ==> "check"
       //
@@ -49,8 +54,9 @@ object RenderDSL extends TestSuite {
       //            Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-      Schema_Sql(typesNss).get ==> "check"
+//      Schema_Sql(typesNss).get ==> "check"
       //      Schema_Sql(refsNss).get ==> "check"
+            Schema_Sql(uniqueNss).get ==> "check"
     }
   }
 }

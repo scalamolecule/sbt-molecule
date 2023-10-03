@@ -12,7 +12,7 @@ object Mysql extends Dialect {
         case "String"     => "LONGTEXT COLLATE utf8mb4_0900_as_cs"
         case "Int"        => "INT"
         case "Long"       => "BIGINT"
-        case "Float"      => "FLOAT"
+        case "Float"      => "REAL"
         case "Double"     => "DOUBLE"
         case "Boolean"    => "TINYINT(1)"
         case "BigInt"     => "DECIMAL(65, 0)"

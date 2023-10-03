@@ -9,21 +9,31 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
 
   private val nss: Seq[MetaNs] = schema.parts.flatMap(_.nss)
 
-  private var hasReserved   = false
-  private var reservedNss   = Array.empty[Boolean]
-  private var reservedAttrs = Array.empty[Boolean]
+  private var hasReserved      = false
+  private var reservedNss      = Array.empty[Boolean]
+  private var reservedAttrs    = Array.empty[Boolean]
+  private var reservedNssAttrs = Array.empty[String]
 
   private def createTable(metaNs: MetaNs, dialect: Dialect): Seq[String] = {
-    val mainTable   = metaNs.ns
-    val attrs       = metaNs.attrs.filterNot(a => a.card == CardSet && a.refNs.nonEmpty)
-    val max         = attrs.map(a => a.attr.length).max.max(2)
-    val fields      = attrs.map {
+    val mainTable = metaNs.ns
+    def reserved(a: MetaAttr): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
+    val max = metaNs.attrs.map {
+      case a if a.card == CardSet && a.refNs.nonEmpty => 0
+      case a if reserved(a)                           => a.attr.length + 1
+      case a                                          => a.attr.length
+    }.max.max(2)
+
+    val fields      = metaNs.attrs.flatMap {
         case a if a.attr == "id" =>
           reservedAttrs = reservedAttrs :+ false
-          "id" + padS(max, "id") + " " + dialect.tpe(a)
+          Some("id" + padS(max, "id") + " " + dialect.tpe(a))
+
+        case a if a.card == CardSet && a.refNs.nonEmpty =>
+          reservedAttrs = reservedAttrs :+ reserved(a)
+          None
 
         case a =>
-          val suffix = if (dialect.reservedKeyWords.contains(a.attr.toLowerCase)) {
+          val suffix = if (reserved(a)) {
             hasReserved = true
             reservedAttrs = reservedAttrs :+ true
             "_"
@@ -31,7 +41,7 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
             reservedAttrs = reservedAttrs :+ false
             ""
           }
-          a.attr + suffix + padS(max, a.attr + suffix) + " " + dialect.tpe(a)
+          Some(a.attr + suffix + padS(max, a.attr + suffix) + " " + dialect.tpe(a))
       }
       .mkString(s",\n|      |  ")
     val tableSuffix = if (dialect.reservedKeyWords.contains(mainTable.toLowerCase)) "_" else ""
@@ -61,16 +71,22 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
     hasReserved = false
     reservedNss = Array.empty[Boolean]
     reservedAttrs = Array.empty[Boolean]
+    reservedNssAttrs = Array.empty[String]
     nss.flatMap { ns =>
       reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(ns.ns.toLowerCase)
-      createTable(ns, dialect)
+      val result = createTable(ns, dialect)
+      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs.mkString(", ")
+      reservedAttrs = Array.empty[Boolean]
+      result
     }.mkString("\n|      |")
   }
 
   private def getReserved = if (hasReserved) {
     s"""Some(Reserved(
        |    Array(${reservedNss.mkString(", ")}),
-       |    Array(${reservedAttrs.mkString(", ")})
+       |    Array(
+       |      ${reservedNssAttrs.mkString(",\n      ")}
+       |    )
        |  ))""".stripMargin
   } else "None"
 

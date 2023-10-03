@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast._
+import molecule.base.ast.*
 
 
 case class Dsl(
@@ -10,6 +10,15 @@ case class Dsl(
   nsIndex: Int = 0,
   attrIndexPrev: Int = 0
 ) extends DslFormatting(schema, namespace) {
+
+  private val nsList  : Seq[String] = schema.parts.flatMap(_.nss.map(_.ns))
+  private val attrList: Seq[String] = {
+    for {
+      part <- schema.parts
+      ns <- part.nss
+      a <- ns.attrs
+    } yield ns.ns + "." + a.attr
+  }
 
   var attrIndex = attrIndexPrev
 
@@ -56,7 +65,11 @@ case class Dsl(
         } else ""
         val padA    = padAttr(attr)
         val padT0   = padType(tpe)
-        val coord   = s""", coord = Seq($nsIndex, $attrIndex)"""
+        val coord   = refNsOpt.fold(
+          s""", coord = Seq($nsIndex, $attrIndex)"""
+        )(refNs =>
+          s""", coord = Seq($nsIndex, $attrIndex, ${nsList.indexOf(refNs)})"""
+        )
         val refNs   = refNsOpt.fold("")(refNs => s""", refNs = Some("$refNs")""")
         val attrMan = "Attr" + card._marker + "Man" + tpe
         val attrOpt = "Attr" + card._marker + "Opt" + tpe
@@ -78,11 +91,11 @@ case class Dsl(
        |}""".stripMargin
   }
 
-  private val nsList  : Seq[String] = schema.parts.flatMap(_.nss.map(_.ns))
-  private val attrList: Seq[String] = schema.parts.flatMap(_.nss.flatMap(_.attrs.map(_.attr)))
 
   private val nss: String = (0 to schema.maxArity)
     .map(Dsl_Arities(schema, partPrefix, nsList, attrList, namespace, _).get).mkString("\n\n")
+
+  val idCoord = s"coord = Seq(${nsList.indexOf(ns)}, ${attrList.indexOf(ns + ".id")})"
 
   def get: String = {
     s"""/*
@@ -100,8 +113,8 @@ case class Dsl(
        |$baseNs
        |
        |object $ns extends $ns_0[Nothing](Nil) {
-       |  final def apply(id: Long, ids: Long*) = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, id +: ids)))
-       |  final def apply(ids: Iterable[Long])  = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, ids.toSeq)))
+       |  final def apply(id: Long, ids: Long*) = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, id +: ids, $idCoord)))
+       |  final def apply(ids: Iterable[Long])  = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, ids.toSeq, $idCoord)))
        |}
        |
        |

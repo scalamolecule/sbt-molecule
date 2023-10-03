@@ -148,7 +148,7 @@ case class Dsl_Arities(
       val pRefNs   = padRefNs(refNs)
 
       val nsIndex      = nsList.indexOf(ns)
-      val refAttrIndex = attrList.indexOf(attr)
+      val refAttrIndex = attrList.indexOf(ns + "." + attr)
       val refNsIndex   = nsList.indexOf(refNs)
       val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
 
