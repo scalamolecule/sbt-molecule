@@ -1,6 +1,6 @@
 
 name := "sbt-molecule-test-project-with-partitions"
-version := "1.3.0"
+version := "1.4.0"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.12"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
@@ -9,7 +9,7 @@ resolvers ++= Seq(
   "clojars" at "https://clojars.org/repo"
 )
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.3.0",
+  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.4.0",
   "com.lihaoyi" %% "utest" % "0.8.1",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")

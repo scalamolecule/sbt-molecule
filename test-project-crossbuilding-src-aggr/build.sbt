@@ -7,7 +7,7 @@ lazy val scala3                 = "3.2.1"
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 ThisBuild / organization := "com.example"
-ThisBuild / version := "1.3.0"
+ThisBuild / version := "1.4.0"
 ThisBuild / scalaVersion := scala3
 
 
@@ -20,12 +20,12 @@ lazy val app = (project in file("app"))
     crossScalaVersions := supportedScalaVersions,
     // other settings
     name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "1.3.0",
+    version := "1.4.0",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     resolvers += "clojars" at "https://clojars.org/repo",
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-datomic" % "0.3.0",
+      "org.scalamolecule" %% "molecule-datalog-datomic" % "0.4.0",
       "com.lihaoyi" %% "utest" % "0.8.1" % Test,
     ),
 
