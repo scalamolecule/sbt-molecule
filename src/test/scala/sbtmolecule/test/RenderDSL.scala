@@ -54,9 +54,9 @@ object RenderDSL extends TestSuite {
       //            Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-//      Schema_Sql(typesNss).get ==> "check"
+      Schema_Sql(typesNss).get ==> "check"
       //      Schema_Sql(refsNss).get ==> "check"
-            Schema_Sql(uniqueNss).get ==> "check"
+      //            Schema_Sql(uniqueNss).get ==> "check"
     }
   }
 }

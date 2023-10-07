@@ -93,8 +93,14 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
   private val sqlSchema_h2   = tables(H2)
   private val sqlReserved_h2 = getReserved
 
+  private val sqlSchema_mariadb   = tables(MariaDB)
+  private val sqlReserved_mariadb = getReserved
+
   private val sqlSchema_mysql   = tables(Mysql)
   private val sqlReserved_mysql = getReserved
+
+  private val sqlSchema_oracle   = tables(Oracle)
+  private val sqlReserved_oracle = getReserved
 
   private val sqlSchema_postgres   = tables(Postgres)
   private val sqlReserved_postgres = getReserved
@@ -150,9 +156,19 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |      |\"\"\".stripMargin
         |
         |
+        |  override val sqlSchema_mariadb: String =
+        |    \"\"\"
+        |      |$sqlSchema_mariadb\"\"\".stripMargin
+        |
+        |
         |  override val sqlSchema_mysql: String =
         |    \"\"\"
         |      |$sqlSchema_mysql\"\"\".stripMargin
+        |
+        |
+        |  override val sqlSchema_oracle: String =
+        |    \"\"\"
+        |      |$sqlSchema_oracle\"\"\".stripMargin
         |
         |
         |  override val sqlSchema_postgres: String =
@@ -183,7 +199,11 @@ case class Schema_Sql(schema: MetaSchema) extends RegexMatching with BaseHelpers
         |
         |  override val sqlReserved_h2: Option[Reserved] = $sqlReserved_h2
         |
+        |  override val sqlReserved_mariadb: Option[Reserved] = $sqlReserved_mariadb
+        |
         |  override val sqlReserved_mysql: Option[Reserved] = $sqlReserved_mysql
+        |
+        |  override val sqlReserved_oracle: Option[Reserved] = $sqlReserved_oracle
         |
         |  override val sqlReserved_postgres: Option[Reserved] = $sqlReserved_postgres
         |}""".stripMargin
