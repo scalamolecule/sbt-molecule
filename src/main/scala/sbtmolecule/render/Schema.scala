@@ -21,7 +21,10 @@ case class Schema(schema: MetaSchema) {
         |
         |object ${schema.domain}Schema extends Schema
         |  with ${schema.domain}Schema_Datomic
-        |  with ${schema.domain}Schema_Sql {
+        |  with ${schema.domain}Schema_H2
+        |  with ${schema.domain}Schema_MariaDB
+        |  with ${schema.domain}Schema_Mysql
+        |  with ${schema.domain}Schema_PostgreSQL {
         |
         |  val metaSchema: MetaSchema =
         |    ${schema.render(2)}

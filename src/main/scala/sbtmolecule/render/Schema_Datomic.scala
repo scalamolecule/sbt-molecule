@@ -38,9 +38,6 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
 
   private def datomicType(a: MetaAttr): String = a.baseTpe match {
     case "String"                   => "string"
-    case "Char"                     => "string"
-    case "Byte"                     => "long"
-    case "Short"                    => "long"
     case "Int"                      => "long"
     case "Long" if a.refNs.nonEmpty => "ref"
     case "Long"                     => "long"
@@ -50,8 +47,19 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     case "BigInt"                   => "bigint"
     case "BigDecimal"               => "bigdec"
     case "Date"                     => "instant"
+    case "Duration"                 => "string"
+    case "Instant"                  => "string"
+    case "LocalDate"                => "string"
+    case "LocalTime"                => "string"
+    case "LocalDateTime"            => "string"
+    case "OffsetTime"               => "string"
+    case "OffsetDateTime"           => "string"
+    case "ZonedDateTime"            => "string"
     case "UUID"                     => "uuid"
     case "URI"                      => "uri"
+    case "Byte"                     => "long"
+    case "Short"                    => "long"
+    case "Char"                     => "string"
   }
 
   private def attrStmts(ns: String, a: MetaAttr): String = {

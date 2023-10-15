@@ -52,10 +52,26 @@ object FileBuilder {
             val schemaFile_Datomic: File = basePath / s"${schema.domain}Schema_Datomic.scala"
             IO.write(schemaFile_Datomic, Schema_Datomic(schema).get)
 
-            val schemaFile_Sql: File = basePath / s"${schema.domain}Schema_Sql.scala"
-            IO.write(schemaFile_Sql, Schema_Sql(schema).get)
+            val schemaFile_h2: File = basePath / s"${schema.domain}Schema_H2.scala"
+            IO.write(schemaFile_h2, Schema_H2(schema).get)
 
-            Seq(schemaFile, schemaFile_Datomic, schemaFile_Sql)
+            val schemaFile_mariadb: File = basePath / s"${schema.domain}Schema_MariaDB.scala"
+            IO.write(schemaFile_mariadb, Schema_MariaDB(schema).get)
+
+            val schemaFile_mysql: File = basePath / s"${schema.domain}Schema_Mysql.scala"
+            IO.write(schemaFile_mysql, Schema_Mysql(schema).get)
+
+            val schemaFile_postgres: File = basePath / s"${schema.domain}Schema_PostgreSQL.scala"
+            IO.write(schemaFile_postgres, Schema_PostgreSQL(schema).get)
+
+            Seq(
+              schemaFile,
+              schemaFile_Datomic,
+              schemaFile_h2,
+              schemaFile_mariadb,
+              schemaFile_mysql,
+              schemaFile_postgres,
+            )
           }
 
           dslFiles ++ schemaFiles

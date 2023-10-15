@@ -24,6 +24,7 @@ case class Dsl(
 
   private val imports: String = {
     val baseImports = Seq(
+      "java.time._",
       "molecule.base.ast._",
       "molecule.boilerplate.api.Keywords._",
       "molecule.boilerplate.api._",

@@ -1,6 +1,6 @@
 package sbtmolecule
 
-import java.util.jar.{Attributes, Manifest}
+import java.util.jar.Manifest
 import sbt.Keys.*
 import sbt.plugins.JvmPlugin
 import sbt.{CrossVersion, Def, *}
@@ -131,7 +131,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   ))
 
 
-  override def projectSettings: Seq[Def.Setting[_]] = moleculeScopedSettings(Compile)
+  override def projectSettings: Seq[Def.Setting[?]] = moleculeScopedSettings(Compile)
 
 
   def makeJars(): Def.Initialize[Task[Unit]] = Def.task {

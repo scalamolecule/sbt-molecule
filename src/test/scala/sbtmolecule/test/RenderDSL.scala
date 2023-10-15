@@ -48,15 +48,15 @@ object RenderDSL extends TestSuite {
       //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
       //      Dsl(refsNss, "", refsNss.parts.head.nss(1)).get ==> "check"
       //
-      //      Schema(typesNss).get ==> "check"
+      Schema(typesNss).get ==> "check"
       //            Schema(partitionsNss).get ==> "check"
       //
       //            Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-      Schema_Sql(typesNss).get ==> "check"
-      //      Schema_Sql(refsNss).get ==> "check"
-      //            Schema_Sql(uniqueNss).get ==> "check"
+      //      Schema_H2(typesNss).get ==> "check"
+      //      Schema_H2(refsNss).get ==> "check"
+      //      Schema_H2(uniqueNss).get ==> "check"
     }
   }
 }
