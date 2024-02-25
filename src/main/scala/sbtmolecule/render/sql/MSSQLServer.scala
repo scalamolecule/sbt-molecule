@@ -9,6 +9,7 @@ object MSSQLServer extends Dialect {
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
     else a.card match {
       case _: CardOne => a.baseTpe match {
+        case "ID"             => "BIGINT"
         case "String"         => "TEXT"
         case "Int"            => "INT"
         case "Long"           => "BIGINT"

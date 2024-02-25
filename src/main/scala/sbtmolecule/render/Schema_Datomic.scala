@@ -20,7 +20,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
   }
 
   private val datomicAliases: String = {
-    val attrsWithAlias = flatNss.flatMap(_.attrs).filter(_.alias.nonEmpty)
+    val attrsWithAlias = flatNss.flatMap(_.attrs.tail).filter(_.alias.nonEmpty)
     if (attrsWithAlias.isEmpty) "\"\"" else {
       edn(attrsWithAlias.map { a =>
         val (attr, alias) = (a.attr, a.alias.get)
@@ -37,29 +37,30 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
   }
 
   private def datomicType(a: MetaAttr): String = a.baseTpe match {
-    case "String"                   => "string"
-    case "Int"                      => "long"
-    case "Long" if a.refNs.nonEmpty => "ref"
-    case "Long"                     => "long"
-    case "Float"                    => "float"
-    case "Double"                   => "double"
-    case "Boolean"                  => "boolean"
-    case "BigInt"                   => "bigint"
-    case "BigDecimal"               => "bigdec"
-    case "Date"                     => "instant"
-    case "Duration"                 => "string"
-    case "Instant"                  => "string"
-    case "LocalDate"                => "string"
-    case "LocalTime"                => "string"
-    case "LocalDateTime"            => "string"
-    case "OffsetTime"               => "string"
-    case "OffsetDateTime"           => "string"
-    case "ZonedDateTime"            => "string"
-    case "UUID"                     => "uuid"
-    case "URI"                      => "uri"
-    case "Byte"                     => "long"
-    case "Short"                    => "long"
-    case "Char"                     => "string"
+    case "ID" if a.refNs.nonEmpty => "ref"
+    case "ID"                     => "ref"
+    case "String"                 => "string"
+    case "Int"                    => "long"
+    case "Long"                   => "long"
+    case "Float"                  => "float"
+    case "Double"                 => "double"
+    case "Boolean"                => "boolean"
+    case "BigInt"                 => "bigint"
+    case "BigDecimal"             => "bigdec"
+    case "Date"                   => "instant"
+    case "Duration"               => "string"
+    case "Instant"                => "string"
+    case "LocalDate"              => "string"
+    case "LocalTime"              => "string"
+    case "LocalDateTime"          => "string"
+    case "OffsetTime"             => "string"
+    case "OffsetDateTime"         => "string"
+    case "ZonedDateTime"          => "string"
+    case "UUID"                   => "uuid"
+    case "URI"                    => "uri"
+    case "Byte"                   => "long"
+    case "Short"                  => "long"
+    case "Char"                   => "string"
   }
 
   private def attrStmts(ns: String, a: MetaAttr): String = {
@@ -83,7 +84,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     (mandatory ++ options ++ descr).distinct.mkString("\n         ")
   }
 
-  private def attrDefs(ns: MetaNs): String = ns.attrs
+  private def attrDefs(ns: MetaNs): String = ns.attrs.tail // no id attribute in Datomic
     .map(attrStmts(ns.ns, _))
     .mkString("{", "}\n\n        {", "}")
 

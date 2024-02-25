@@ -14,12 +14,13 @@ object RenderDSL extends TestSuite {
 
   //  lazy val basePath      = projectRoot + "/base/jvm/src/test/scala-2/molecule/base/dataModel/"
   //  lazy val basePath      = projectRoot + "/sbtmolecule/dataModel/"
-  lazy val basePath      = projectRoot + "/src/test/scala/sbtmolecule/dataModel/"
-  lazy val typesNss      = DataModel2MetaSchema(basePath + "Types.scala", "213")
-  lazy val refsNss       = DataModel2MetaSchema(basePath + "Refs.scala", "213")
-  lazy val uniqueNss     = DataModel2MetaSchema(basePath + "Uniques.scala", "213")
-  lazy val validationNss = DataModel2MetaSchema(basePath + "Validation.scala", "213")
-  lazy val partitionsNss = DataModel2MetaSchema(basePath + "Partitions.scala", "213")
+  lazy val basePath       = projectRoot + "/src/test/scala/sbtmolecule/dataModel/"
+  lazy val typesNss       = DataModel2MetaSchema(basePath + "Types.scala", "213")
+  lazy val refsNss        = DataModel2MetaSchema(basePath + "Refs.scala", "213")
+  lazy val uniqueNss      = DataModel2MetaSchema(basePath + "Uniques.scala", "213")
+  lazy val validationNss  = DataModel2MetaSchema(basePath + "Validation.scala", "213")
+  lazy val partitionsNss  = DataModel2MetaSchema(basePath + "Partitions.scala", "213")
+  lazy val partitions2Nss = DataModel2MetaSchema(basePath + "Partitions2.scala", "213")
 
 
   override def tests: Tests = Tests {
@@ -29,8 +30,13 @@ object RenderDSL extends TestSuite {
       //      Dsl(schemaNss, "", schemaNss.parts.head.nss(2)).get ==> "check"
       //
       //      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
-      //      Dsl(validationNss, "", validationNss.parts.head.nss(1)).get ==> "check"
+      //      Dsl(typesNss, "", typesNss.parts.head.nss(2)).get ==> "check"
+      //            Dsl(validationNss, "", validationNss.parts.head.nss(2)).get ==> "check"
       //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
+      Dsl(partitionsNss, "accounting_", partitionsNss.parts(0).nss(0)).get ==> "check"
+//      Dsl(partitions2Nss, "", partitions2Nss.parts(0).nss(0)).get ==> "check"
+      //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(0)).get ==> "check"
+      //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(1)).get ==> "check"
       //
       //      validationNss ==> "check"
       //      validationNss.parts.head.nss(3) ==> "check"
@@ -46,15 +52,15 @@ object RenderDSL extends TestSuite {
       //      Dsl(uniqueNss, "", uniqueNss.parts.head.nss(1)).get ==> "check"
 
       //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
-      //      Dsl(refsNss, "", refsNss.parts.head.nss(1)).get ==> "check"
+      //            Dsl(refsNss, "", refsNss.parts.head.nss(1)).get ==> "check"
       //
-      Schema(typesNss).get ==> "check"
+      //      Schema(typesNss).get ==> "check"
       //            Schema(partitionsNss).get ==> "check"
       //
-      //            Schema_Datomic(typesNss).get ==> "check"
+      //      Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-      //      Schema_H2(typesNss).get ==> "check"
+      //            Schema_H2(typesNss).get ==> "check"
       //      Schema_H2(refsNss).get ==> "check"
       //      Schema_H2(uniqueNss).get ==> "check"
     }

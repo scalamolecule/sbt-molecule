@@ -35,7 +35,7 @@ object FileBuilder {
                 (dir, pkg) => dir / pkg
               ) / "dsl" / schema.domain / s"${ns.ns}.scala"
               val partPrefix = if (part.part.isEmpty) "" else part.part + "_"
-              val code       = Dsl(schema, partPrefix, ns, nsIndex, attrIndex).get
+              val code       = Dsl(schema, partPrefix, ns, nsIndex, attrIndex, scalaVersion).get
               nsIndex += 1
               attrIndex += ns.attrs.length
               IO.write(nsFile, code)

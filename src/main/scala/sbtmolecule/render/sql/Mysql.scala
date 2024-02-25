@@ -9,6 +9,7 @@ object Mysql extends Dialect {
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
     else a.card match {
       case _: CardOne => a.baseTpe match {
+        case "ID"             => "BIGINT"
         case "String"         => "LONGTEXT COLLATE utf8mb4_0900_as_cs"
         case "Int"            => "INT"
         case "Long"           => "BIGINT"

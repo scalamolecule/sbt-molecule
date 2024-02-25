@@ -9,6 +9,7 @@ object Postgres extends Dialect {
       "BIGSERIAL PRIMARY KEY"
     else a.card match {
       case _: CardOne => a.baseTpe match {
+        case "ID"             => "BIGINT"
         case "String"         => "TEXT COLLATE ucs_basic"
         case "Int"            => "INTEGER"
         case "Long"           => "BIGINT"
@@ -17,7 +18,7 @@ object Postgres extends Dialect {
         case "Boolean"        => "BOOLEAN"
         case "BigInt"         => "DECIMAL"
         case "BigDecimal"     => "DECIMAL"
-        case "Date"           => "DATE"
+        case "Date"           => "BIGINT"
         case "Duration"       => "VARCHAR"
         case "Instant"        => "VARCHAR"
         case "LocalDate"      => "VARCHAR"
@@ -41,7 +42,7 @@ object Postgres extends Dialect {
         case "Boolean"        => "BOOLEAN ARRAY"
         case "BigInt"         => "DECIMAL ARRAY"
         case "BigDecimal"     => "DECIMAL ARRAY"
-        case "Date"           => "DATE ARRAY"
+        case "Date"           => "BIGINT ARRAY"
         case "Duration"       => "VARCHAR ARRAY"
         case "Instant"        => "VARCHAR ARRAY"
         case "LocalDate"      => "VARCHAR ARRAY"

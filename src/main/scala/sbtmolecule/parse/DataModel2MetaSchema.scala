@@ -132,6 +132,10 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     }
   }
 
+  private def fullNs(partPrefix: String, ns: String): String = {
+    if (ns.contains(".")) ns.replace(".", "_") else partPrefix + ns
+  }
+
   private def addBackRefs(parts: Seq[MetaPart]): Seq[MetaPart] = {
     parts.map { part =>
       val nss1 = part.nss.map { ns =>
@@ -157,7 +161,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     if (attrs.isEmpty) {
       err(s"Please define attribute(s) in namespace $ns")
     }
-    val metaAttrs      = getAttrs(ns, attrs)
+    val metaAttrs      = getAttrs(partPrefix, ns, attrs)
     val mandatoryAttrs = metaAttrs.collect {
       case a if a.refNs.isEmpty && a.options.contains("mandatory") => a.attr
     }
@@ -177,7 +181,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     }.distinct
 
     val reqAttrs   = reqGroupsMerged.flatten
-    val metaAttrs1 = MetaAttr("id", CardOne, "Long") +: metaAttrs.map { a =>
+    val metaAttrs1 = MetaAttr("id", CardOne, "ID") +: metaAttrs.map { a =>
       val attr = a.attr
       if (reqAttrs.contains(attr)) {
         val otherAttrs = reqGroupsMerged.collectFirst {
@@ -190,7 +194,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     MetaNs(partPrefix + ns, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
-  private def getAttrs(ns: String, attrs: Seq[Stat]): Seq[MetaAttr] = attrs.map {
+  private def getAttrs(partPrefix: String, ns: String, attrs: Seq[Stat]): Seq[MetaAttr] = attrs.map {
     case q"val $attr = $defs" =>
       val a = attr.toString
       if (reservedAttrNames.contains(a)) {
@@ -199,34 +203,34 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
             reservedAttrNames.mkString("\n  ")
         )
       }
-      acc(ns, defs, MetaAttr(a, CardOne, ""))
+      acc(partPrefix, ns, defs, MetaAttr(a, CardOne, ""))
 
     case other => unexpected(other)
   }
 
-  private def saveDescr(ns: String, prev: Tree, a: MetaAttr, attr: String, s: String) = {
+  private def saveDescr(partPrefix: String, ns: String, prev: Tree, a: MetaAttr, attr: String, s: String) = {
     if (s.isEmpty)
       err(s"Can't apply empty String as description option for attribute $attr")
     else if (s.contains("\""))
       err(s"Description option for attribute $attr can't contain quotation marks.")
     else
-      acc(ns, prev, a.copy(description = Some(s)))
+      acc(partPrefix, ns, prev, a.copy(description = Some(s)))
   }
 
   @tailrec
-  private def acc(ns: String, t: Tree, a: MetaAttr): MetaAttr = {
+  private def acc(pp: String, ns: String, t: Tree, a: MetaAttr): MetaAttr = {
     val attr = ns + "." + a.attr
     t match {
-      case q"$prev.index"          => acc(ns, prev, a.copy(options = a.options :+ "index"))
-      case q"$prev.noHistory"      => acc(ns, prev, a.copy(options = a.options :+ "noHistory"))
-      case q"$prev.uniqueIdentity" => acc(ns, prev, a.copy(options = a.options :+ "uniqueIdentity"))
-      case q"$prev.unique"         => acc(ns, prev, a.copy(options = a.options :+ "unique"))
-      case q"$prev.fulltext"       => acc(ns, prev, a.copy(options = a.options :+ "fulltext"))
-      case q"$prev.owner"          => acc(ns, prev, a.copy(options = a.options :+ "owner"))
-      case q"$prev.mandatory"      => acc(ns, prev, a.copy(options = a.options :+ "mandatory"))
+      case q"$prev.index"          => acc(pp, ns, prev, a.copy(options = a.options :+ "index"))
+      case q"$prev.noHistory"      => acc(pp, ns, prev, a.copy(options = a.options :+ "noHistory"))
+      case q"$prev.uniqueIdentity" => acc(pp, ns, prev, a.copy(options = a.options :+ "uniqueIdentity"))
+      case q"$prev.unique"         => acc(pp, ns, prev, a.copy(options = a.options :+ "unique"))
+      case q"$prev.fulltext"       => acc(pp, ns, prev, a.copy(options = a.options :+ "fulltext"))
+      case q"$prev.owner"          => acc(pp, ns, prev, a.copy(options = a.options :+ "owner"))
+      case q"$prev.mandatory"      => acc(pp, ns, prev, a.copy(options = a.options :+ "mandatory"))
 
-      case q"$prev.descr(${Lit.String(s)})" => saveDescr(ns, prev, a, attr, s)
-      case q"$prev.apply(${Lit.String(s)})" => saveDescr(ns, prev, a, attr, s)
+      case q"$prev.descr(${Lit.String(s)})" => saveDescr(pp, ns, prev, a, attr, s)
+      case q"$prev.apply(${Lit.String(s)})" => saveDescr(pp, ns, prev, a, attr, s)
 
       case q"$prev.alias(${Lit.String(s)})" => s match {
         case r"([a-zA-Z0-9]+)$alias" =>
@@ -236,7 +240,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
                 reservedAttrNames.mkString("\n  ")
             )
           } else {
-            acc(ns, prev, a.copy(alias = Some(alias)))
+            acc(pp, ns, prev, a.copy(alias = Some(alias)))
           }
         case other                   =>
           err(s"Invalid alias for attribute $attr: " + other)
@@ -294,21 +298,25 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       case q"oneShort(${Lit.String(s)})"          => a.copy(card = CardOne, baseTpe = "Short", description = Some(s))
       case q"oneChar(${Lit.String(s)})"           => a.copy(card = CardOne, baseTpe = "Char", description = Some(s))
 
-      case q"one[$refNs]" =>
-        addBackRef(ns, refNs.toString)
-        a.copy(card = CardOne, baseTpe = "Long", refNs = Some(refNs.toString.replace('.', '_')))
+      case q"one[$refNs0]" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardOne, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)))
 
-      case q"one[$refNs](${Lit.String(s)})" =>
-        addBackRef(ns, refNs.toString)
-        a.copy(card = CardOne, baseTpe = "Long", refNs = Some(refNs.toString.replace('.', '_')), description = Some(s))
+      case q"one[$refNs0](${Lit.String(s)})" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardOne, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)), description = Some(s))
 
-      case q"many[$refNs]" =>
-        addBackRef(ns, refNs.toString)
-        a.copy(card = CardSet, baseTpe = "Long", refNs = Some(refNs.toString.replace('.', '_')))
+      case q"many[$refNs0]" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardSet, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)))
 
-      case q"many[$refNs](${Lit.String(s)})" =>
-        addBackRef(ns, refNs.toString)
-        a.copy(card = CardSet, baseTpe = "Long", refNs = Some(refNs.toString.replace('.', '_')), description = Some(s))
+      case q"many[$refNs0](${Lit.String(s)})" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardSet, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)), description = Some(s))
 
       case q"setString"         => a.copy(card = CardSet, baseTpe = "String")
       case q"setInt"            => a.copy(card = CardSet, baseTpe = "Int")
@@ -360,12 +368,12 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       // Validations ................................................
 
       case q"$prev.validate { ..case $cases }" =>
-        handleValidationCases(prev, ns, a, cases, attr)
+        handleValidationCases(prev, pp, ns, a, cases, attr)
 
       case q"$prev.validate($test)" =>
         test match {
           case q"{ ..case $cases }: PartialFunction[$_, $_]" =>
-            handleValidationCases(prev, ns, a, cases, attr)
+            handleValidationCases(prev, pp, ns, a, cases, attr)
 
           case _ =>
             oneValidationCall(ns, a)
@@ -373,7 +381,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
             val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
             val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
             val validations1 = Seq(indent(test.toString()) -> "")
-            acc(ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
+            acc(pp, ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
         }
 
       case q"$prev.validate($test, ${Lit.String(error)})" =>
@@ -382,7 +390,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
         val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
         val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
         val validations1 = Seq(indent(test.toString()) -> error)
-        acc(ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
+        acc(pp, ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
 
       case q"$prev.validate($test, ${Term.Select(Lit.String(multilineMsg), Term.Name("stripMargin"))})" =>
         oneValidationCall(ns, a)
@@ -390,7 +398,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
         val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
         val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
         val validations1 = Seq(indent(test.toString()) -> multilineMsg)
-        acc(ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
+        acc(pp, ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
 
       case q"$prev.validate($test, ${Term.Interpolate(Term.Name("s"), _, _)})" =>
         err(
@@ -402,38 +410,38 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
         oneValidationCall(ns, a)
         val test  = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
         val error = s"""`$$v` is not a valid email"""
-        acc(ns, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, ns, prev, a.copy(validations = Seq(test -> error)))
 
       case q"$prev.email(${Lit.String(error)})" =>
         oneValidationCall(ns, a)
         val test = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
-        acc(ns, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, ns, prev, a.copy(validations = Seq(test -> error)))
 
       case q"$prev.regex(${Lit.String(regex)})" =>
         oneValidationCall(ns, a)
         val test  = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
         val error = s"""\"$$v\" doesn't match regex pattern: ${regex.replace("$", "$$")}"""
-        acc(ns, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, ns, prev, a.copy(validations = Seq(test -> error)))
 
       case q"$prev.regex(${Lit.String(regex)}, ${Lit.String(error)})" =>
         oneValidationCall(ns, a)
         val test = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
-        acc(ns, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, ns, prev, a.copy(validations = Seq(test -> error)))
 
       case q"$prev.enums(Seq(..$vs), ${Lit.String(error)})" =>
         oneValidationCall(ns, a)
         val test = s"""v => Seq$vs.contains(v)"""
-        acc(ns, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, ns, prev, a.copy(validations = Seq(test -> error)))
 
       case q"$prev.enums(..$vs)" =>
         oneValidationCall(ns, a)
         val test  = s"""v => Seq$vs.contains(v)"""
         val error = s"""Value `$$v` is not one of the allowed values in Seq$vs"""
-        acc(ns, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, ns, prev, a.copy(validations = Seq(test -> error)))
 
       case q"$prev.require(..$otherAttrs)" =>
         val reqAttrs1 = a.attr +: otherAttrs.map(_.toString)
-        acc(ns, prev, a.copy(requiredAttrs = reqAttrs1))
+        acc(pp, ns, prev, a.copy(requiredAttrs = reqAttrs1))
 
       case q"$prev.value" => err(
         s"Calling `value` on attribute `$attr` is only allowed in validations code of other attributes."
@@ -445,8 +453,16 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     }
   }
 
+  private def addBackRef(partPrefix: String, backRefNs: String, ns: String): Unit = {
+    val fullN         = fullNs(partPrefix, ns)
+    val backRefNs1    = fullNs(partPrefix, backRefNs)
+    val curBackRefNss = backRefs.getOrElse(fullN, Nil)
+    backRefs = backRefs + (fullN -> (curBackRefNss :+ backRefNs1))
+  }
+
   private def handleValidationCases(
     prev: Tree,
+    partPrefix: String,
     ns: String,
     a: MetaAttr,
     cases: Seq[Case],
@@ -479,7 +495,8 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     val valueAttrs1 = valueAttrs.flatten.distinct.sorted
     val valueAttrs2 = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
     val reqAttrs1   = a.requiredAttrs ++ valueAttrs2
-    acc(ns, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations))
+    val attr1       = a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations)
+    acc(partPrefix, ns, prev, attr1)
   }
 
   private def oneValidationCall(ns: String, a: MetaAttr) = if (a.validations.nonEmpty) {
@@ -516,10 +533,5 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     valueAttrs.result().distinct.sorted
   }
 
-
-  private def addBackRef(ns: String, backRefNs: String): Unit = {
-    val cur = backRefs.getOrElse(backRefNs, Nil)
-    backRefs = backRefs + (backRefNs -> (cur :+ ns))
-  }
 }
 

@@ -32,9 +32,10 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     pad: String,
     body: String,
     attr: String,
-    baseTpe: String,
+    baseTpe0: String,
   ): String = {
-    s"""private lazy val validation_$attr = new Validate$baseTpe {
+    val baseTpe = if (baseTpe0 == "ID") "String" else baseTpe0
+    s"""private lazy val validation_$attr = new Validate$baseTpe0 {
        |$pad    override def validate(v: $baseTpe): Seq[String] = {
        |$pad      $body
        |$pad    }
@@ -45,10 +46,11 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
   private def getDynamic(
     body: String,
     attr: String,
-    baseTpe: String,
+    baseTpe0: String,
     valueAttrs: Seq[(String, String, String, String)]
   ): String = {
-    val validator      = "Validate" + baseTpe
+    val baseTpe        = if (baseTpe0 == "ID") "String" else baseTpe0
+    val validator      = "Validate" + baseTpe0
     val maxAttr        = valueAttrs.map(_._1.length).max.max(9) // align with _validate too
     val maxMetaAttr    = valueAttrs.map(_._3.length).max
     val maxValue       = valueAttrs.map(_._4.length).max
@@ -95,9 +97,10 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
   private def getBodySingle(
     pad: String,
     attr: String,
-    baseTpe: String,
+    baseTpe0: String,
     validation: (String, String),
   ): String = {
+    val baseTpe       = if (baseTpe0 == "ID") "String" else baseTpe0
     val (test, error) = validation
     val testStr       = if (test.contains("\n")) {
       val lines = test.split('\n').toList
@@ -130,9 +133,10 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
 
   private def getBodyMulti(
     pad: String,
-    baseTpe: String,
+    baseTpe0: String,
     validations: Seq[(String, String)],
   ): String = {
+    val baseTpe         = if (baseTpe0 == "ID") "String" else baseTpe0
     val test2errorPairs = validations.map {
       case (test, error) =>
         val testStr = if (test.contains("\n")) {

@@ -8,7 +8,8 @@ case class Dsl(
   partPrefix: String,
   namespace: MetaNs,
   nsIndex: Int = 0,
-  attrIndexPrev: Int = 0
+  attrIndexPrev: Int = 0,
+  scalaVersion: String = "3"
 ) extends DslFormatting(schema, namespace) {
 
   private val nsList  : Seq[String] = schema.parts.flatMap(_.nss.map(_.ns))
@@ -37,7 +38,8 @@ case class Dsl(
       case MetaAttr(_, _, "UUID", _, _, _, _, _, _, _) => "java.util.UUID"
       case MetaAttr(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
-    (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
+    val higherKinds = if (scalaVersion == "212") Seq("scala.language.higherKinds") else Nil
+    (baseImports ++ typeImports ++ higherKinds).sorted.mkString("import ", "\nimport ", "")
   }
 
   private val validationExtractor = Dsl_Validations(schema, namespace)
@@ -47,8 +49,15 @@ case class Dsl(
     val opt = List.newBuilder[String]
     val tac = List.newBuilder[String]
     val vas = List.newBuilder[String]
+
+    val refNsIndexes  = attrs.collect { case a if a.refNs.isDefined => nsList.indexOf(a.refNs.get) }
+    val maxRefNsIndex = if (refNsIndexes.isEmpty) 0 else refNsIndexes.max.toString.length
+    val padRefNsIndex = (reNsIndex: Int) => padS(maxRefNsIndex, reNsIndex.toString)
+    val maxAttrIndex  = (attrIndexPrev + attrs.length).toString.length
+    val padAttrIndex  = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
+
     attrs.collect {
-      case MetaAttr(attr, card, tpe, refNsOpt, _, _, _, _, valueAttrs, validations) =>
+      case MetaAttr(attr, card, tpe, refNsOpt, options, _, _, _, valueAttrs, validations) =>
         val valids  = if (validations.nonEmpty) {
           val valueAttrMetas = attrs.collect {
             case MetaAttr(attr1, card1, tpe1, _, _, _, _, _, _, _)
@@ -66,22 +75,27 @@ case class Dsl(
         } else ""
         val padA    = padAttr(attr)
         val padT0   = padType(tpe)
-        val coord   = refNsOpt.fold(
-          s""", coord = Seq($nsIndex, $attrIndex)"""
-        )(refNs =>
-          s""", coord = Seq($nsIndex, $attrIndex, ${nsList.indexOf(refNs)})"""
-        )
+        val padAI   = padAttrIndex(attrIndex)
+        val coord   = refNsOpt.fold {
+          val padRNI = if (maxRefNsIndex == 0) "" else "  " + " " * maxRefNsIndex
+          s""", coord = Seq($nsIndex, $attrIndex$padAI$padRNI)"""
+        } { refNs =>
+          val refNsIndex = nsList.indexOf(refNs)
+          val padRNI     = padRefNsIndex(refNsIndex)
+          s""", coord = Seq($nsIndex, $attrIndex$padAI, $refNsIndex$padRNI)"""
+        }
         val refNs   = refNsOpt.fold("")(refNs => s""", refNs = Some("$refNs")""")
+        val owner   = if (refNsOpt.nonEmpty && options.contains("owner")) s", owner = true" else ""
         val attrMan = "Attr" + card._marker + "Man" + tpe
         val attrOpt = "Attr" + card._marker + "Opt" + tpe
         val attrTac = "Attr" + card._marker + "Tac" + tpe
         attrIndex += 1
 
-        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
-        if (attr != "id" && attr != "tx") {
-          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
+        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$coord$refNs$owner$valids)"""
+        if (attr != "id") {
+          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$coord$refNs$owner$valids)"""
         }
-        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
+        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$coord$refNs$owner$valids)"""
     }
     val vas1     = vas.result()
     val vas2     = if (vas1.isEmpty) Nil else "" +: vas1
@@ -114,8 +128,10 @@ case class Dsl(
        |$baseNs
        |
        |object $ns extends $ns_0[Nothing](Nil) {
-       |  final def apply(id: Long, ids: Long*) = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, id +: ids, $idCoord)))
-       |  final def apply(ids: Iterable[Long])  = new $ns_0[Long](List(AttrOneTacLong("$ns", "id", Eq, ids.toSeq, $idCoord)))
+       |  final def apply(id: String, ids: String*)                       = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, id +: ids                  , $idCoord)))
+       |  final def apply(ids: Iterable[String])                          = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, ids.toSeq                  , $idCoord)))
+       |  final def apply(id: Long, ids: Long*)                           = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, (id +: ids).map(_.toString), $idCoord)))
+       |  final def apply(ids: Iterable[Long])(implicit x: DummyImplicit) = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, ids.toSeq.map(_.toString)  , $idCoord)))
        |}
        |
        |

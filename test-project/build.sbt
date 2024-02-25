@@ -1,12 +1,11 @@
 
 name := "sbt-molecule-test-project"
-version := "1.5.0"
+version := "1.7.0"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.12"
-
 libraryDependencies ++= Seq(
   "com.lihaoyi" %% "utest" % "0.8.1",
-  "org.scalamolecule" %% "molecule-datalog-datomic" % "0.5.1",
+  "org.scalamolecule" %% "molecule-sql-h2" % "0.8.0-SNAPSHOT",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 Test / parallelExecution := false
@@ -21,8 +20,7 @@ moleculePluginActive := sys.props.get("molecule").contains("true")
 
 moleculeDataModelPaths := Seq("app")
 
-// For some reason, Scala 3.3 can't find generated classes in jars in lib.
-// So we generate source files here instead of jars.
+// Optionally generate source files instead of jars.
 //moleculeMakeJars := false
 
 // Let IDE detect created jars in unmanaged lib directory

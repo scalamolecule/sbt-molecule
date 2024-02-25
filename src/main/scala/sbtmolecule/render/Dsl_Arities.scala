@@ -141,25 +141,26 @@ case class Dsl_Arities(
   lazy private val withNestedInit = s" with NestedInit"
   lazy private val nestedPad      = " " * withNestedInit.length
   refs.collect {
-    case MetaAttr(attr, card, _, refNsOpt, _, _, _, _, _, _) =>
-      val refCls   = partPrefix + camel(attr)
-      val refNs    = partPrefix + refNsOpt.get
-      val pRefAttr = padRefAttr(attr)
-      val pRefNs   = padRefNs(refNs)
-
+    case MetaAttr(attr, card, _, Some(refNs), options, _, _, _, _, _) =>
+      val refName      = camel(attr)
+      val pRefAttr     = padRefAttr(attr)
+      val pRefNs       = padRefNs(refNs)
       val nsIndex      = nsList.indexOf(ns)
       val refAttrIndex = attrList.indexOf(ns + "." + attr)
       val refNsIndex   = nsList.indexOf(refNs)
+      val isOwner      = options.contains("owner")
+      val owner        = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
 
-      val refObj = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card, $coord)"""
+
+      val refObj = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card, $owner, $coord)"""
       val nested = if (hasCardSet) {
         if (arity < maxArity)
           if (card == CardOne) nestedPad else withNestedInit
         else
           ""
       } else ""
-      ref += s"""object $refCls$pRefAttr extends $refNs${_0}$pRefNs[${`A..V, `}t](elements :+ $refObj)$nested"""
+      ref += s"""object $refName$pRefAttr extends $refNs${_0}$pRefNs[${`A..V, `}t](elements :+ $refObj)$nested"""
   }
 
   private val manAttrs = if (last) "" else man.result().mkString("", "\n  ", "\n\n  ")
@@ -206,8 +207,7 @@ case class Dsl_Arities(
 
   private val backRefDefs = if (backRefs.isEmpty) "" else {
     val max = backRefs.map(_.length).max
-    backRefs.flatMap { backRef0 =>
-      val backRef = partPrefix + backRef0
+    backRefs.flatMap { backRef =>
       if (ns == backRef) None else {
         val pad         = padS(max, backRef)
         val prevNsIndex = nsList.indexOf(backRef)

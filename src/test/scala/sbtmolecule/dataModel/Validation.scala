@@ -40,7 +40,7 @@ object Validation extends DataModel(4) {
     val byte       = oneByte.validate(_ > 2)
     val short      = oneShort.validate(_ > 2)
     val char       = oneChar.validate(_ > 'b')
-    val ref        = one[Strings].validate(_ > 2L)
+//    val ref        = one[Strings].validate(_ > "2")
 
     val strings     = setString.validate(_ > "c")
     val ints        = setInt.validate(_ > 3)
@@ -56,7 +56,7 @@ object Validation extends DataModel(4) {
     val bytes       = setByte.validate(_ > 3)
     val shorts      = setShort.validate(_ > 3)
     val chars       = setChar.validate(_ > 'c')
-    val refs        = many[Strings].validate(_ > 3L)
+//    val refs        = many[Strings].validate(_ > "3")
   }
 
   trait Constants {

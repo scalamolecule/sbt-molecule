@@ -3,11 +3,11 @@ import sbt.Keys.{exportJars, testFrameworks, version}
 
 lazy val scala212               = "2.12.18"
 lazy val scala213               = "2.13.12"
-lazy val scala3                 = "3.2.1"
+lazy val scala3                 = "3.3.1"
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 ThisBuild / organization := "com.example"
-ThisBuild / version := "1.5.0"
+ThisBuild / version := "1.7.0"
 ThisBuild / scalaVersion := scala3
 
 
@@ -18,17 +18,14 @@ lazy val app = (project in file("app"))
   .enablePlugins(MoleculePlugin)
   .settings(
     crossScalaVersions := supportedScalaVersions,
-    // other settings
     name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "1.5.0",
+    version := "1.7.0",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
-    resolvers += "clojars" at "https://clojars.org/repo",
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-datalog-datomic" % "0.5.1",
+      "org.scalamolecule" %% "molecule-sql-h2" % "0.8.0-SNAPSHOT",
       "com.lihaoyi" %% "utest" % "0.8.1" % Test,
     ),
-
     testFrameworks += new TestFramework("utest.runner.Framework"),
 
     // Ensure clojure loads correctly for async tests run from sbt
@@ -37,9 +34,7 @@ lazy val app = (project in file("app"))
     // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
     moleculePluginActive := sys.props.get("molecule").contains("true"),
     moleculeDataModelPaths := Seq("app"), // Mandatory
-    moleculeAllIndexed := true, // Optional, default: true
     moleculeMakeJars := true, // Optional, default: true
-
 
     // Let IntelliJ detect sbt-molecule-created jars in unmanaged lib directory
     exportJars := true,

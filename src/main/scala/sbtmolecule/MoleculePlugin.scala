@@ -46,13 +46,13 @@ object MoleculePlugin extends sbt.AutoPlugin {
         val isJvm   = last != ".js" && last != "js"
         val srcDir  = last match {
           case ".js" | ".jvm" =>
-            // todo: Ugly hack - is there a way to get this correctly from sbt?
+            // todo: hack - is there a way to get this correctly from sbt?
             // ScalaJS project, use data model in shared `src` folder on top level:
             // <project-path/foo/.jvm|.js/src/main/scala  // nothing here to generate from. So we change to..
             // <project-path/foo/src/main/scala           // our data models should be here
             file(baseDir.split('/').init.mkString("/") + "/src/main/scala")
           case "js" | "jvm"   =>
-            // todo: Ugly hack - is there a way to get this correctly from sbt?
+            // todo: hack - is there a way to get this correctly from sbt?
             // ScalaJS project, use data model in `shared` folder on top level:
             // <project-path/foo/jvm|js/src/main/scala  // nothing here to generate from. So we change to..
             // <project-path/foo/shared/src/main/scala  // our data models should be here

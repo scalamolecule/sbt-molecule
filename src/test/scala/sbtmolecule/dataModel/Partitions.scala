@@ -4,27 +4,24 @@ import molecule.DataModel
 
 object Partitions extends DataModel(3) {
 
-  object partA {
-    trait Ns {
-      val int    = oneInt
-      val string = oneString
-      val ref1   = one[Ref1]
+  object accounting {
+    trait Invoice {
+      val no          = oneInt
+      val mainProduct = one[warehouse.Item]
+      val lines       = many[InvoiceLine]
     }
-    trait Ref1 {
-      val str1 = oneString("foo")
-      val int1 = oneInt.unique.descr("bar").alias("hej")
+    trait InvoiceLine {
+      val text    = oneString
+      val qty     = oneInt
+      val product = one[warehouse.Item]
+      val invoice = one[Invoice]
     }
   }
 
-  object partB {
-    trait Ns {
-      val int    = oneInt
-      val string = oneString
-      val ref1   = one[Ref1]
-    }
-    trait Ref1 {
-      val str1 = oneString("foo")
-      val int1 = oneInt.unique.descr("bar").alias("hej")
+  object warehouse {
+    trait Item {
+      val name     = oneString
+      val invoiced = many[accounting.Invoice]
     }
   }
 }

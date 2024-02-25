@@ -9,6 +9,7 @@ object H2 extends Dialect {
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
     else a.card match {
       case _: CardOne => a.baseTpe match {
+        case "ID"             => "BIGINT"
         case "String"         => "LONGVARCHAR"
         case "Int"            => "INT"
         case "Long"           => "BIGINT"
@@ -17,7 +18,7 @@ object H2 extends Dialect {
         case "Boolean"        => "BOOLEAN"
         case "BigInt"         => "DECIMAL(100, 0)"
         case "BigDecimal"     => "DECIMAL(65535, 25)"
-        case "Date"           => "DATE"
+        case "Date"           => "BIGINT"
         case "Duration"       => "VARCHAR"
         case "Instant"        => "VARCHAR"
         case "LocalDate"      => "VARCHAR"
@@ -33,6 +34,7 @@ object H2 extends Dialect {
         case "Char"           => "CHAR"
       }
       case _          => a.baseTpe match {
+        case "ID"             => "BIGINT ARRAY"
         case "String"         => "LONGVARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
         case "Long"           => "BIGINT ARRAY"
@@ -41,7 +43,7 @@ object H2 extends Dialect {
         case "Boolean"        => "BOOLEAN ARRAY"
         case "BigInt"         => "DECIMAL(100, 0) ARRAY"
         case "BigDecimal"     => "DECIMAL(65535, 25) ARRAY"
-        case "Date"           => "DATE ARRAY"
+        case "Date"           => "BIGINT ARRAY"
         case "Duration"       => "VARCHAR ARRAY"
         case "Instant"        => "VARCHAR ARRAY"
         case "LocalDate"      => "VARCHAR ARRAY"
