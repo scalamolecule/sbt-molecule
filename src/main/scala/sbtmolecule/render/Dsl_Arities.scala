@@ -24,14 +24,32 @@ case class Dsl_Arities(
 
   var hasOne = false
   var hasSet = false
+  var hasArr = false
+  var hasMap = false
+
+  var classTag  = ""
+  var pClassTag = ""
 
   private val maxCardPad = attrs.map(a => a.card match {
     case _: CardOne => hasOne = true; 0
     case _: CardSet => hasSet = true; 5
+    case _: CardArr => hasArr = true; 7
+    case _: CardMap =>
+      hasMap = true
+      classTag  = ": ClassTag"
+      pClassTag = ""
+      13
   }).max
+
 
   private val pOne = " " * maxCardPad
   private val pSet = " " * (maxCardPad - 5)
+  private val pArr = " " * (maxCardPad - 7)
+  private val pMap = " " * (maxCardPad - 13)
+
+
+  //  println("--------------")
+  //  attrs.foreach(println)
 
   attrs.foreach {
     case MetaAttr(attr, card, tpe0, refNs, _, _, _, _, _, _) =>
@@ -41,12 +59,14 @@ case class Dsl_Arities(
       val padA = padAttr(attr)
       val pad0 = padType(tpe)
       val pad1 = padType(tpe)
-      val pad3 = pad1 + " " * (maxTpe + "Option[]".length - maxTpe)
-      val pad4 = " " * (maxTpe + "Option[]".length + maxCardPad)
+      val pad3 = pad1 + " " * (maxBaseTpe + "Option[]".length - maxBaseTpe)
+      val pad4 = " " * (maxBaseTpe + "Option[]".length + maxCardPad)
 
       val (tM, tO) = card match {
         case _: CardOne => (tpe + pOne, s"Option[$tpe]" + pOne)
         case _: CardSet => (s"Set[$tpe]" + pSet, s"Option[Set[$tpe]]" + pSet)
+        case _: CardArr => (s"Array[$tpe]" + pArr, s"Option[Array[$tpe]]" + pArr)
+        case _: CardMap => (s"Map[String, $tpe]" + pMap, s"Option[Map[String, $tpe]]" + pMap)
       }
 
       lazy val tpesM = s"${`A..V, `}$tM$pad3, $tpe$pad1"
@@ -88,10 +108,21 @@ case class Dsl_Arities(
   }
 
   if (first) {
-    if (hasOne)
-      res += s"override protected def _exprOneTac(op: Op, vs: Seq[t]$pOne) = new $ns_0[t](addOne(elements, op, vs)) with CardOne"
-    if (hasSet)
-      res += s"override protected def _exprSetTac(op: Op, vs: Seq[Set[t]]$pSet) = new $ns_0[t](addSet(elements, op, vs)) with CardSet"
+    val pArg = if (hasMap) "  " else ""
+    if (hasOne) {
+      res += s"override protected def _exprOneTac(op: Op, vs$pArg: Seq[t]$pOne) = new $ns_0[t](addOne(elements, op, vs)) with CardOne"
+    }
+    if (hasSet) {
+      res += s"override protected def _exprSetTac(op: Op, vs$pArg: Seq[Set[t]]$pSet) = new $ns_0[t](addSet(elements, op, vs)) with CardSet"
+    }
+    if (hasArr) {
+      res += s"override protected def _exprArrTac(op: Op, vs$pArg: Seq[Array[t]]$pArr) = new $ns_0[t](addArr(elements, op, vs)) with CardSet"
+    }
+    if (hasMap) {
+      res += s"""override protected def _exprMapTac(op: Op, maps: Seq[Map[String, t]]$pMap) = new $ns_0[t](addMap(elements, op, maps)) with CardMap"""
+      res += s"""override protected def _exprMapTaK(op: Op, keys: Seq[String        ]$pMap) = new $ns_0[t](addMap(elements, op, Seq(keys.map(k => k -> null.asInstanceOf[t]).toMap))) with CardMap"""
+      res += s"""override protected def _exprMapTaV(op: Op, vs  : Seq[t             ]$pMap) = new $ns_0[t](addMap(elements, op, Seq(vs.zipWithIndex.map { case (v, i) => s"_k$$i" -> v }.toMap))) with CardMap"""
+    }
 
   } else {
     val tInt_ = s"${`A..U`}Int   , Int   "
@@ -108,13 +139,26 @@ case class Dsl_Arities(
     def agg6 = s"override protected def _aggrT     (kw: Kw                    $pOne) = new $ns_0"
 
     def one1 = s"override protected def _exprOneMan(op: Op, vs: Seq[t]        $pOne) = new $ns_0"
-    def one2 = s"override protected def _exprOneOpt(op: Op, vs: Option[Seq[t]]$pOne) = new $ns_0"
-    def one3 = s"override protected def _exprOneTac(op: Op, vs: Seq[t]        $pOne) = new $ns_0"
-    def one4 = s"override protected def _sort      (sort: String              $pOne) = new $ns_0"
+    def one2 = s"override protected def _exprOneTac(op: Op, vs: Seq[t]        $pOne) = new $ns_0"
+    def one3 = s"override protected def _exprOneOpt(op: Op, vs: Option[Seq[t]]$pOne) = new $ns_0"
 
     def set1 = s"override protected def _exprSetMan(op: Op, vs: Seq[Set[t]]        $pSet) = new $ns_0"
-    def set2 = s"override protected def _exprSetOpt(op: Op, vs: Option[Seq[Set[t]]]$pSet) = new $ns_0"
-    def set3 = s"override protected def _exprSetTac(op: Op, vs: Seq[Set[t]]        $pSet) = new $ns_0"
+    def set2 = s"override protected def _exprSetTac(op: Op, vs: Seq[Set[t]]        $pSet) = new $ns_0"
+    def set3 = s"override protected def _exprSetOpt(op: Op, vs: Option[Seq[Set[t]]]$pSet) = new $ns_0"
+
+    def arr1 = s"override protected def _exprArrMan(op: Op, vs: Seq[Array[t]]        $pMap) = new $ns_0"
+    def arr2 = s"override protected def _exprArrTac(op: Op, vs: Seq[Array[t]]        $pMap) = new $ns_0"
+    def arr3 = s"override protected def _exprArrOpt(op: Op, vs: Option[Seq[Array[t]]]$pMap) = new $ns_0"
+
+    def map1 = s"override protected def _exprMapMan(op: Op, maps: Seq[Map[String, t]]) = new $ns_0"
+    def map2 = s"override protected def _exprMapMaK(op: Op, keys: Seq[String        ]) = new $ns_0"
+    def map3 = s"override protected def _exprMapMaV(op: Op, vs  : Seq[t             ]) = new $ns_0"
+    def map4 = s"override protected def _exprMapTac(op: Op, maps: Seq[Map[String, t]]) = new $ns_0"
+    def map5 = s"override protected def _exprMapTaK(op: Op, keys: Seq[String        ]) = new $ns_0"
+    def map6 = s"override protected def _exprMapTaV(op: Op, vs  : Seq[t             ]) = new $ns_0"
+    def map7 = s"override protected def _exprMapOpK(op: Op, keys: Option[Seq[String]]) = new $ns_0"
+
+    def sort = s"override protected def _sort(sort: String) = new $ns_0"
 
     if (hasOne || hasSet) {
       res += s"$agg1[$tInt_](toInt    (elements, kw    )) with SortAttrs_$arity[$tInt_, $ns_0]"
@@ -125,21 +169,42 @@ case class Dsl_Arities(
       res += s"$agg6[$tA___](asIs     (elements, kw    ))"
     }
     if (hasOne) {
+      res += ""
       res += s"$one1[$tA___](addOne   (elements, op, vs)) with SortAttrs_$arity[$tA___, $ns_0] with CardOne"
-      res += s"$one2[$tA___](addOptOne(elements, op, vs)) with SortAttrs_$arity[$tA___, $ns_0]"
-      res += s"$one3[$tA___](addOne   (elements, op, vs)) with CardOne"
+      res += s"$one2[$tA___](addOne   (elements, op, vs)) with CardOne"
+      res += s"$one3[$tA___](addOptOne(elements, op, vs)) with SortAttrs_$arity[$tA___, $ns_0]"
     }
     if (hasSet) {
+      res += ""
       res += s"$set1[$tA___](addSet   (elements, op, vs)) with CardSet"
-      res += s"$set2[$tA___](addOptSet(elements, op, vs))"
-      res += s"$set3[$tA___](addSet   (elements, op, vs)) with CardSet"
+      res += s"$set2[$tA___](addSet   (elements, op, vs)) with CardSet"
+      res += s"$set3[$tA___](addOptSet(elements, op, vs))"
     }
-    res += s"$one4[$tA___](addSort  (elements, sort  ))"
+    if (hasArr) {
+      res += ""
+      res += s"$arr1[$tA___](addArr   (elements, op, vs)) with CardArr"
+      res += s"$arr2[$tA___](addArr   (elements, op, vs)) with CardArr"
+      res += s"$arr3[$tA___](addOptArr(elements, op, vs))"
+    }
+    if (hasMap) {
+      res += ""
+      res += s"""$map1[$tA___](addMap   (elements, op, maps)) with CardMap"""
+      res += s"""$map2[$tA___](addMap   (elements, op, Seq(keys.map(k => k -> null.asInstanceOf[t]).toMap))) with CardMap"""
+      res += s"""$map3[$tA___](addMap   (elements, op, Seq(vs.zipWithIndex.map { case (v, i) => s"_k$$i" -> v }.toMap))) with CardMap"""
+      res += s"""$map4[$tA___](addMap   (elements, op, maps)) with CardMap"""
+      res += s"""$map5[$tA___](addMap   (elements, op, Seq(keys.map(k => k -> null.asInstanceOf[t]).toMap))) with CardMap"""
+      res += s"""$map6[$tA___](addMap   (elements, op, Seq(vs.zipWithIndex.map { case (v, i) => s"_k$$i" -> v }.toMap))) with CardMap"""
+      res += s"""$map7[$tA___](addOptMap(elements, op, keys.map(keys => Seq(keys.map(k => k -> null.asInstanceOf[t]).toMap))))"""
+    }
+    if (hasOne) {
+      res += ""
+      res += s"$sort[${`A..V`}, t](addSort(elements, sort))"
+    }
   }
 
-  private      val hasCardSet     = refs.exists(_.card == CardSet)
-  lazy private val withNestedInit = s" with NestedInit"
-  lazy private val nestedPad      = " " * withNestedInit.length
+  private val hasCardSet     = refs.exists(_.card == CardSet)
+  private val withNestedInit = s" with NestedInit"
+  private val nestedPad      = " " * withNestedInit.length
   refs.collect {
     case MetaAttr(attr, card, _, Some(refNs), options, _, _, _, _, _) =>
       val refName      = camel(attr)
@@ -151,9 +216,8 @@ case class Dsl_Arities(
       val isOwner      = options.contains("owner")
       val owner        = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
+      val refObj       = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card, $owner, $coord)"""
 
-
-      val refObj = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card, $owner, $coord)"""
       val nested = if (hasCardSet) {
         if (arity < maxArity)
           if (card == CardOne) nestedPad else withNestedInit
@@ -219,7 +283,7 @@ case class Dsl_Arities(
   }
 
   def get: String =
-    s"""class $ns_0[${`A..V, `}t]($elements) extends ${ns}_base with $modelOps {
+    s"""class $ns_0[${`A..V, `}t$classTag]($elements) extends ${ns}_base with $modelOps {
        |  $manAttrs$optAttrs$tacAttrs
        |
        |  $resolvers$filterAttrs$nested$refDefs$backRefDefs

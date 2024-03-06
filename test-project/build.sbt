@@ -2,7 +2,7 @@
 name := "sbt-molecule-test-project"
 version := "1.7.0"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.12"
+scalaVersion := "2.13.13"
 libraryDependencies ++= Seq(
   "com.lihaoyi" %% "utest" % "0.8.1",
   "org.scalamolecule" %% "molecule-sql-h2" % "0.8.0-SNAPSHOT",

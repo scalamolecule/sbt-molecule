@@ -104,7 +104,12 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     val (test, error) = validation
     val testStr       = if (test.contains("\n")) {
       val lines = test.split('\n').toList
-      (lines.head +: lines.tail.map(s"$pad        " + _)).mkString("\n")
+      if(lines.head(0) == '{')
+        (lines.head +: lines.tail.map(s"$pad      " + _)).mkString("\n")
+      else
+        (
+          ("{ " + lines.head) +: lines.tail.map(s"$pad        " + _) :+ s"$pad      }"
+          ).mkString("\n")
     } else {
       test
     }
@@ -112,22 +117,22 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     val errorStr      = {
       if (error.contains("\n")) {
         s"""Seq(
-           |$pad          $error1
-           |$pad        )"""
+           |$pad        $error1
+           |$pad      )"""
       } else if (error.isEmpty) {
-        val indentedTest = test.split('\n').toList.mkString(s"|$pad             |  ", s"\n||$pad             |  ", "")
+        val indentedTest = test.split('\n').toList.mkString(s"|$pad           |", s"\n||$pad           |  ", "")
         s"""Seq(
-           |$pad          s\"\"\"$ns.$attr with value `$$v` doesn't satisfy validation:
-           |$pad           $indentedTest
-           |$pad|$pad             |\"\"\".stripMargin
-           |$pad        )""".stripMargin('#')
+           |$pad        s\"\"\"$ns.$attr with value `$$v` doesn't satisfy validation:
+           |$pad         $indentedTest
+           |$pad|$pad           |\"\"\".stripMargin
+           |$pad      )""".stripMargin('#')
       } else {
         s"Seq($error1)"
       }
     }
 
     s"""val ok: $baseTpe => Boolean = $testStr
-       |$pad        if (ok(v)) Nil else $errorStr"""
+       |$pad      if (ok(v)) Nil else $errorStr"""
   }
 
 

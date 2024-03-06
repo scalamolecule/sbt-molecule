@@ -5,18 +5,17 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.7.0",
-//    version := "1.7.0-SNAPSHOT",
+    version := "1.7.1-SNAPSHOT",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "4.7.3",
-      "org.scalamolecule" %% "molecule-base" % "0.8.0",
-//      "org.scalamolecule" %% "molecule-base" % "0.8.0-SNAPSHOT",
+      "org.scalameta" %% "scalameta" % "4.9.0",
+      "org.scalamolecule" %% "molecule-base" % "0.8.1-SNAPSHOT",
       "com.lihaoyi" %% "utest" % "0.8.1" % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )
   .settings(publishSettings)
+
 
 
 lazy val snapshots = "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
@@ -26,7 +25,7 @@ lazy val publishSettings: Seq[Def.Setting[_]] = Seq(
   publishMavenStyle := true,
   versionScheme := Some("early-semver"),
   publishTo := (if (isSnapshot.value) Some(snapshots) else Some(releases)),
-  Test / publishArtifact := false,
+//  Test / publishArtifact := false,
   pomIncludeRepository := (_ => false),
   homepage := Some(url("http://scalamolecule.org")),
   description := "sbt-molecule",

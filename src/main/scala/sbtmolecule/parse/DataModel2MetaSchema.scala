@@ -34,7 +34,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     "a1", "a2", "a3", "a4", "a5", "d1", "d2", "d3", "d4", "d5",
 
     // Expressions
-    "apply", "not", "add", "swap", "remove",
+    "apply", "not", "has", "hasNo", "add", "remove", "getV",
 
     // Generic attributes
     "id",
@@ -60,8 +60,8 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
 
   private val (domain, maxArity, body) = afterPkg.collectFirst {
     case Defn.Object(_, Term.Name(domain),
-    Template.internal.Impl(_,
-    List(Init.internal.Impl(Type.Name("DataModel"), _,
+    Template.internal.Latest(_,
+    List(Init.internal.Latest(Type.Name("DataModel"), _,
     List(Term.ArgClause(List(Lit.Int(maxArity)), _))
     )), _, body, _)) => (domain, maxArity, body)
   }.getOrElse(
@@ -221,6 +221,9 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
   private def acc(pp: String, ns: String, t: Tree, a: MetaAttr): MetaAttr = {
     val attr = ns + "." + a.attr
     t match {
+
+      // Options ................................................
+
       case q"$prev.index"          => acc(pp, ns, prev, a.copy(options = a.options :+ "index"))
       case q"$prev.noHistory"      => acc(pp, ns, prev, a.copy(options = a.options :+ "noHistory"))
       case q"$prev.uniqueIdentity" => acc(pp, ns, prev, a.copy(options = a.options :+ "uniqueIdentity"))
@@ -245,6 +248,32 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
         case other                   =>
           err(s"Invalid alias for attribute $attr: " + other)
       }
+
+
+      // Refs ................................................
+
+      case q"one[$refNs0]" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardOne, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)))
+
+      case q"one[$refNs0](${Lit.String(s)})" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardOne, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)), description = Some(s))
+
+      case q"many[$refNs0]" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardSet, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)))
+
+      case q"many[$refNs0](${Lit.String(s)})" =>
+        val refNs = refNs0.toString
+        addBackRef(pp, ns, refNs)
+        a.copy(card = CardSet, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)), description = Some(s))
+
+
+      // Attributes ................................................
 
       case q"oneString"         => a.copy(card = CardOne, baseTpe = "String")
       case q"oneInt"            => a.copy(card = CardOne, baseTpe = "Int")
@@ -298,25 +327,6 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       case q"oneShort(${Lit.String(s)})"          => a.copy(card = CardOne, baseTpe = "Short", description = Some(s))
       case q"oneChar(${Lit.String(s)})"           => a.copy(card = CardOne, baseTpe = "Char", description = Some(s))
 
-      case q"one[$refNs0]" =>
-        val refNs = refNs0.toString
-        addBackRef(pp, ns, refNs)
-        a.copy(card = CardOne, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)))
-
-      case q"one[$refNs0](${Lit.String(s)})" =>
-        val refNs = refNs0.toString
-        addBackRef(pp, ns, refNs)
-        a.copy(card = CardOne, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)), description = Some(s))
-
-      case q"many[$refNs0]" =>
-        val refNs = refNs0.toString
-        addBackRef(pp, ns, refNs)
-        a.copy(card = CardSet, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)))
-
-      case q"many[$refNs0](${Lit.String(s)})" =>
-        val refNs = refNs0.toString
-        addBackRef(pp, ns, refNs)
-        a.copy(card = CardSet, baseTpe = "ID", refNs = Some(fullNs(pp, refNs)), description = Some(s))
 
       case q"setString"         => a.copy(card = CardSet, baseTpe = "String")
       case q"setInt"            => a.copy(card = CardSet, baseTpe = "Int")
@@ -363,6 +373,100 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       case q"setByte(${Lit.String(s)})"           => a.copy(card = CardSet, baseTpe = "Byte", description = Some(s))
       case q"setShort(${Lit.String(s)})"          => a.copy(card = CardSet, baseTpe = "Short", description = Some(s))
       case q"setChar(${Lit.String(s)})"           => a.copy(card = CardSet, baseTpe = "Char", description = Some(s))
+
+
+      case q"arrString"         => a.copy(card = CardArr, baseTpe = "String")
+      case q"arrInt"            => a.copy(card = CardArr, baseTpe = "Int")
+      case q"arrLong"           => a.copy(card = CardArr, baseTpe = "Long")
+      case q"arrFloat"          => a.copy(card = CardArr, baseTpe = "Float")
+      case q"arrDouble"         => a.copy(card = CardArr, baseTpe = "Double")
+      case q"arrBoolean"        => a.copy(card = CardArr, baseTpe = "Boolean")
+      case q"arrBigInt"         => a.copy(card = CardArr, baseTpe = "BigInt")
+      case q"arrBigDecimal"     => a.copy(card = CardArr, baseTpe = "BigDecimal")
+      case q"arrDate"           => a.copy(card = CardArr, baseTpe = "Date")
+      case q"arrDuration"       => a.copy(card = CardArr, baseTpe = "Duration")
+      case q"arrInstant"        => a.copy(card = CardArr, baseTpe = "Instant")
+      case q"arrLocalDate"      => a.copy(card = CardArr, baseTpe = "LocalDate")
+      case q"arrLocalTime"      => a.copy(card = CardArr, baseTpe = "LocalTime")
+      case q"arrLocalDateTime"  => a.copy(card = CardArr, baseTpe = "LocalDateTime")
+      case q"arrOffsetTime"     => a.copy(card = CardArr, baseTpe = "OffsetTime")
+      case q"arrOffsetDateTime" => a.copy(card = CardArr, baseTpe = "OffsetDateTime")
+      case q"arrZonedDateTime"  => a.copy(card = CardArr, baseTpe = "ZonedDateTime")
+      case q"arrUUID"           => a.copy(card = CardArr, baseTpe = "UUID")
+      case q"arrURI"            => a.copy(card = CardArr, baseTpe = "URI")
+      case q"arrByte"           => a.copy(card = CardArr, baseTpe = "Byte")
+      case q"arrShort"          => a.copy(card = CardArr, baseTpe = "Short")
+      case q"arrChar"           => a.copy(card = CardArr, baseTpe = "Char")
+
+      case q"arrString(${Lit.String(s)})"         => a.copy(card = CardArr, baseTpe = "String", description = Some(s))
+      case q"arrInt(${Lit.String(s)})"            => a.copy(card = CardArr, baseTpe = "Int", description = Some(s))
+      case q"arrLong(${Lit.String(s)})"           => a.copy(card = CardArr, baseTpe = "Long", description = Some(s))
+      case q"arrFloat(${Lit.String(s)})"          => a.copy(card = CardArr, baseTpe = "Float", description = Some(s))
+      case q"arrDouble(${Lit.String(s)})"         => a.copy(card = CardArr, baseTpe = "Double", description = Some(s))
+      case q"arrBoolean(${Lit.String(s)})"        => a.copy(card = CardArr, baseTpe = "Boolean", description = Some(s))
+      case q"arrBigInt(${Lit.String(s)})"         => a.copy(card = CardArr, baseTpe = "BigInt", description = Some(s))
+      case q"arrBigDecimal(${Lit.String(s)})"     => a.copy(card = CardArr, baseTpe = "BigDecimal", description = Some(s))
+      case q"arrDate(${Lit.String(s)})"           => a.copy(card = CardArr, baseTpe = "Date", description = Some(s))
+      case q"arrDuration(${Lit.String(s)})"       => a.copy(card = CardArr, baseTpe = "Duration", description = Some(s))
+      case q"arrInstant(${Lit.String(s)})"        => a.copy(card = CardArr, baseTpe = "Instant", description = Some(s))
+      case q"arrLocalDate(${Lit.String(s)})"      => a.copy(card = CardArr, baseTpe = "LocalDate", description = Some(s))
+      case q"arrLocalTime(${Lit.String(s)})"      => a.copy(card = CardArr, baseTpe = "LocalTime", description = Some(s))
+      case q"arrLocalDateTime(${Lit.String(s)})"  => a.copy(card = CardArr, baseTpe = "LocalDateTime", description = Some(s))
+      case q"arrOffsetTime(${Lit.String(s)})"     => a.copy(card = CardArr, baseTpe = "OffsetTime", description = Some(s))
+      case q"arrOffsetDateTime(${Lit.String(s)})" => a.copy(card = CardArr, baseTpe = "OffsetDateTime", description = Some(s))
+      case q"arrZonedDateTime(${Lit.String(s)})"  => a.copy(card = CardArr, baseTpe = "ZonedDateTime", description = Some(s))
+      case q"arrUUID(${Lit.String(s)})"           => a.copy(card = CardArr, baseTpe = "UUID", description = Some(s))
+      case q"arrURI(${Lit.String(s)})"            => a.copy(card = CardArr, baseTpe = "URI", description = Some(s))
+      case q"arrByte(${Lit.String(s)})"           => a.copy(card = CardArr, baseTpe = "Byte", description = Some(s))
+      case q"arrShort(${Lit.String(s)})"          => a.copy(card = CardArr, baseTpe = "Short", description = Some(s))
+      case q"arrChar(${Lit.String(s)})"           => a.copy(card = CardArr, baseTpe = "Char", description = Some(s))
+
+
+      case q"mapString"         => a.copy(card = CardMap, baseTpe = "String")
+      case q"mapInt"            => a.copy(card = CardMap, baseTpe = "Int")
+      case q"mapLong"           => a.copy(card = CardMap, baseTpe = "Long")
+      case q"mapFloat"          => a.copy(card = CardMap, baseTpe = "Float")
+      case q"mapDouble"         => a.copy(card = CardMap, baseTpe = "Double")
+      case q"mapBoolean"        => a.copy(card = CardMap, baseTpe = "Boolean")
+      case q"mapBigInt"         => a.copy(card = CardMap, baseTpe = "BigInt")
+      case q"mapBigDecimal"     => a.copy(card = CardMap, baseTpe = "BigDecimal")
+      case q"mapDate"           => a.copy(card = CardMap, baseTpe = "Date")
+      case q"mapDuration"       => a.copy(card = CardMap, baseTpe = "Duration")
+      case q"mapInstant"        => a.copy(card = CardMap, baseTpe = "Instant")
+      case q"mapLocalDate"      => a.copy(card = CardMap, baseTpe = "LocalDate")
+      case q"mapLocalTime"      => a.copy(card = CardMap, baseTpe = "LocalTime")
+      case q"mapLocalDateTime"  => a.copy(card = CardMap, baseTpe = "LocalDateTime")
+      case q"mapOffsetTime"     => a.copy(card = CardMap, baseTpe = "OffsetTime")
+      case q"mapOffsetDateTime" => a.copy(card = CardMap, baseTpe = "OffsetDateTime")
+      case q"mapZonedDateTime"  => a.copy(card = CardMap, baseTpe = "ZonedDateTime")
+      case q"mapUUID"           => a.copy(card = CardMap, baseTpe = "UUID")
+      case q"mapURI"            => a.copy(card = CardMap, baseTpe = "URI")
+      case q"mapByte"           => a.copy(card = CardMap, baseTpe = "Byte")
+      case q"mapShort"          => a.copy(card = CardMap, baseTpe = "Short")
+      case q"mapChar"           => a.copy(card = CardMap, baseTpe = "Char")
+
+      case q"arrString(${Lit.String(s)})"         => a.copy(card = CardMap, baseTpe = "String", description = Some(s))
+      case q"arrInt(${Lit.String(s)})"            => a.copy(card = CardMap, baseTpe = "Int", description = Some(s))
+      case q"arrLong(${Lit.String(s)})"           => a.copy(card = CardMap, baseTpe = "Long", description = Some(s))
+      case q"arrFloat(${Lit.String(s)})"          => a.copy(card = CardMap, baseTpe = "Float", description = Some(s))
+      case q"arrDouble(${Lit.String(s)})"         => a.copy(card = CardMap, baseTpe = "Double", description = Some(s))
+      case q"arrBoolean(${Lit.String(s)})"        => a.copy(card = CardMap, baseTpe = "Boolean", description = Some(s))
+      case q"arrBigInt(${Lit.String(s)})"         => a.copy(card = CardMap, baseTpe = "BigInt", description = Some(s))
+      case q"arrBigDecimal(${Lit.String(s)})"     => a.copy(card = CardMap, baseTpe = "BigDecimal", description = Some(s))
+      case q"arrDate(${Lit.String(s)})"           => a.copy(card = CardMap, baseTpe = "Date", description = Some(s))
+      case q"arrDuration(${Lit.String(s)})"       => a.copy(card = CardMap, baseTpe = "Duration", description = Some(s))
+      case q"arrInstant(${Lit.String(s)})"        => a.copy(card = CardMap, baseTpe = "Instant", description = Some(s))
+      case q"arrLocalDate(${Lit.String(s)})"      => a.copy(card = CardMap, baseTpe = "LocalDate", description = Some(s))
+      case q"arrLocalTime(${Lit.String(s)})"      => a.copy(card = CardMap, baseTpe = "LocalTime", description = Some(s))
+      case q"arrLocalDateTime(${Lit.String(s)})"  => a.copy(card = CardMap, baseTpe = "LocalDateTime", description = Some(s))
+      case q"arrOffsetTime(${Lit.String(s)})"     => a.copy(card = CardMap, baseTpe = "OffsetTime", description = Some(s))
+      case q"arrOffsetDateTime(${Lit.String(s)})" => a.copy(card = CardMap, baseTpe = "OffsetDateTime", description = Some(s))
+      case q"arrZonedDateTime(${Lit.String(s)})"  => a.copy(card = CardMap, baseTpe = "ZonedDateTime", description = Some(s))
+      case q"arrUUID(${Lit.String(s)})"           => a.copy(card = CardMap, baseTpe = "UUID", description = Some(s))
+      case q"arrURI(${Lit.String(s)})"            => a.copy(card = CardMap, baseTpe = "URI", description = Some(s))
+      case q"arrByte(${Lit.String(s)})"           => a.copy(card = CardMap, baseTpe = "Byte", description = Some(s))
+      case q"arrShort(${Lit.String(s)})"          => a.copy(card = CardMap, baseTpe = "Short", description = Some(s))
+      case q"arrChar(${Lit.String(s)})"           => a.copy(card = CardMap, baseTpe = "Char", description = Some(s))
 
 
       // Validations ................................................

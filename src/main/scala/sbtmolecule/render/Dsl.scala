@@ -39,7 +39,8 @@ case class Dsl(
       case MetaAttr(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
     val higherKinds = if (scalaVersion == "212") Seq("scala.language.higherKinds") else Nil
-    (baseImports ++ typeImports ++ higherKinds).sorted.mkString("import ", "\nimport ", "")
+    val classTag    = if (attrs.exists(_.card == CardArr)) Seq("scala.reflect.ClassTag") else Nil
+    (baseImports ++ typeImports ++ higherKinds ++ classTag).sorted.mkString("import ", "\nimport ", "")
   }
 
   private val validationExtractor = Dsl_Validations(schema, namespace)

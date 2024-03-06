@@ -21,15 +21,15 @@ class DslFormatting(schema: MetaSchema, namespace: MetaNs, arity: Int = 0) exten
     case t    => t
   }
 
-  lazy val maxAttr        = attrs.map(_.attr.length).max
-  lazy val maxTpe         = attrs.map(a => getTpe(a.baseTpe).length).max
-  lazy val maxRefAttr     = attrs.filter(_.refNs.isDefined).map(ns => ns.attr.length).max
-  lazy val maxRefNs       = attrs.flatMap(_.refNs.map(_.length)).max
+  lazy val maxAttr    = attrs.map(_.attr.length).max
+  lazy val maxBaseTpe = attrs.map(a => getTpe(a.baseTpe).length).max
+  lazy val maxRefAttr = attrs.filter(_.refNs.isDefined).map(ns => ns.attr.length).max
+  lazy val maxRefNs   = attrs.flatMap(_.refNs.map(_.length)).max
 
-  lazy val padAttr        = (s: String) => padS(maxAttr, s)
-  lazy val padType        = (s: String) => padS(maxTpe, s)
-  lazy val padRefAttr     = (s: String) => padS(maxRefAttr, s)
-  lazy val padRefNs       = (s: String) => padS(maxRefNs, s)
+  lazy val padAttr    = (s: String) => padS(maxAttr, s)
+  lazy val padType    = (s: String) => padS(maxBaseTpe, s)
+  lazy val padRefAttr = (s: String) => padS(maxRefAttr, s)
+  lazy val padRefNs   = (s: String) => padS(maxRefNs, s)
 
   lazy val V        = ('A' + arity - 1).toChar
   lazy val tpes     = (0 until arity) map (n => (n + 'A').toChar)
