@@ -33,36 +33,40 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
   private def datomicCardinality(a: MetaAttr): String = a.card match {
     case CardOne => "one"
     case CardSet => "many"
-    case CardArr => "many"
+    case CardArr => "one" // Array values encoded in one byte Array
     case CardMap => "many"
     case other   => throw new Exception("Yet unsupported cardinality: " + other)
   }
 
-  private def datomicType(a: MetaAttr): String = a.baseTpe match {
-    case "ID" if a.refNs.nonEmpty => "ref"
-    case "ID"                     => "ref"
-    case "String"                 => "string"
-    case "Int"                    => "long"
-    case "Long"                   => "long"
-    case "Float"                  => "float"
-    case "Double"                 => "double"
-    case "Boolean"                => "boolean"
-    case "BigInt"                 => "bigint"
-    case "BigDecimal"             => "bigdec"
-    case "Date"                   => "instant"
-    case "Duration"               => "string"
-    case "Instant"                => "string"
-    case "LocalDate"              => "string"
-    case "LocalTime"              => "string"
-    case "LocalDateTime"          => "string"
-    case "OffsetTime"             => "string"
-    case "OffsetDateTime"         => "string"
-    case "ZonedDateTime"          => "string"
-    case "UUID"                   => "uuid"
-    case "URI"                    => "uri"
-    case "Byte"                   => "long"
-    case "Short"                  => "long"
-    case "Char"                   => "string"
+  private def datomicType(a: MetaAttr): String = {
+    if (a.card == CardArr) {
+      if (a.baseTpe == "Byte") "bytes" else "ref"
+    } else a.baseTpe match {
+      case "ID" if a.refNs.nonEmpty => "ref"
+      case "ID"                     => "ref"
+      case "String"                 => "string"
+      case "Int"                    => "long"
+      case "Long"                   => "long"
+      case "Float"                  => "float"
+      case "Double"                 => "double"
+      case "Boolean"                => "boolean"
+      case "BigInt"                 => "bigint"
+      case "BigDecimal"             => "bigdec"
+      case "Date"                   => "instant"
+      case "Duration"               => "string"
+      case "Instant"                => "string"
+      case "LocalDate"              => "string"
+      case "LocalTime"              => "string"
+      case "LocalDateTime"          => "string"
+      case "OffsetTime"             => "string"
+      case "OffsetDateTime"         => "string"
+      case "ZonedDateTime"          => "string"
+      case "UUID"                   => "uuid"
+      case "URI"                    => "uri"
+      case "Byte"                   => "long"
+      case "Short"                  => "long"
+      case "Char"                   => "string"
+    }
   }
 
   private def attrStmts(ns: String, a: MetaAttr): String = {
@@ -83,7 +87,26 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
     val descr     = a.description.fold(Seq.empty[String])(txt => Seq(s""":db/doc           "$txt""""))
 
-    (mandatory ++ options ++ descr).distinct.mkString("\n         ")
+    val x = if (a.card == CardArr && a.baseTpe != "Byte") {
+      s""":db/ident         :$ns/${a.attr}
+         |         :db/valueType     :db.type/ref
+         |         :db/cardinality   :db.cardinality/many
+         |         :db/index         true}
+         |
+         |        {:db/ident         :$ns.${a.attr}/i_
+         |         :db/valueType     :db.type/long
+         |         :db/cardinality   :db.cardinality/one
+         |         :db/index         true}
+         |
+         |        {:db/ident         :$ns.${a.attr}/${a.attr}
+         |         :db/valueType     :db.type/${datomicType(a)}
+         |         :db/cardinality   :db.cardinality/one
+         |         :db/index         true""".stripMargin
+    } else {
+      (mandatory ++ options ++ descr).distinct.mkString("\n         ")
+    }
+//    println("---- " + x)
+    x
   }
 
   private def attrDefs(ns: MetaNs): String = ns.attrs.tail // no id attribute in Datomic

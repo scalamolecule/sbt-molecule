@@ -35,7 +35,7 @@ object RenderDSL extends TestSuite {
       //      Dsl(typesNss, "", typesNss.parts.head.nss(2)).get ==> "check"
       //            Dsl(validationNss, "", validationNss.parts.head.nss(2)).get ==> "check"
       //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
-      Dsl(partitionsNss, "accounting_", partitionsNss.parts(0).nss(0)).get ==> "check"
+//      Dsl(partitionsNss, "accounting_", partitionsNss.parts(0).nss(0)).get ==> "check"
       //      Dsl(partitions2Nss, "", partitions2Nss.parts(0).nss(0)).get ==> "check"
       //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(0)).get ==> "check"
       //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(1)).get ==> "check"
@@ -63,7 +63,7 @@ object RenderDSL extends TestSuite {
       //      Schema(typesNss).get ==> "check"
       //            Schema(partitionsNss).get ==> "check"
       //
-      //      Schema_Datomic(typesNss).get ==> "check"
+            Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
       //            Schema_H2(typesNss).get ==> "check"
