@@ -33,6 +33,8 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
   private def datomicCardinality(a: MetaAttr): String = a.card match {
     case CardOne => "one"
     case CardSet => "many"
+    case CardArr => "many"
+    case CardMap => "many"
     case other   => throw new Exception("Yet unsupported cardinality: " + other)
   }
 

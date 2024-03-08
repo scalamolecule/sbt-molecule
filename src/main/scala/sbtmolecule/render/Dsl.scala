@@ -32,6 +32,7 @@ case class Dsl(
       "molecule.boilerplate.api.expression._",
       "molecule.boilerplate.ast.Model",
       "molecule.boilerplate.ast.Model._",
+      "scala.reflect.ClassTag"
     )
     val typeImports = attrs.collect {
       case MetaAttr(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
@@ -39,8 +40,7 @@ case class Dsl(
       case MetaAttr(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
     val higherKinds = if (scalaVersion == "212") Seq("scala.language.higherKinds") else Nil
-    val classTag    = if (attrs.exists(_.card == CardArr)) Seq("scala.reflect.ClassTag") else Nil
-    (baseImports ++ typeImports ++ higherKinds ++ classTag).sorted.mkString("import ", "\nimport ", "")
+    (baseImports ++ typeImports ++ higherKinds).sorted.mkString("import ", "\nimport ", "")
   }
 
   private val validationExtractor = Dsl_Validations(schema, namespace)
