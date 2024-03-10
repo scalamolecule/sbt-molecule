@@ -39,8 +39,8 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
   }
 
   private def datomicType(a: MetaAttr): String = {
-    if (a.card == CardArr) {
-      if (a.baseTpe == "Byte") "bytes" else "ref"
+    if (a.card == CardArr && a.baseTpe == "Byte") {
+      "bytes"
     } else a.baseTpe match {
       case "ID" if a.refNs.nonEmpty => "ref"
       case "ID"                     => "ref"
@@ -87,7 +87,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
     val descr     = a.description.fold(Seq.empty[String])(txt => Seq(s""":db/doc           "$txt""""))
 
-    val x = if (a.card == CardArr && a.baseTpe != "Byte") {
+    if (a.card == CardArr && a.baseTpe != "Byte") {
       s""":db/ident         :$ns/${a.attr}
          |         :db/valueType     :db.type/ref
          |         :db/cardinality   :db.cardinality/many
@@ -98,15 +98,13 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true}
          |
-         |        {:db/ident         :$ns.${a.attr}/${a.attr}
+         |        {:db/ident         :$ns.${a.attr}/v_
          |         :db/valueType     :db.type/${datomicType(a)}
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true""".stripMargin
     } else {
       (mandatory ++ options ++ descr).distinct.mkString("\n         ")
     }
-//    println("---- " + x)
-    x
   }
 
   private def attrDefs(ns: MetaNs): String = ns.attrs.tail // no id attribute in Datomic
