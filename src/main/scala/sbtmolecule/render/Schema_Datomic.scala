@@ -33,13 +33,13 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
   private def datomicCardinality(a: MetaAttr): String = a.card match {
     case CardOne => "one"
     case CardSet => "many"
-    case CardArr => "one" // Array values encoded in one byte Array
+    case CardSeq => "one" // Array values encoded in one byte Array
     case CardMap => "many"
     case other   => throw new Exception("Yet unsupported cardinality: " + other)
   }
 
   private def datomicType(a: MetaAttr): String = {
-    if (a.card == CardArr && a.baseTpe == "Byte") {
+    if (a.card == CardSeq && a.baseTpe == "Byte") {
       "bytes"
     } else a.baseTpe match {
       case "ID" if a.refNs.nonEmpty => "ref"
@@ -87,7 +87,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
     val descr     = a.description.fold(Seq.empty[String])(txt => Seq(s""":db/doc           "$txt""""))
 
-    if (a.card == CardArr && a.baseTpe != "Byte") {
+    if (a.card == CardSeq && a.baseTpe != "Byte") {
       s""":db/ident         :$ns/${a.attr}
          |         :db/valueType     :db.type/ref
          |         :db/cardinality   :db.cardinality/many

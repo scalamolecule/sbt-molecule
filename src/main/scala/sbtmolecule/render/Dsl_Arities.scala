@@ -22,12 +22,12 @@ case class Dsl_Arities(
   private val last       = arity == schema.maxArity
   private val secondLast = arity == schema.maxArity - 1
 
-  private var hasOne = false
-  private var hasSet = false
-  private var hasArr = false
-  private var hasMap = false
-
-  private var pClassTag________ = ""
+  private var hasOne       = false
+  private var hasSet       = false
+  private var hasSeq       = false
+  private var hasMap       = false
+  private var hasByteArray = false
+  private var seqCount     = 0
 
   private val (pMax, ppMax, ptMax) = {
     val (a, b, c) = attrs.map(a => a.card match {
@@ -37,10 +37,15 @@ case class Dsl_Arities(
       case _: CardSet =>
         hasSet = true
         (5, 9, 5 + getTpe(a.baseTpe).length) // Account for "ID" type being String
-      case _: CardArr =>
-        hasArr = true
-        pClassTag________ = "                  " // [u <: t: ClassTag]
-        (7, 11, 7 + a.baseTpe.length)
+      case _: CardSeq =>
+        hasSeq = true
+        if (a.baseTpe == "Byte") {
+          hasByteArray = true
+          (5, 6, 7 + 4) // "Byte".length
+        } else {
+          seqCount += 1
+          (5, 9, 5 + a.baseTpe.length)
+        }
       case _: CardMap =>
         hasMap = true
         (13, 11, 13 + a.baseTpe.length)
@@ -50,37 +55,42 @@ case class Dsl_Arities(
 
   private val pOne = " " * pMax
   private val pSet = " " * (pMax - 5)
-  private val pArr = " " * (pMax - 7)
+  private val pSeq = " " * (pMax - 5)
+  private val pBar = " " * (pMax - 7)
   private val pMap = " " * (pMax - 13)
 
   private val ppAgr = " " * ppMax
   private val ppOne = " " * (ppMax - 4)
   private val ppSet = " " * (ppMax - 9)
-  private val ppArr = " " * (ppMax - 11)
+  private val ppSeq = " " * (ppMax - 9)
+  private val ppBar = " " * (ppMax - 6)
   private val ppMap = " " * (ppMax - 11)
 
-  private val ptOne = (t: String) => " " * (ptMax - t.length)
-  private val ptSet = (t: String) => " " * (ptMax - 5 - t.length)
-  private val ptArr = (t: String) => " " * (ptMax - 7 - t.length)
-  private val ptMap = (t: String) => " " * (ptMax - 13 - t.length)
+  private val ptOne       = (t: String) => " " * (ptMax - t.length)
+  private val ptSet       = (t: String) => " " * (ptMax - 5 - t.length)
+  private val ptSeq       = (t: String) => " " * (ptMax - 5 - t.length)
+  private val ptMap       = (t: String) => " " * (ptMax - 13 - t.length)
+  private val ptByteArray = " " * (ptMax - 7 - 4)
 
   //  println("--------------")
   //  attrs.foreach(println)
 
   attrs.foreach {
-    case MetaAttr(attr, card, tpe0, refNs, _, _, _, _, _, _) =>
-      val c   = card._marker
-      val tpe = getTpe(tpe0)
+    case MetaAttr(attr, card, baseType, refNs, _, _, _, _, _, _) =>
+      val isByteArray = card == CardSeq && baseType == "Byte"
+      val c           = if (isByteArray) "BAr" else card._marker
+      val tpe         = getTpe(baseType)
 
       val padA = padAttr(attr)
       val pad1 = padType(tpe)
       val pad2 = " " * ("Option[]".length + ptMax)
 
       val (tM, tO) = card match {
-        case _: CardOne => (tpe + ptOne(tpe), s"Option[$tpe]" + ptOne(tpe))
-        case _: CardSet => (s"Set[$tpe]" + ptSet(tpe), s"Option[Set[$tpe]]" + ptSet(tpe))
-        case _: CardArr => (s"Array[$tpe]" + ptArr(tpe), s"Option[Array[$tpe]]" + ptArr(tpe))
-        case _: CardMap => (s"Map[String, $tpe]" + ptMap(tpe), s"Option[Map[String, $tpe]]" + ptMap(tpe))
+        case _: CardOne                       => (tpe + ptOne(tpe), s"Option[$tpe]" + ptOne(tpe))
+        case _: CardSet                       => (s"Set[$tpe]" + ptSet(tpe), s"Option[Set[$tpe]]" + ptSet(tpe))
+        case _: CardSeq if baseType == "Byte" => (s"Array[$tpe]" + ptByteArray, s"Option[Array[$tpe]]" + ptByteArray)
+        case _: CardSeq                       => (s"Seq[$tpe]" + ptSeq(tpe), s"Option[Seq[$tpe]]" + ptSeq(tpe))
+        case _: CardMap                       => (s"Map[String, $tpe]" + ptMap(tpe), s"Option[Map[String, $tpe]]" + ptMap(tpe))
       }
 
       lazy val tpesM = s"${`A..V, `}$tM        , $tpe$pad1"
@@ -99,7 +109,7 @@ case class Dsl_Arities(
       val nextNextNs = if (secondLast) s"X${arity + 3}" else ns_2
       val nextNs     = if (last) s"X${arity + 2}" else ns_1
 
-      val filters = if (card == CardOne && attr != "id" && refNs.isEmpty) tpe0 match {
+      val filters = if (card == CardOne && attr != "id" && refNs.isEmpty) baseType match {
         case "String" => "_String "
         case "Int"    => "_Number "
         case "Long"   => "_Number "
@@ -124,18 +134,21 @@ case class Dsl_Arities(
   if (first) {
     val pArg = if (hasMap) "  " else ""
     if (hasOne) {
-      res += s"""override protected def _exprOneTac$pClassTag________(op: Op, vs$pArg: Seq[t]$pOne) = new $ns_0[t](addOne(elements, op, vs)) with CardOne"""
+      res += s"""override protected def _exprOneTac(op: Op, vs$pArg: Seq[t]$pOne) = new $ns_0[t](addOne(elements, op, vs)) with CardOne"""
     }
     if (hasSet) {
-      res += s"""override protected def _exprSetTac$pClassTag________(op: Op, vs$pArg: Seq[Set[t]]$pSet) = new $ns_0[t](addSet(elements, op, vs)) with CardSet"""
+      res += s"""override protected def _exprSetTac(op: Op, vs$pArg: Seq[Set[t]]$pSet) = new $ns_0[t](addSet(elements, op, vs)) with CardSet"""
     }
-    if (hasArr) {
-      res += s"""override protected def _exprArrTac[u <: t: ClassTag](op: Op, vs$pArg: Seq[Array[u]]$pArr) = new $ns_0[u](addArr(elements, op, vs)) with CardSet"""
+    if (hasSeq && seqCount > 0) {
+      res += s"""override protected def _exprSeqTac(op: Op, vs$pArg: Seq[Seq[t]]$pSeq) = new $ns_0[t](addSeq(elements, op, vs)) with CardSet"""
+    }
+    if (hasByteArray) {
+      res += s"""override protected def _exprBArTac(op: Op, ba$pArg: Seq[Array[t]]$pBar) = new $ns_0[t](addBAr(elements, op, ba)) with CardSet"""
     }
     if (hasMap) {
-      res += s"""override protected def _exprMapTac$pClassTag________(op: Op, maps: Seq[Map[String, t]]$pMap) = new $ns_0[t](addMap(elements, op, maps)) with CardMap"""
-      res += s"""override protected def _exprMapTaK$pClassTag________(op: Op, keys: Seq[String        ]$pMap) = new $ns_0[t](addMap(elements, op, Seq(keys.map(k => k -> null.asInstanceOf[t]).toMap))) with CardMap"""
-      res += s"""override protected def _exprMapTaV$pClassTag________(op: Op, vs  : Seq[t             ]$pMap) = new $ns_0[t](addMap(elements, op, Seq(vs.zipWithIndex.map { case (v, i) => s"_k$$i" -> v }.toMap))) with CardMap"""
+      res += s"""override protected def _exprMapTac(op: Op, maps: Seq[Map[String, t]]$pMap) = new $ns_0[t](addMap(elements, op, maps)) with CardMap"""
+      res += s"""override protected def _exprMapTaK(op: Op, keys: Seq[String        ]$pMap) = new $ns_0[t](addMap(elements, op, Seq(keys.map(k => k -> null.asInstanceOf[t]).toMap))) with CardMap"""
+      res += s"""override protected def _exprMapTaV(op: Op, vs  : Seq[t             ]$pMap) = new $ns_0[t](addMap(elements, op, Seq(vs.zipWithIndex.map { case (v, i) => s"_k$$i" -> v }.toMap))) with CardMap"""
     }
 
   } else {
@@ -144,34 +157,38 @@ case class Dsl_Arities(
     val tDist = s"${`A..U`}Set[$V], t     "
     val tSet_ = s"${`A..U`}Set[t], t     "
     val tA___ = s"${`A..V`}     , t     "
-    val uA___ = s"${`A..V`}     , u     "
+    val uA___ = s"${`A..V`}     , t     "
 
-    def agg1 = s"override protected def _aggrInt   $pClassTag________(kw: Kw                $ppAgr) = new $ns_0"
-    def agg2 = s"override protected def _aggrDouble$pClassTag________(kw: Kw                $ppAgr) = new $ns_0"
-    def agg3 = s"override protected def _aggrDist  $pClassTag________(kw: Kw                $ppAgr) = new $ns_0"
-    def agg4 = s"override protected def _aggrSet   $pClassTag________(kw: Kw, n: Option[Int]$ppAgr) = new $ns_0"
-    def agg5 = s"override protected def _aggrTsort $pClassTag________(kw: Kw                $ppAgr) = new $ns_0"
-    def agg6 = s"override protected def _aggrT     $pClassTag________(kw: Kw                $ppAgr) = new $ns_0"
+    def agg1 = s"override protected def _aggrInt   (kw: Kw                $ppAgr) = new $ns_0"
+    def agg2 = s"override protected def _aggrDouble(kw: Kw                $ppAgr) = new $ns_0"
+    def agg3 = s"override protected def _aggrDist  (kw: Kw                $ppAgr) = new $ns_0"
+    def agg4 = s"override protected def _aggrSet   (kw: Kw, n: Option[Int]$ppAgr) = new $ns_0"
+    def agg5 = s"override protected def _aggrTsort (kw: Kw                $ppAgr) = new $ns_0"
+    def agg6 = s"override protected def _aggrT     (kw: Kw                $ppAgr) = new $ns_0"
 
-    def one1 = s"override protected def _exprOneMan$pClassTag________(op: Op, vs: Seq[t]        $ppOne) = new $ns_0"
-    def one2 = s"override protected def _exprOneTac$pClassTag________(op: Op, vs: Seq[t]        $ppOne) = new $ns_0"
-    def one3 = s"override protected def _exprOneOpt$pClassTag________(op: Op, vs: Option[Seq[t]]$ppOne) = new $ns_0"
+    def one1 = s"override protected def _exprOneMan(op: Op, vs: Seq[t]        $ppOne) = new $ns_0"
+    def one2 = s"override protected def _exprOneTac(op: Op, vs: Seq[t]        $ppOne) = new $ns_0"
+    def one3 = s"override protected def _exprOneOpt(op: Op, vs: Option[Seq[t]]$ppOne) = new $ns_0"
 
-    def set1 = s"override protected def _exprSetMan$pClassTag________(op: Op, vs: Seq[Set[t]]        $ppSet) = new $ns_0"
-    def set2 = s"override protected def _exprSetTac$pClassTag________(op: Op, vs: Seq[Set[t]]        $ppSet) = new $ns_0"
-    def set3 = s"override protected def _exprSetOpt$pClassTag________(op: Op, vs: Option[Seq[Set[t]]]$ppSet) = new $ns_0"
+    def set1 = s"override protected def _exprSetMan(op: Op, vs: Seq[Set[t]]        $ppSet) = new $ns_0"
+    def set2 = s"override protected def _exprSetTac(op: Op, vs: Seq[Set[t]]        $ppSet) = new $ns_0"
+    def set3 = s"override protected def _exprSetOpt(op: Op, vs: Option[Seq[Set[t]]]$ppSet) = new $ns_0"
 
-    def arr1 = s"override protected def _exprArrMan[u <: t: ClassTag](op: Op, vs: Seq[Array[u]]        $ppArr) = new $ns_0"
-    def arr2 = s"override protected def _exprArrTac[u <: t: ClassTag](op: Op, vs: Seq[Array[u]]        $ppArr) = new $ns_0"
-    def arr3 = s"override protected def _exprArrOpt[u <: t: ClassTag](op: Op, vs: Option[Seq[Array[u]]]$ppArr) = new $ns_0"
+    def seq1 = s"override protected def _exprSeqMan(op: Op, vs: Seq[Seq[t]]        $ppSeq) = new $ns_0"
+    def seq2 = s"override protected def _exprSeqTac(op: Op, vs: Seq[Seq[t]]        $ppSeq) = new $ns_0"
+    def seq3 = s"override protected def _exprSeqOpt(op: Op, vs: Option[Seq[Seq[t]]]$ppSeq) = new $ns_0"
 
-    def map1 = s"override protected def _exprMapMan$pClassTag________(op: Op, maps: Seq[Map[String, t]]$ppMap) = new $ns_0"
-    def map2 = s"override protected def _exprMapMaK$pClassTag________(op: Op, keys: Seq[String        ]$ppMap) = new $ns_0"
-    def map3 = s"override protected def _exprMapMaV$pClassTag________(op: Op, vs  : Seq[t             ]$ppMap) = new $ns_0"
-    def map4 = s"override protected def _exprMapTac$pClassTag________(op: Op, maps: Seq[Map[String, t]]$ppMap) = new $ns_0"
-    def map5 = s"override protected def _exprMapTaK$pClassTag________(op: Op, keys: Seq[String        ]$ppMap) = new $ns_0"
-    def map6 = s"override protected def _exprMapTaV$pClassTag________(op: Op, vs  : Seq[t             ]$ppMap) = new $ns_0"
-    def map7 = s"override protected def _exprMapOpK$pClassTag________(op: Op, keys: Option[Seq[String]]$ppMap) = new $ns_0"
+    def bar1 = s"override protected def _exprBArMan(op: Op, ba: Seq[Array[t]]   $ppBar) = new $ns_0"
+    def bar2 = s"override protected def _exprBArTac(op: Op, ba: Seq[Array[t]]   $ppBar) = new $ns_0"
+    def bar3 = s"override protected def _exprBArOpt(op: Op, ba: Option[Array[t]]$ppBar) = new $ns_0"
+
+    def map1 = s"override protected def _exprMapMan(op: Op, maps: Seq[Map[String, t]]$ppMap) = new $ns_0"
+    def map2 = s"override protected def _exprMapMaK(op: Op, keys: Seq[String        ]$ppMap) = new $ns_0"
+    def map3 = s"override protected def _exprMapMaV(op: Op, vs  : Seq[t             ]$ppMap) = new $ns_0"
+    def map4 = s"override protected def _exprMapTac(op: Op, maps: Seq[Map[String, t]]$ppMap) = new $ns_0"
+    def map5 = s"override protected def _exprMapTaK(op: Op, keys: Seq[String        ]$ppMap) = new $ns_0"
+    def map6 = s"override protected def _exprMapTaV(op: Op, vs  : Seq[t             ]$ppMap) = new $ns_0"
+    def map7 = s"override protected def _exprMapOpK(op: Op, keys: Option[Seq[String]]$ppMap) = new $ns_0"
 
     def sort = s"override protected def _sort(sort: String) = new $ns_0"
 
@@ -195,11 +212,17 @@ case class Dsl_Arities(
       res += s"$set2[$tA___](addSet   (elements, op, vs)) with CardSet"
       res += s"$set3[$tA___](addOptSet(elements, op, vs))"
     }
-    if (hasArr) {
+    if (hasSeq && seqCount > 0) {
       res += ""
-      res += s"$arr1[$uA___](addArr   (elements, op, vs)) with CardArr"
-      res += s"$arr2[$uA___](addArr   (elements, op, vs)) with CardArr"
-      res += s"$arr3[$uA___](addOptArr(elements, op, vs))"
+      res += s"$seq1[$uA___](addSeq   (elements, op, vs)) with CardSeq"
+      res += s"$seq2[$uA___](addSeq   (elements, op, vs)) with CardSeq"
+      res += s"$seq3[$uA___](addOptSeq(elements, op, vs))"
+    }
+    if (hasByteArray) {
+      res += ""
+      res += s"$bar1[$uA___](addBAr   (elements, op, ba)) with CardSeq"
+      res += s"$bar2[$uA___](addBAr   (elements, op, ba)) with CardSeq"
+      res += s"$bar3[$uA___](addOptBAr(elements, op, ba))"
     }
     if (hasMap) {
       res += ""
@@ -298,7 +321,7 @@ case class Dsl_Arities(
   }
 
   def get: String =
-    s"""class $ns_0[${`A..V, `}t: ClassTag]($elements) extends ${ns}_base with $modelOps {
+    s"""class $ns_0[${`A..V, `}t]($elements) extends ${ns}_base with $modelOps {
        |  $manAttrs$optAttrs$tacAttrs
        |
        |  $resolvers$filterAttrs$nested$refDefs$backRefDefs
