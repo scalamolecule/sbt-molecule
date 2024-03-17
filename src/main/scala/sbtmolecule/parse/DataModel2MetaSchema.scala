@@ -394,7 +394,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       case q"seqZonedDateTime"  => a.copy(card = CardSeq, baseTpe = "ZonedDateTime")
       case q"seqUUID"           => a.copy(card = CardSeq, baseTpe = "UUID")
       case q"seqURI"            => a.copy(card = CardSeq, baseTpe = "URI")
-      case q"seqByte"           => a.copy(card = CardSeq, baseTpe = "Byte")
+      case q"arrayByte"         => a.copy(card = CardSeq, baseTpe = "Byte")
       case q"seqShort"          => a.copy(card = CardSeq, baseTpe = "Short")
       case q"seqChar"           => a.copy(card = CardSeq, baseTpe = "Char")
 
@@ -417,7 +417,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
       case q"seqZonedDateTime(${Lit.String(s)})"  => a.copy(card = CardSeq, baseTpe = "ZonedDateTime", description = Some(s))
       case q"seqUUID(${Lit.String(s)})"           => a.copy(card = CardSeq, baseTpe = "UUID", description = Some(s))
       case q"seqURI(${Lit.String(s)})"            => a.copy(card = CardSeq, baseTpe = "URI", description = Some(s))
-      case q"seqByte(${Lit.String(s)})"           => a.copy(card = CardSeq, baseTpe = "Byte", description = Some(s))
+      case q"arrayByte(${Lit.String(s)})"         => a.copy(card = CardSeq, baseTpe = "Byte", description = Some(s))
       case q"seqShort(${Lit.String(s)})"          => a.copy(card = CardSeq, baseTpe = "Short", description = Some(s))
       case q"seqChar(${Lit.String(s)})"           => a.copy(card = CardSeq, baseTpe = "Char", description = Some(s))
 
