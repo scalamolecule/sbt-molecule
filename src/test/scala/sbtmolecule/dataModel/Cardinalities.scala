@@ -25,7 +25,7 @@ object Cardinalities extends DataModel(6) {
 //    val one = oneBigDecimal
 //    val set = setInt
 //    val seq = seqInt
-    val ba  = seqByte
+    val ba  = arrayByte
 //    val map = mapInt
 
     //    val map2  = mapBoolean
