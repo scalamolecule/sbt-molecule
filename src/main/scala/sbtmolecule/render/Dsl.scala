@@ -129,9 +129,9 @@ case class Dsl(
        |$baseNs
        |
        |object $ns extends $ns_0[Nothing](Nil) {
-       |  final def apply(id: String, ids: String*)                       = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, id +: ids                  , $idCoord)))
+       |  final def apply(id : String, ids: String*)                      = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, id +: ids                  , $idCoord)))
        |  final def apply(ids: Iterable[String])                          = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, ids.toSeq                  , $idCoord)))
-       |  final def apply(id: Long, ids: Long*)                           = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, (id +: ids).map(_.toString), $idCoord)))
+       |  final def apply(id : Long, ids: Long*)                          = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, (id +: ids).map(_.toString), $idCoord)))
        |  final def apply(ids: Iterable[Long])(implicit x: DummyImplicit) = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, ids.toSeq.map(_.toString)  , $idCoord)))
        |}
        |

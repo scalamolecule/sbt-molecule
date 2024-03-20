@@ -5,12 +5,13 @@ import molecule.DataModel
 object Types extends DataModel(5) {
 
   trait Ns {
-    val i  = oneInt
-    val ii = setInt
-    val s  = oneString
-    val u  = oneInt.unique
+    val i    = oneInt
+    val iSet = setInt
+    val iSeq = seqInt
+    val s    = oneString
+    val u    = oneInt.unique
 
-    // Cardinality one
+    // Single values
     val string         = oneString
     val int            = oneInt
     val long           = oneLong
@@ -33,33 +34,35 @@ object Types extends DataModel(5) {
     val byte           = oneByte
     val short          = oneShort
     val char           = oneChar
-    val ref            = one[Ref]
-    val other          = one[Other]
 
-    // Cardinality many (Set)
-    val strings         = setString
-    val ints            = setInt
-    val longs           = setLong
-    val floats          = setFloat
-    val doubles         = setDouble
-    val booleans        = setBoolean
-    val bigInts         = setBigInt
-    val bigDecimals     = setBigDecimal
-    val dates           = setDate
-    val durations       = setDuration
-    val instants        = setInstant
-    val localDates      = setLocalDate
-    val localTimes      = setLocalTime
-    val localDateTimes  = setLocalDateTime
-    val offsetTimes     = setOffsetTime
-    val offsetDateTimes = setOffsetDateTime
-    val zonedDateTimes  = setZonedDateTime
-    val uuids           = setUUID
-    val uris            = setURI
-    val bytes           = setByte
-    val shorts          = setShort
-    val chars           = setChar
-    val refs            = many[Ref]
+    val ref   = one[Ref]
+    val other = one[Other]
+
+    // Set
+    val stringSet         = setString
+    val intSet            = setInt
+    val longSet           = setLong
+    val floatSet          = setFloat
+    val doubleSet         = setDouble
+    val booleanSet        = setBoolean
+    val bigIntSet         = setBigInt
+    val bigDecimalSet     = setBigDecimal
+    val dateSet           = setDate
+    val durationSet       = setDuration
+    val instantSet        = setInstant
+    val localDateSet      = setLocalDate
+    val localTimeSet      = setLocalTime
+    val localDateTimeSet  = setLocalDateTime
+    val offsetTimeSet     = setOffsetTime
+    val offsetDateTimeSet = setOffsetDateTime
+    val zonedDateTimeSet  = setZonedDateTime
+    val uuidSet           = setUUID
+    val uriSet            = setURI
+    val byteSet           = setByte
+    val shortSet          = setShort
+    val charSet           = setChar
+
+    val refs = many[Ref]
 
     // Seq
     val stringSeq         = seqString
@@ -81,7 +84,7 @@ object Types extends DataModel(5) {
     val zonedDateTimeSeq  = seqZonedDateTime
     val uuidSeq           = seqUUID
     val uriSeq            = seqURI
-    val byteSeq           = arrayByte
+    val byteArray         = arrayByte
     val shortSeq          = seqShort
     val charSeq           = seqChar
 
@@ -137,31 +140,55 @@ object Types extends DataModel(5) {
     val short          = oneShort
     val char           = oneChar
 
-    val ii = setInt
-    val ss = setString
+    val iSet = setInt
+    val iSeq = seqInt
+    val sSet = setString
 
-    val strings         = setString
-    val ints            = setInt
-    val longs           = setLong
-    val floats          = setFloat
-    val doubles         = setDouble
-    val booleans        = setBoolean
-    val bigInts         = setBigInt
-    val bigDecimals     = setBigDecimal
-    val dates           = setDate
-    val durations       = setDuration
-    val instants        = setInstant
-    val localDates      = setLocalDate
-    val localTimes      = setLocalTime
-    val localDateTimes  = setLocalDateTime
-    val offsetTimes     = setOffsetTime
-    val offsetDateTimes = setOffsetDateTime
-    val zonedDateTimes  = setZonedDateTime
-    val uuids           = setUUID
-    val uris            = setURI
-    val bytes           = setByte
-    val shorts          = setShort
-    val chars           = setChar
+    val stringSet         = setString
+    val intSet            = setInt
+    val longSet           = setLong
+    val floatSet          = setFloat
+    val doubleSet         = setDouble
+    val booleanSet        = setBoolean
+    val bigIntSet         = setBigInt
+    val bigDecimalSet     = setBigDecimal
+    val dateSet           = setDate
+    val durationSet       = setDuration
+    val instantSet        = setInstant
+    val localDateSet      = setLocalDate
+    val localTimeSet      = setLocalTime
+    val localDateTimeSet  = setLocalDateTime
+    val offsetTimeSet     = setOffsetTime
+    val offsetDateTimeSet = setOffsetDateTime
+    val zonedDateTimeSet  = setZonedDateTime
+    val uuidSet           = setUUID
+    val uriSet            = setURI
+    val byteSet           = setByte
+    val shortSet          = setShort
+    val charSet           = setChar
+
+    val stringSeq         = seqString
+    val intSeq            = seqInt
+    val longSeq           = seqLong
+    val floatSeq          = seqFloat
+    val doubleSeq         = seqDouble
+    val booleanSeq        = seqBoolean
+    val bigIntSeq         = seqBigInt
+    val bigDecimalSeq     = seqBigDecimal
+    val dateSeq           = seqDate
+    val durationSeq       = seqDuration
+    val instantSeq        = seqInstant
+    val localDateSeq      = seqLocalDate
+    val localTimeSeq      = seqLocalTime
+    val localDateTimeSeq  = seqLocalDateTime
+    val offsetTimeSeq     = seqOffsetTime
+    val offsetDateTimeSeq = seqOffsetDateTime
+    val zonedDateTimeSeq  = seqZonedDateTime
+    val uuidSeq           = seqUUID
+    val uriSeq            = seqURI
+    val byteArray         = arrayByte
+    val shortSeq          = seqShort
+    val charSeq           = seqChar
 
     val nss = many[Ns]
   }
@@ -170,8 +197,8 @@ object Types extends DataModel(5) {
     val i = oneInt
     val s = oneString
 
-    val ii = setInt
-    val ss = setString
+    val iSet = setInt
+    val sSet = setString
 
     // 'select' is a reserved keyword in all sql databases.
     // Test if it correctly resolves to 'select_'

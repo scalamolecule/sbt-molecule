@@ -102,6 +102,21 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
          |         :db/valueType     :db.type/${datomicType(a)}
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true""".stripMargin
+    } else if (a.card == CardMap) {
+      s""":db/ident         :$ns/${a.attr}
+         |         :db/valueType     :db.type/ref
+         |         :db/cardinality   :db.cardinality/many
+         |         :db/index         true}
+         |
+         |        {:db/ident         :$ns.${a.attr}/k_
+         |         :db/valueType     :db.type/string
+         |         :db/cardinality   :db.cardinality/one
+         |         :db/index         true}
+         |
+         |        {:db/ident         :$ns.${a.attr}/v_
+         |         :db/valueType     :db.type/${datomicType(a)}
+         |         :db/cardinality   :db.cardinality/one
+         |         :db/index         true""".stripMargin
     } else {
       (mandatory ++ options ++ descr).distinct.mkString("\n         ")
     }
