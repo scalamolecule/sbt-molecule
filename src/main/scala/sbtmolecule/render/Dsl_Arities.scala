@@ -48,7 +48,7 @@ case class Dsl_Arities(
         }
       case _: CardMap =>
         hasMap = true
-        (8, 9, 13 + a.baseTpe.length)
+        (8, 14, 13 + a.baseTpe.length)
     }).unzip3
     (a.max, b.max, c.max)
   }
@@ -57,23 +57,18 @@ case class Dsl_Arities(
   private val pSet = " " * (pMax - 5)
   private val pSeq = " " * (pMax - 5)
   private val pBar = " " * (pMax - 7)
-  private val pMap = " " * (pMax - 13)
 
   private val ppAgr = " " * ppMax
   private val ppOne = " " * (ppMax - 4)
   private val ppSet = " " * (ppMax - 9)
   private val ppSeq = " " * (ppMax - 9)
   private val ppBar = " " * (ppMax - 6)
-  private val ppMap = " " * (ppMax - 6)
 
   private val ptOne       = (t: String) => " " * (ptMax - t.length)
   private val ptSet       = (t: String) => " " * (ptMax - 5 - t.length)
   private val ptSeq       = (t: String) => " " * (ptMax - 5 - t.length)
   private val ptMap       = (t: String) => " " * (ptMax - 13 - t.length)
   private val ptByteArray = " " * (ptMax - 7 - 4)
-
-  //  println("--------------")
-  //  attrs.foreach(println)
 
   attrs.foreach {
     case MetaAttr(attr, card, baseType, refNs, _, _, _, _, _, _) =>
@@ -146,13 +141,13 @@ case class Dsl_Arities(
       res += s"""override protected def _exprBAr   (op: Op, ba$pArg: Seq[Array[t]]$pBar) = new $ns_0[t](addBAr(elements, op, ba)) with CardSet"""
     }
     if (hasMap) {
-      res += s"""override protected def _exprMap   (op: Op, map : Map[String, t]$pMap) = new $ns_0[t](addMap(elements, op, map          )) with CardMap"""
-      res += s"""override protected def _exprMapK  (op: Op, keys: Seq[String]   $pMap) = new $ns_0[t](addMap(elements, op, mapK[t](keys))) with CardMap"""
-      res += s"""override protected def _exprMapV  (op: Op, vs  : Seq[t]        $pMap) = new $ns_0[t](addMap(elements, op, mapV[t](vs)  )) with CardMap"""
+      res += s"""override protected def _exprMap   (op: Op, map : Map[String, t]) = new $ns_0[t](addMap(elements, op, map          )) with CardMap"""
+      res += s"""override protected def _exprMapK  (op: Op, keys: Seq[String]   ) = new $ns_0[t](addMap(elements, op, mapK[t](keys))) with CardMap"""
+      res += s"""override protected def _exprMapV  (op: Op, vs  : Seq[t]        ) = new $ns_0[t](addMap(elements, op, mapV[t](vs)  )) with CardMap"""
     }
 
   } else {
-    val tMap = if(hasMap) "   " else ""
+    val tMap = if (hasMap) "   " else ""
 
     val ttInt_ = s"${`A..U`}Int   , Int   "
     val ttT___ = s"${`A..U`}t     , t     "
@@ -187,10 +182,11 @@ case class Dsl_Arities(
     def bar1 = s"override protected def _exprBAr   (op: Op, ba: Seq[Array[t]]   $ppBar) = new $ns_0"
     def bar2 = s"override protected def _exprBArOpt(op: Op, ba: Option[Array[t]]$ppBar) = new $ns_0"
 
-    def map1 = s"override protected def _exprMap   (op: Op, map : Map[String, t]$ppMap) = new $ns_0"
-    def map2 = s"override protected def _exprMapK  (op: Op, keys: Seq[String]   $ppMap) = new $ns_0"
-    def map3 = s"override protected def _exprMapV  (op: Op, vs  : Seq[t]        $ppMap) = new $ns_0"
-    def map4 = s"override protected def _exprMapOpt(op: Op, key : String        $ppMap) = new $ns_0"
+    def map1 = s"override protected def _exprMap   (op: Op, map : Map[String, t]        ) = new $ns_0"
+    def map2 = s"override protected def _exprMapK  (op: Op, keys: Seq[String]           ) = new $ns_0"
+    def map3 = s"override protected def _exprMapV  (op: Op, vs  : Seq[t]                ) = new $ns_0"
+    def map4 = s"override protected def _exprMapOpK(op: Op, key : String                ) = new $ns_0"
+    def map5 = s"override protected def _exprMapOpt(op: Op, map : Option[Map[String, t]]) = new $ns_0"
 
     def sort = s"override protected def _sort      (sort: String              $ppOne) = new $ns_0"
 
@@ -224,6 +220,7 @@ case class Dsl_Arities(
       res += s"""$map2[$tT___](addMap   (elements, op, mapK[t](keys)    )) with CardMap"""
       res += s"""$map3[$tA___](addMap   (elements, op, mapV[t](vs)      )) with CardMap"""
       res += s"""$map4[$tO___](addMap   (elements, op, mapK[t](Seq(key)))) with CardMap"""
+      res += s"""$map5[$tA___](addMapOpt(elements, op, map              )) with CardMap"""
     }
     if (hasOne) {
       res += s"$sort[$tA___](addSort  (elements, sort))"
