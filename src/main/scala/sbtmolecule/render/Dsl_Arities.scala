@@ -216,11 +216,11 @@ case class Dsl_Arities(
       res += s"$bar2[$uA___](addBArOpt(elements, op, ba))"
     }
     if (hasMap) {
-      res += s"""$map1[$tA___](addMap   (elements, op, map              )) with CardMap"""
-      res += s"""$map2[$tT___](addMap   (elements, op, mapK[t](keys)    )) with CardMap"""
-      res += s"""$map3[$tA___](addMap   (elements, op, mapV[t](vs)      )) with CardMap"""
-      res += s"""$map4[$tO___](addMap   (elements, op, mapK[t](Seq(key)))) with CardMap"""
-      res += s"""$map5[$tA___](addMapOpt(elements, op, map              )) with CardMap"""
+      res += s"""$map1[$tA___](addMap   (elements, op, map                    )) with CardMap"""
+      res += s"""$map2[$tT___](addMap   (elements, op, mapK[t](keys)          )) with CardMap"""
+      res += s"""$map3[$tA___](addMap   (elements, op, mapV[t](vs)            )) with CardMap"""
+      res += s"""$map4[$tO___](addMapOpt(elements, op, Some(mapK[t](Seq(key))))) with CardMap"""
+      res += s"""$map5[$tA___](addMapOpt(elements, op, map                    )) with CardMap"""
     }
     if (hasOne) {
       res += s"$sort[$tA___](addSort  (elements, sort))"
