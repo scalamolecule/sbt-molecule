@@ -10,7 +10,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     attr: String,
     baseTpe: String,
     validations: Seq[(String, String)],
-    valueAttrs: Seq[(String, String, String, String)]
+    valueAttrs: Seq[(String, Boolean, String, String, String)]
   ): String = {
     val static = valueAttrs.isEmpty
     val single = validations.length == 1
@@ -47,24 +47,25 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     body: String,
     attr: String,
     baseTpe0: String,
-    valueAttrs: Seq[(String, String, String, String)]
+    valueAttrs: Seq[(String, Boolean, String, String, String)]
   ): String = {
     val baseTpe        = if (baseTpe0 == "ID") "String" else baseTpe0
     val validator      = "Validate" + baseTpe0
     val maxAttr        = valueAttrs.map(_._1.length).max.max(9) // align with _validate too
-    val maxMetaAttr    = valueAttrs.map(_._3.length).max
-    val maxValue       = valueAttrs.map(_._4.length).max
-    val variableParams = valueAttrs.map { case (attr, tpe, _, _) => s"$attr: $tpe" }.mkString(", ")
+    val maxMetaAttr    = valueAttrs.map(_._4.length).max
+    val maxValue       = valueAttrs.map(_._5.length).max
+    val variableParams = valueAttrs.map { case (attr, _, tpe, _, _) => s"$attr: $tpe" }.mkString(", ")
     val variables      = valueAttrs.map(_._1).mkString(", ")
 
     val (variablesMeta, variablesValue) = valueAttrs
       .zipWithIndex
-      .map { case ((attr, _, metaAttr, value), i) =>
+      .map { case ((attr, isCardOne, _, metaAttr, value), i) =>
         val pad1 = padS(maxAttr, attr)
         val pad2 = padS(maxMetaAttr, metaAttr)
         val pad3 = padS(maxValue, value)
+        val head = if (isCardOne) ".head" else ""
         (
-          s"val $attr$pad1 = _attrs($i).asInstanceOf[$metaAttr$pad2].vs.head",
+          s"val $attr$pad1 = _attrs($i).asInstanceOf[$metaAttr$pad2].vs$head",
           s"val $attr$pad1 = _values($i).asInstanceOf[$value$pad3].v"
         )
       }.unzip
@@ -104,7 +105,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     val (test, error) = validation
     val testStr       = if (test.contains("\n")) {
       val lines = test.split('\n').toList
-      if(lines.head(0) == '{')
+      if (lines.head(0) == '{')
         (lines.head +: lines.tail.map(s"$pad      " + _)).mkString("\n")
       else
         (

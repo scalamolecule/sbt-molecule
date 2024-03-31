@@ -1,6 +1,6 @@
 package sbtmolecule.render.sql
 
-import molecule.base.ast.{CardOne, MetaAttr}
+import molecule.base.ast._
 
 object H2 extends Dialect {
 
@@ -32,6 +32,31 @@ object H2 extends Dialect {
         case "Byte"           => "TINYINT"
         case "Short"          => "SMALLINT"
         case "Char"           => "CHAR"
+      }
+      case CardSeq          => a.baseTpe match {
+        case "ID"             => "BIGINT ARRAY"
+        case "String"         => "LONGVARCHAR ARRAY"
+        case "Int"            => "INT ARRAY"
+        case "Long"           => "BIGINT ARRAY"
+        case "Float"          => "REAL ARRAY"
+        case "Double"         => "DOUBLE PRECISION ARRAY"
+        case "Boolean"        => "BOOLEAN ARRAY"
+        case "BigInt"         => "DECIMAL(100, 0) ARRAY"
+        case "BigDecimal"     => "DECIMAL(65535, 25) ARRAY"
+        case "Date"           => "BIGINT ARRAY"
+        case "Duration"       => "VARCHAR ARRAY"
+        case "Instant"        => "VARCHAR ARRAY"
+        case "LocalDate"      => "VARCHAR ARRAY"
+        case "LocalTime"      => "VARCHAR ARRAY"
+        case "LocalDateTime"  => "VARCHAR ARRAY"
+        case "OffsetTime"     => "VARCHAR ARRAY"
+        case "OffsetDateTime" => "VARCHAR ARRAY"
+        case "ZonedDateTime"  => "VARCHAR ARRAY"
+        case "UUID"           => "UUID ARRAY"
+        case "URI"            => "VARCHAR ARRAY"
+        case "Byte"           => "VARBINARY" // <-- Special for byte arrays
+        case "Short"          => "SMALLINT ARRAY"
+        case "Char"           => "CHAR ARRAY"
       }
       case _          => a.baseTpe match {
         case "ID"             => "BIGINT ARRAY"

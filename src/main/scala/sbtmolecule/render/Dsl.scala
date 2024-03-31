@@ -63,8 +63,16 @@ case class Dsl(
           val valueAttrMetas = attrs.collect {
             case MetaAttr(attr1, card1, tpe1, _, _, _, _, _, _, _)
               if valueAttrs.contains(attr1) =>
-              val fullTpe = if (card1.isInstanceOf[CardOne.type]) tpe1 else s"Set[$tpe1]"
-              (attr1, fullTpe, s"Attr${card1._marker}Man$tpe1", s"${card1._marker}$tpe1")
+              //              val fullTpe = if (card1.isInstanceOf[CardOne.type]) tpe1 else s"Set[$tpe1]"
+              val isCardOne = card1.isInstanceOf[CardOne.type]
+              val fullTpe = card1 match {
+                case CardOne                   => tpe1
+                case CardSet                   => s"Set[$tpe1]"
+                case CardSeq if tpe1 == "Byte" => s"Array[Byte]"
+                case CardSeq                   => s"Seq[$tpe1]"
+                case CardMap                   => s"Map[String, $tpe1]"
+              }
+              (attr1, isCardOne, fullTpe, s"Attr${card1._marker}Man$tpe1", s"${card1._marker}$tpe1")
           }.sortBy(_._1)
           vas += validationExtractor.validationMethod(attr, tpe, validations, valueAttrMetas)
           if (valueAttrs.isEmpty) {

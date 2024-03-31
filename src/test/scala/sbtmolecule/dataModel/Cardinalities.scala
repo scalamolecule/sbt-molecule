@@ -20,13 +20,13 @@ object Cardinalities extends DataModel(6) {
   //  }
 
   trait Human {
-    val name = oneString
+    //    val name = oneString
 
-//    val one = oneBigDecimal
+    val one = oneBigDecimal
     val set = setInt
     val seq = seqInt
-    //    val ba  = arrayByte
-    val map = mapInt
+//    val ba  = arrayByte
+//    val map = mapInt
 
     //    val map2  = mapBoolean
   }
