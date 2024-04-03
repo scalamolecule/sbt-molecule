@@ -33,7 +33,7 @@ object H2 extends Dialect {
         case "Short"          => "SMALLINT"
         case "Char"           => "CHAR"
       }
-      case CardSeq          => a.baseTpe match {
+      case _: CardSeq    => a.baseTpe match {
         case "ID"             => "BIGINT ARRAY"
         case "String"         => "LONGVARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
@@ -58,7 +58,7 @@ object H2 extends Dialect {
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR ARRAY"
       }
-      case _          => a.baseTpe match {
+      case _: CardSet    => a.baseTpe match {
         case "ID"             => "BIGINT ARRAY"
         case "String"         => "LONGVARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
@@ -83,6 +83,7 @@ object H2 extends Dialect {
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR ARRAY"
       }
+      case _: CardMap    => "JSON"
     }
   }
 
