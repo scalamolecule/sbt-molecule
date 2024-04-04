@@ -1,6 +1,6 @@
 package sbtmolecule.render.sql
 
-import molecule.base.ast.{CardOne, MetaAttr}
+import molecule.base.ast.{CardOne, CardSeq, MetaAttr}
 
 object MariaDB extends Dialect {
 
@@ -32,6 +32,11 @@ object MariaDB extends Dialect {
         case "Byte"           => "TINYINT"
         case "Short"          => "SMALLINT"
         case "Char"           => "CHAR"
+      }
+
+      case _: CardSeq => a.baseTpe match {
+        case "Byte" => "LONGBLOB" // <-- Special for byte arrays
+        case _      => "JSON"
       }
       case _          => "JSON"
     }
