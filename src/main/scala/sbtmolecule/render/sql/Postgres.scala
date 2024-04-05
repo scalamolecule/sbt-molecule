@@ -1,6 +1,6 @@
 package sbtmolecule.render.sql
 
-import molecule.base.ast.{CardOne, MetaAttr}
+import molecule.base.ast.{CardMap, CardOne, CardSeq, CardSet, MetaAttr}
 
 object Postgres extends Dialect {
 
@@ -33,7 +33,7 @@ object Postgres extends Dialect {
         case "Short"          => "SMALLINT"
         case "Char"           => "CHAR(1)"
       }
-      case _          => a.baseTpe match {
+      case _: CardSet => a.baseTpe match {
         case "String"         => "TEXT ARRAY"
         case "Int"            => "INTEGER ARRAY"
         case "Long"           => "BIGINT ARRAY"
@@ -57,6 +57,33 @@ object Postgres extends Dialect {
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR(1) ARRAY"
       }
+
+      case _: CardSeq => a.baseTpe match {
+        case "String"         => "TEXT ARRAY"
+        case "Int"            => "INTEGER ARRAY"
+        case "Long"           => "BIGINT ARRAY"
+        case "Float"          => "DECIMAL ARRAY"
+        case "Double"         => "DOUBLE PRECISION ARRAY"
+        case "Boolean"        => "BOOLEAN ARRAY"
+        case "BigInt"         => "DECIMAL ARRAY"
+        case "BigDecimal"     => "DECIMAL ARRAY"
+        case "Date"           => "BIGINT ARRAY"
+        case "Duration"       => "VARCHAR ARRAY"
+        case "Instant"        => "VARCHAR ARRAY"
+        case "LocalDate"      => "VARCHAR ARRAY"
+        case "LocalTime"      => "VARCHAR ARRAY"
+        case "LocalDateTime"  => "VARCHAR ARRAY"
+        case "OffsetTime"     => "VARCHAR ARRAY"
+        case "OffsetDateTime" => "VARCHAR ARRAY"
+        case "ZonedDateTime"  => "VARCHAR ARRAY"
+        case "UUID"           => "UUID ARRAY"
+        case "URI"            => "VARCHAR ARRAY"
+        case "Byte"           => "BYTEA" // <-- Special for byte arrays
+        case "Short"          => "SMALLINT ARRAY"
+        case "Char"           => "CHAR(1) ARRAY"
+      }
+
+      case _: CardMap => "JSONB"
     }
   }
 
