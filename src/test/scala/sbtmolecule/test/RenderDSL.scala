@@ -40,7 +40,7 @@ object RenderDSL extends TestSuite {
       //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(1)).get ==> "check"
       //      Dsl(validationNss, "", validationNss.parts(0).nss(3)).get ==> "check"
       //      Dsl(validationNss, "", validationNss.parts(0).nss(0)).get ==> "check"
-      Dsl(CardinalitiesNss, "", CardinalitiesNss.parts(0).nss(0)).get ==> "check"
+      //      Dsl(CardinalitiesNss, "", CardinalitiesNss.parts(0).nss(0)).get ==> "check"
       //      Dsl(StarwarsNss, "", StarwarsNss.parts(0).nss(2)).get ==> "check"
       //
       //      validationNss ==> "check"
@@ -65,7 +65,10 @@ object RenderDSL extends TestSuite {
       //      Schema_Datomic(typesNss).get ==> "check"
       //      Schema_Datomic(refsNss).get ==> "check"
       //
-      //      Schema_H2(typesNss).get ==> "check"
+      Schema_MariaDB(typesNss).get ==> "check"
+//      Schema_SQlite(typesNss).get ==> "check"
+//      Schema_PostgreSQL(typesNss).get ==> "check"
+//            Schema_H2(typesNss).get ==> "check"
       //      Schema_H2(refsNss).get ==> "check"
       //      Schema_H2(uniqueNss).get ==> "check"
     }

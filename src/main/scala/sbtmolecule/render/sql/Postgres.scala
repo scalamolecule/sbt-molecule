@@ -78,7 +78,7 @@ object Postgres extends Dialect {
         case "ZonedDateTime"  => "VARCHAR ARRAY"
         case "UUID"           => "UUID ARRAY"
         case "URI"            => "VARCHAR ARRAY"
-        case "Byte"           => "BYTEA" // <-- Special for byte arrays
+        case "Byte"           => "BYTEA" // special for byte arrays
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR(1) ARRAY"
       }

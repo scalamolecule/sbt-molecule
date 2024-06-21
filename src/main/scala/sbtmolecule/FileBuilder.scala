@@ -64,6 +64,9 @@ object FileBuilder {
             val schemaFile_postgres: File = basePath / s"${schema.domain}Schema_PostgreSQL.scala"
             IO.write(schemaFile_postgres, Schema_PostgreSQL(schema).get)
 
+            val schemaFile_sqlite: File = basePath / s"${schema.domain}Schema_SQlite.scala"
+            IO.write(schemaFile_sqlite, Schema_SQlite(schema).get)
+
             Seq(
               schemaFile,
               schemaFile_Datomic,
@@ -71,6 +74,7 @@ object FileBuilder {
               schemaFile_mariadb,
               schemaFile_mysql,
               schemaFile_postgres,
+              schemaFile_sqlite,
             )
           }
 

@@ -54,7 +54,7 @@ object H2 extends Dialect {
         case "ZonedDateTime"  => "VARCHAR ARRAY"
         case "UUID"           => "UUID ARRAY"
         case "URI"            => "VARCHAR ARRAY"
-        case "Byte"           => "VARBINARY" // <-- Special for byte arrays
+        case "Byte"           => "VARBINARY" // special for byte arrays
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR ARRAY"
       }

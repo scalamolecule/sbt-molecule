@@ -35,7 +35,7 @@ object MariaDB extends Dialect {
       }
 
       case _: CardSeq => a.baseTpe match {
-        case "Byte" => "LONGBLOB" // <-- Special for byte arrays
+        case "Byte" => "LONGBLOB" // special for byte arrays
         case _      => "JSON"
       }
       case _          => "JSON"

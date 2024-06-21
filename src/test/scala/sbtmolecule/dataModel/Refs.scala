@@ -6,6 +6,9 @@ object Refs extends DataModel(10) {
 
   trait A {
     val i    = oneInt
+    val iSet = setInt
+    val iSeq = seqInt
+    val iMap = mapInt
     val s    = oneString
     val bool = oneBoolean
 
@@ -21,13 +24,22 @@ object Refs extends DataModel(10) {
     val cc = many[C]
     val dd = many[D]
 
+    val ownA  = one[A].owner
+    val ownAa = many[A].owner
+
     val ownB  = one[B].owner
     val ownBb = many[B].owner
+
+    val ownC  = one[C].owner
+    val ownCc = many[C].owner
   }
 
   trait B {
-    val i = oneInt
-    val s = oneString
+    val i    = oneInt
+    val iSet = setInt
+    val iSeq = seqInt
+    val iMap = mapInt
+    val s    = oneString
 
     val a  = one[A]
     val b  = one[B]
@@ -39,15 +51,23 @@ object Refs extends DataModel(10) {
     val bb = many[B]
     val cc = many[C]
     val dd = many[D]
+
+    val ownC  = one[C].owner
+    val ownCc = many[C].owner
   }
 
   trait C {
-    val i  = oneInt
-    val s  = oneString
-    val ii = setInt
-    val a  = one[A]
-    val d  = one[D]
-    val dd = many[D]
+    val i    = oneInt
+    val s    = oneString
+    val iSet = setInt
+    val iSeq = seqInt
+    val iMap = mapInt
+    val a    = one[A]
+    val d    = one[D]
+    val dd   = many[D]
+
+    val ownD  = one[D].owner
+    val ownDd = many[D].owner
   }
 
 

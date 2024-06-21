@@ -24,7 +24,8 @@ case class Schema(schema: MetaSchema) {
         |  with ${schema.domain}Schema_H2
         |  with ${schema.domain}Schema_MariaDB
         |  with ${schema.domain}Schema_Mysql
-        |  with ${schema.domain}Schema_PostgreSQL {
+        |  with ${schema.domain}Schema_PostgreSQL
+        |  with ${schema.domain}Schema_SQlite {
         |
         |  val metaSchema: MetaSchema =
         |    ${schema.render(2)}
