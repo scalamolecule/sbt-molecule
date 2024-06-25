@@ -94,17 +94,16 @@ case class Dsl(
           s""", coord = Seq($nsIndex, $attrIndex$padAI, $refNsIndex$padRNI)"""
         }
         val refNs   = refNsOpt.fold("")(refNs => s""", refNs = Some("$refNs")""")
-        val owner   = if (refNsOpt.nonEmpty && options.contains("owner")) s", owner = true" else ""
         val attrMan = "Attr" + card._marker + "Man" + tpe
         val attrOpt = "Attr" + card._marker + "Opt" + tpe
         val attrTac = "Attr" + card._marker + "Tac" + tpe
         attrIndex += 1
 
-        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$coord$refNs$owner$valids)"""
+        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
         if (attr != "id") {
-          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$coord$refNs$owner$valids)"""
+          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
         }
-        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$coord$refNs$owner$valids)"""
+        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
     }
     val vas1     = vas.result()
     val vas2     = if (vas1.isEmpty) Nil else "" +: vas1
