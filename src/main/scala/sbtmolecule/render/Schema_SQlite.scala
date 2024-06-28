@@ -102,7 +102,7 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
       result
     }
     val enforceForeignKeys = if (hasRefs)
-      """PRAGMA foreign_keys = ON;
+      """PRAGMA foreign_keys = 1;
         |      |
         |      |"""
     else ""

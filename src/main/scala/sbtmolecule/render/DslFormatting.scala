@@ -17,7 +17,7 @@ class DslFormatting(schema: MetaSchema, namespace: MetaNs, arity: Int = 0) exten
   def camel(s: String) = s"${s.head.toUpper}${s.tail}"
 
   def getTpe(s: String) = s match {
-    case "ID" => "String"
+    case "ID" => "Long"
     case t    => t
   }
 

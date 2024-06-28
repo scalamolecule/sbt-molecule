@@ -34,7 +34,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     attr: String,
     baseTpe0: String,
   ): String = {
-    val baseTpe = if (baseTpe0 == "ID") "String" else baseTpe0
+    val baseTpe = if (baseTpe0 == "ID") "Long" else baseTpe0
     s"""private lazy val validation_$attr = new Validate$baseTpe0 {
        |$pad    override def validate(v: $baseTpe): Seq[String] = {
        |$pad      $body
@@ -49,7 +49,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     baseTpe0: String,
     valueAttrs: Seq[(String, Boolean, String, String, String)]
   ): String = {
-    val baseTpe        = if (baseTpe0 == "ID") "String" else baseTpe0
+    val baseTpe        = if (baseTpe0 == "ID") "Long" else baseTpe0
     val validator      = "Validate" + baseTpe0
     val maxAttr        = valueAttrs.map(_._1.length).max.max(9) // align with _validate too
     val maxMetaAttr    = valueAttrs.map(_._4.length).max
@@ -101,7 +101,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     baseTpe0: String,
     validation: (String, String),
   ): String = {
-    val baseTpe       = if (baseTpe0 == "ID") "String" else baseTpe0
+    val baseTpe       = if (baseTpe0 == "ID") "Long" else baseTpe0
     val (test, error) = validation
     val testStr       = if (test.contains("\n")) {
       val lines = test.split('\n').toList
@@ -142,7 +142,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     baseTpe0: String,
     validations: Seq[(String, String)],
   ): String = {
-    val baseTpe         = if (baseTpe0 == "ID") "String" else baseTpe0
+    val baseTpe         = if (baseTpe0 == "ID") "Long" else baseTpe0
     val test2errorPairs = validations.map {
       case (test, error) =>
         val testStr = if (test.contains("\n")) {
