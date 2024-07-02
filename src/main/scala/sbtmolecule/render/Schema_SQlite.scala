@@ -97,7 +97,8 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
       reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(ns.ns.toLowerCase)
       val result = createTable(ns, dialect)
       hasRefs = hasRefs || refs2.nonEmpty
-      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs.mkString(", ")
+      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs
+        .mkString(s"\n      // ${ns.ns}\n      ", ", ", "")
       reservedAttrs = Array.empty[Boolean]
       result
     }
@@ -130,6 +131,7 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
         |      |${tables(SQlite)}\"\"\".stripMargin
         |
         |
+        |  // Index to lookup if name collides with db keyword
         |  override val sqlReserved_sqlite: Option[Reserved] = $getReserved
         |}""".stripMargin
 }

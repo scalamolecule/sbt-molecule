@@ -48,6 +48,7 @@ case class Schema_PostgreSQL(schema: MetaSchema) extends Schema_SqlBase(schema) 
         |      |\"\"\".stripMargin
         |
         |
+        |  // Index to lookup if name collides with db keyword
         |  override val sqlReserved_postgres: Option[Reserved] = $getReserved
         |}""".stripMargin
 }

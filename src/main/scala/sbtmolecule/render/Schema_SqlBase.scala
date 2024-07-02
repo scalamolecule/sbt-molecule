@@ -92,7 +92,8 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
     val tableDefinitions = nss.flatMap { ns =>
       reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(ns.ns.toLowerCase)
       val result = createTable(ns, dialect)
-      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs.mkString(", ")
+      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs
+        .mkString(s"\n      // ${ns.ns}\n      ", ", ", "")
       reservedAttrs = Array.empty[Boolean]
       result
     }
@@ -137,9 +138,12 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
 
   protected def getReserved = if (hasReserved) {
     s"""Some(Reserved(
+       |
+       |    // Namespace names colliding
        |    Array(${reservedNss.mkString(", ")}),
-       |    Array(
-       |      ${reservedNssAttrs.mkString(",\n      ")}
+       |
+       |    // Attribute names colliding
+       |    Array(${reservedNssAttrs.mkString(",\n        ")}
        |    )
        |  ))""".stripMargin
   } else "None"

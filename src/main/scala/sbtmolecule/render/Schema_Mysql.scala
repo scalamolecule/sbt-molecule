@@ -27,6 +27,7 @@ case class Schema_Mysql(schema: MetaSchema) extends Schema_SqlBase(schema) {
         |      |${tables(Mysql)}\"\"\".stripMargin
         |
         |
+        |  // Index to lookup if name collides with db keyword
         |  override val sqlReserved_mysql: Option[Reserved] = $getReserved
         |}""".stripMargin
 }

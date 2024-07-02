@@ -99,6 +99,7 @@ case class Schema_H2(schema: MetaSchema) extends Schema_SqlBase(schema) {
         |      |\"\"\".stripMargin
         |
         |
+        |  // Index to lookup if name collides with db keyword
         |  override val sqlReserved_h2: Option[Reserved] = $getReserved
         |}""".stripMargin
 }

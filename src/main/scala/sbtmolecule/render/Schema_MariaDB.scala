@@ -27,6 +27,7 @@ case class Schema_MariaDB(schema: MetaSchema) extends Schema_SqlBase(schema) {
         |      |${tables(MariaDB)}\"\"\".stripMargin
         |
         |
+        |  // Index to lookup if name collides with db keyword
         |  override val sqlReserved_mariadb: Option[Reserved] = $getReserved
         |}""".stripMargin
 }
