@@ -29,7 +29,7 @@ object RenderDSL extends TestSuite {
 
     "DSL" - {
 
-      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
+      //      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
       //            Dsl(typesNss, "", typesNss.parts.head.nss(1)).get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(2)).get ==> "check"
       //      Dsl(validationNss, "", validationNss.parts.head.nss(4)).get ==> "check"
@@ -38,13 +38,15 @@ object RenderDSL extends TestSuite {
       //      Dsl(partitions2Nss, "", partitions2Nss.parts(0).nss(0)).get ==> "check"
       //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(0)).get ==> "check"
       //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(1)).get ==> "check"
-      //      Dsl(validationNss, "", validationNss.parts(0).nss(3)).get ==> "check"
-      //      Dsl(validationNss, "", validationNss.parts(0).nss(0)).get ==> "check"
+      //            Dsl(validationNss, "", validationNss.parts(0).nss(0)).get ==> "check"
+      //            Dsl(validationNss, "", validationNss.parts(0).nss(3)).get ==> "check" // Constants
+      Dsl(validationNss, "", validationNss.parts(0).nss(4)).get ==> "check" // Variables
       //      Dsl(CardinalitiesNss, "", CardinalitiesNss.parts(0).nss(0)).get ==> "check"
       //      Dsl(StarwarsNss, "", StarwarsNss.parts(0).nss(2)).get ==> "check"
       //
       //      validationNss ==> "check"
       //      validationNss.parts.head.nss(3) ==> "check"
+      //      validationNss.parts.head.nss(4) ==> "check"
       //      validationNss.parts.head.nss(12) ==> "check"
       //      validationNss.attrMap() ==> "check"
       //      validationNss.parts.head ==> "check"

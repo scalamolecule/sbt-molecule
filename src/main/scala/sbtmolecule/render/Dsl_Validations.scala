@@ -16,7 +16,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
     val single = validations.length == 1
     val pad    = if (static) "" else "  "
     val body   = if (single) {
-      getBodySingle(pad, attr, baseTpe, validations.head)
+      getBodySingle(pad + "  ", attr, baseTpe, validations.head)
     } else {
       getBodyMulti(pad, baseTpe, validations)
     }

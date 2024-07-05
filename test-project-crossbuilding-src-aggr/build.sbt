@@ -1,13 +1,13 @@
 import sbt.Keys.{exportJars, testFrameworks, version}
 
 
-lazy val scala212               = "2.12.18"
-lazy val scala213               = "2.13.12"
-lazy val scala3                 = "3.3.1"
+lazy val scala212               = "2.12.19"
+lazy val scala213               = "2.13.14"
+lazy val scala3                 = "3.3.3"
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 ThisBuild / organization := "com.example"
-ThisBuild / version := "1.7.0"
+ThisBuild / version := "1.8.0"
 ThisBuild / scalaVersion := scala3
 
 
@@ -19,12 +19,12 @@ lazy val app = (project in file("app"))
   .settings(
     crossScalaVersions := supportedScalaVersions,
     name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "1.7.0",
+    version := "1.8.0",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-sql-h2" % "0.8.0-SNAPSHOT",
-      "com.lihaoyi" %% "utest" % "0.8.1" % Test,
+      "org.scalamolecule" %% "molecule-sql-h2" % "0.9.0",
+      "com.lihaoyi" %% "utest" % "0.9.0" % Test,
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
 

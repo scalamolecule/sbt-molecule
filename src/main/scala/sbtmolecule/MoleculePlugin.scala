@@ -21,9 +21,6 @@ object MoleculePlugin extends sbt.AutoPlugin {
     lazy val moleculeMakeJars       = settingKey[Boolean](
       "Whether jars are created from generated source files."
     )
-    lazy val moleculeAllIndexed     = settingKey[Boolean](
-      "Whether all attributes have the index flag in schema creation file - default: true"
-    )
 
     // Internal
     lazy val moleculeBoilerplate = taskKey[Seq[File]](
@@ -36,7 +33,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   import autoImport.*
 
-  def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
+  private def moleculeScopedSettings(conf: Configuration): Seq[Def.Setting[_]] = inConfig(conf)(Seq(
     moleculeBoilerplate := {
       if (moleculePluginActive.?.value.getOrElse(false)) {
 
@@ -134,7 +131,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def projectSettings: Seq[Def.Setting[?]] = moleculeScopedSettings(Compile)
 
 
-  def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
+  private def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
     val pathSegments              = baseDirectory.value.toString.split("/")
     val last        : String      = pathSegments.last
     val jarFileIdentifier         = last match {
@@ -182,7 +179,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     }
   }
 
-  def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
+  private def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
     sbt.IO.listFiles(directory) flatMap {
       case file if file.isFile &&
         (file.name.endsWith(tpe) || file.name.endsWith(".sjsir")) &&
