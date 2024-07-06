@@ -77,19 +77,6 @@ object MoleculePlugin extends sbt.AutoPlugin {
              |${paths.mkString("\n")}
              |------------------------------------------------------------------------""".stripMargin
         )
-
-        //        println(
-        //          s"""-------------------------
-        //             |${baseDirectory.value}
-        //             |${sourceDirectory.value}
-        //             |${scalaSource.value}
-        //             |
-        //             |$last
-        //             |$srcDir
-        //             |$isJvm
-        //             |-------------------------""".stripMargin
-        //        )
-
         val scalaVers = CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((2, 13)) => "213"
           case Some((2, 12)) => "212"
@@ -115,7 +102,10 @@ object MoleculePlugin extends sbt.AutoPlugin {
       }
     },
 
-    Compile / sourceGenerators += moleculeBoilerplate.taskValue,
+    Compile / sourceGenerators += (Compile / moleculeBoilerplate).taskValue,
+
+    // Make sure generated source are discoverable for jar creations
+    Compile / unmanagedSourceDirectories += sourceManaged.value,
 
     Compile / moleculeJars := Def.taskDyn {
       if (moleculePluginActive.?.value.getOrElse(false) && moleculeMakeJars.?.value.getOrElse(true)) {
@@ -124,7 +114,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         // Make no jars
         Def.task {}
       }
-    }.triggeredBy(Compile / compile).value
+    }.triggeredBy(Compile / compile).value,
   ))
 
 
@@ -132,54 +122,51 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
 
   private def makeJars(): Def.Initialize[Task[Unit]] = Def.task {
-    val pathSegments              = baseDirectory.value.toString.split("/")
-    val last        : String      = pathSegments.last
-    val jarFileIdentifier         = last match {
+    val pathSegments      = baseDirectory.value.toString.split("/")
+    val last              = pathSegments.last
+    val jarFileIdentifier = last match {
       case ".js" | ".jvm" => pathSegments.init.last + "-" + last.replace(".", "")
       case "js" | "jvm"   => pathSegments.init.last + "-" + last
       case _              => last
     }
-    val transferDirs: Seq[String] = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
-    val cross       : String      = if (crossScalaVersions.value.size == 1) "" else {
+    val transferDirs      = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
+    val cross             = if (crossScalaVersions.value.size == 1) "" else {
       val v = CrossVersion.partialVersion(scalaVersion.value).get
       s"/${v._1}.${v._2}"
     }
 
     // Create source jar from generated source files
-    val src_managedDir: File                = (Compile / sourceManaged).value
-    val srcJar        : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier-sources.jar")
-    val srcFilesData  : Seq[(File, String)] = files2TupleRec("", src_managedDir, ".scala", transferDirs)
+    val src_managedDir = sourceManaged.value
+    val srcJar         = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier-sources.jar")
+    val srcFilesData   = files2TupleRec("", src_managedDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new Manifest, None)
 
     // Create jar from class files compiled from generated source files
-    val classesDir     : File                = (Compile / classDirectory).value
-    val targetJar      : File                = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier.jar")
-    val targetFilesData: Seq[(File, String)] = files2TupleRec("", classesDir, ".class", transferDirs)
-
-    // Tried to add this but didn't help scala 3.3 find the jar/classes
-    //    val manifestClasses = new Manifest
-    //    manifestClasses.getMainAttributes().putValue(
-    //      Attributes.Name.CLASS_PATH.toString(), "./lib/molecule-test-project.jar");
-    //    sbt.IO.jar(targetFilesData, targetJar, manifestClasses, None)
-
+    val classesDir      = classDirectory.value
+    val targetJar       = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier.jar")
+    val targetFilesData = files2TupleRec("", classesDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new Manifest, None)
 
-    // Hack to allow the above jars to be created in parallel before source code is deleted
-    Thread.sleep(5000)
 
-    // Cleanup now obsolete generated/compiled code
-    moleculeDataModelPaths.value.foreach { path =>
-      // Delete class files compiled from generated source files
-      // Leave other class files in paths untouched
-      sbt.IO.delete(classesDir / path / "dsl")
-      sbt.IO.delete(classesDir / path / "schema")
-
-      // Delete all generated source files
-      sbt.IO.delete(src_managedDir / path)
-    }
+    // Maybe we don't need this
+    //    // Hack to allow the above jars to be created in parallel before source code is deleted
+    //    Thread.sleep(2000)
+    //
+    //    // Cleanup now obsolete generated/compiled code
+    //    moleculeDataModelPaths.value.foreach { path =>
+    //      // Delete class files compiled from generated source files
+    //      // Leave other class files in paths untouched
+    //      sbt.IO.delete(classesDir / path / "dsl")
+    //      sbt.IO.delete(classesDir / path / "schema")
+    //
+    //      // Delete all generated source files
+    //      sbt.IO.delete(src_managedDir / path)
+    //    }
   }
 
-  private def files2TupleRec(path: String, directory: File, tpe: String, transferDirs: Seq[String]): Seq[(File, String)] = {
+  private def files2TupleRec(
+    path: String, directory: File, tpe: String, transferDirs: Seq[String]
+  ): Seq[(File, String)] = {
     sbt.IO.listFiles(directory) flatMap {
       case file if file.isFile &&
         (file.name.endsWith(tpe) || file.name.endsWith(".sjsir")) &&

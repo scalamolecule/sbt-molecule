@@ -8,7 +8,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq(
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
   libraryDependencies ++= Seq(
     "org.scalamolecule" %% "molecule-sql-h2" % "0.9.0",
-    "com.lihaoyi" %% "utest" % "0.9.0",
+    "com.lihaoyi" %% "utest" % "0.8.3",
   ),
   testFrameworks += new TestFramework("utest.runner.Framework")
 )
