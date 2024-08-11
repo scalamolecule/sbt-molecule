@@ -4,10 +4,10 @@
 trap "exit" INT
 
 echo "##########################################################################"
-echo "test-project"
+echo "test-project-3"
 echo "##########################################################################"
 
-cd test-project
+cd test-project-3
 if [ -d "lib"  ]; then
     rm -r lib
 fi

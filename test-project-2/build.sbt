@@ -1,11 +1,11 @@
 
-name := "sbt-molecule-test-project"
-version := "1.8.1-SNAPSHOT"
+name := "sbt-molecule-test-project-2"
+version := "1.9.0"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.14"
 libraryDependencies ++= Seq(
   "com.lihaoyi" %% "utest" % "0.8.3",
-  "org.scalamolecule" %% "molecule-sql-h2" % "0.9.0",
+  "org.scalamolecule" %% "molecule-sql-h2" % "0.10.0",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 Test / parallelExecution := false
@@ -22,6 +22,3 @@ moleculeDataModelPaths := Seq("app")
 
 // Optionally generate source files instead of jars.
 //moleculeMakeJars := false
-
-// Let IDE detect created jars in unmanaged lib directory
-//exportJars := true

@@ -2,12 +2,12 @@ import sbt.Keys.{mainClass, testFrameworks, _}
 
 lazy val commonSettings: Seq[Setting[_]] = Seq(
   name := "sbt-molecule-test-project-with-modules-deep",
-  version := "1.8.0",
+  version := "1.9.0",
   organization := "org.scalamolecule",
   scalaVersion := "2.13.14",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
   libraryDependencies ++= Seq(
-    "org.scalamolecule" %% "molecule-sql-h2" % "0.9.0",
+    "org.scalamolecule" %% "molecule-sql-h2" % "0.10.0",
     "com.lihaoyi" %% "utest" % "0.8.3",
   ),
   testFrameworks += new TestFramework("utest.runner.Framework")
@@ -30,7 +30,4 @@ lazy val app = (project in file("app"))
       "app/domains/nested",
     ), // Mandatory
     moleculeMakeJars := true, // Optional, default: true
-
-    // Let IDE detect created jars in unmanaged lib directory
-    exportJars := true
   )

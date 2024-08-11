@@ -227,9 +227,10 @@ case class Dsl_Arities(
     }
   }
 
-  private val hasCardSet     = refs.exists(_.card == CardSet)
+  private val hasRefOne      = refs.exists(_.card == CardOne)
+  private val hasRefMany     = refs.exists(_.card == CardSet)
+  private val withOptRefInit = s" with OptRefInit"
   private val withNestedInit = s" with NestedInit"
-  private val nestedPad      = " " * withNestedInit.length
   refs.collect {
     case MetaAttr(attr, card, _, Some(refNs), options, _, _, _, _, _) =>
       val refName      = camel(attr)
@@ -243,13 +244,13 @@ case class Dsl_Arities(
       val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
       val refObj       = s"""Model.Ref("$ns", "$attr"$pRefAttr, "$refNs"$pRefNs, $card, $owner, $coord)"""
 
-      val nested = if (hasCardSet) {
-        if (arity < maxArity)
-          if (card == CardOne) nestedPad else withNestedInit
-        else
-          ""
-      } else ""
-      ref += s"""object $refName$pRefAttr extends $refNs${_0}$pRefNs[${`A..V, `}t](elements :+ $refObj)$nested"""
+      val withInit = if (arity == maxArity)
+        ""
+      else if (card == CardOne)
+        withOptRefInit
+      else
+        withNestedInit
+      ref += s"""object $refName$pRefAttr extends $refNs${_0}$pRefNs[${`A..V, `}t](elements :+ $refObj)$withInit"""
   }
 
   private val manAttrs = if (last) "" else man.result().mkString("", "\n  ", "\n\n  ")
@@ -282,12 +283,17 @@ case class Dsl_Arities(
        |  override protected def _attrMan    [X, ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[X, t, ns1, ns2]             ) = new $ns_1[${`A..V`}, X, t](filterAttr(elements, op, a))""".stripMargin
   }
 
-  private val nested = if (hasCardSet && arity < maxArity) {
-    s"""
-       |
-       |  trait NestedInit extends NestedOp_$arity${`[A..V]`} with Nested_$arity${`[A..V]`} { self: Molecule =>
+  private val optRef = if (hasRefOne && arity < maxArity) {
+    val ns_refs = ns_1 + "_refs"
+    s"""trait OptRefInit extends OptRefOp_$arity[${`A..V, `}$ns_refs] with OptRef_$arity[${`A..V, `}$ns_refs] { self: Molecule =>
+       |    override protected def _optRef[RefTpl](optRefElements: List[Element]): $ns_refs[${`A..V, `}Option[RefTpl], Any] = new $ns_refs[${`A..V, `}Option[RefTpl], Any](self.elements.init :+ OptRef(self.elements.last.asInstanceOf[Ref], optRefElements))
+       |  }""".stripMargin
+  } else ""
+
+  private val nested = if (hasRefMany && arity < maxArity) {
+    s"""trait NestedInit extends NestedOp_$arity${`[A..V]`} with Nested_$arity${`[A..V]`} { self: Molecule =>
        |    override protected def _nestedMan[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] = new NestedInit_$n0(self.elements.init :+ Nested   (self.elements.last.asInstanceOf[Ref], nestedElements))
-       |    override protected def _nestedOpt[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] = new NestedInit_$n0(self.elements.init :+ NestedOpt(self.elements.last.asInstanceOf[Ref], nestedElements))
+       |    override protected def _nestedOpt[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] = new NestedInit_$n0(self.elements.init :+ OptNested(self.elements.last.asInstanceOf[Ref], nestedElements))
        |  }""".stripMargin
   } else ""
 
@@ -307,11 +313,23 @@ case class Dsl_Arities(
     }.mkString("\n\n  ", "\n  ", "")
   }
 
+  private val (refClass, refClassBody) = if (refResult.isEmpty && backRefs.isEmpty) ("", "") else {
+    val refHandles = List(optRef, nested, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
+    (
+      s"${ns_0}_refs[${`A..V, `}t](elements) with ",
+      s"""
+         |
+         |class ${ns_0}_refs[${`A..V, `}t]($elements) extends Molecule_$n0${`[A..V]`} {
+         |  $refHandles
+         |}""".stripMargin
+    )
+  }
+
   def get: String =
-    s"""class $ns_0[${`A..V, `}t]($elements) extends ${ns}_base with $modelOps {
+    s"""class $ns_0[${`A..V, `}t]($elements) extends $refClass${ns}_base with $modelOps {
        |  $manAttrs$optAttrs$tacAttrs
        |
-       |  $resolvers$filterAttrs$nested$refDefs$backRefDefs
-       |}
+       |  $resolvers$filterAttrs
+       |}$refClassBody
        |""".stripMargin
 }

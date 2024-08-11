@@ -1,9 +1,11 @@
-package sbtmolecule.dataModel
+package molecule.coreTests.dataModels.core.dataModel
 
+import java.time.*
 import java.util.Date
 import molecule.DataModel
+import scala.collection.immutable.Seq
 
-object Validation extends DataModel(4) {
+object Validation extends DataModel(5) {
 
   trait Strings {
     val email        = oneString.email
@@ -26,37 +28,78 @@ object Validation extends DataModel(4) {
   }
 
   trait Type {
-    val string     = oneString.validate(_ > "b")
-    val int        = oneInt.validate(_ > 2)
-    val long       = oneLong.validate(_ > 2L)
-    val float      = oneFloat.validate(_ > 2.2f)
-    val double     = oneDouble.validate(_ > 2.2)
-    val boolean    = oneBoolean.validate(_ == false)
-    val bigInt     = oneBigInt.validate(_ > BigInt(2))
-    val bigDecimal = oneBigDecimal.validate(_ > BigDecimal(2.2))
-    val date       = oneDate.validate(_.after(new Date(993942000000L)))
-    val uuid       = oneUUID.validate(_.toString != "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-    val uri        = oneURI.validate(_.toString.length > 2)
-    val byte       = oneByte.validate(_ > 2)
-    val short      = oneShort.validate(_ > 2)
-    val char       = oneChar.validate(_ > 'b')
-//    val ref        = one[Strings].validate(_ > "2")
+    val string         = oneString.validate(_ > "b")
+    val int            = oneInt.validate(_ > 2)
+    val long           = oneLong.validate(_ > 2L)
+    val float          = oneFloat.validate(_ > 2.2f)
+    val double         = oneDouble.validate(_ > 2.2)
+    val boolean        = oneBoolean.validate(_ == false)
+    val bigInt         = oneBigInt.validate(_ > BigInt(2))
+    val bigDecimal     = oneBigDecimal.validate(_ > BigDecimal(2.2))
+    val date           = oneDate.validate(_.after(new Date(993942000000L)))
+    val duration       = oneDuration.validate(_.compareTo(Duration.ofMinutes(2)) > 0)
+    val instant        = oneInstant.validate(_.compareTo(Instant.ofEpochSecond(2)) > 0)
+    val localDate      = oneLocalDate.validate(_.compareTo(LocalDate.of(2002, 1, 1)) > 0)
+    val localTime      = oneLocalTime.validate(_.compareTo(LocalTime.of(2, 2)) > 0)
+    val localDateTime  = oneLocalDateTime.validate(_.compareTo(LocalDateTime.of(2002, 1, 1, 1, 2)) > 0)
+    val offsetTime     = oneOffsetTime.validate(_.compareTo(OffsetTime.of(2, 2, 2, 2, ZoneOffset.ofHours(2))) > 0)
+    val offsetDateTime = oneOffsetDateTime.validate(_.compareTo(OffsetDateTime.of(2002, 1, 1, 1, 1, 1, 1, ZoneOffset.ofHours(2))) > 0)
+    val zonedDateTime  = oneZonedDateTime.validate(_.compareTo(ZonedDateTime.of(2002, 1, 1, 1, 1, 1, 1, ZoneOffset.ofHours(2))) > 0)
+    val uuid           = oneUUID.validate(_.toString != "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    val uri            = oneURI.validate(_.toString.length > 2)
+    val byte           = oneByte.validate(_ > 2)
+    val short          = oneShort.validate(_ > 2)
+    val char           = oneChar.validate(_ > 'b')
+    val ref            = one[Strings]
 
-    val strings     = setString.validate(_ > "c")
-    val ints        = setInt.validate(_ > 3)
-    val longs       = setLong.validate(_ > 3L)
-    val floats      = setFloat.validate(_ > 3.3f)
-    val doubles     = setDouble.validate(_ > 3.3)
-    val booleans    = setBoolean.validate(_ == false)
-    val bigInts     = setBigInt.validate(_ > BigInt(3))
-    val bigDecimals = setBigDecimal.validate(_ > BigDecimal(3.3))
-    val dates       = setDate.validate(_.after(new Date(1057010400000L)))
-    val uuids       = setUUID.validate(_.toString != "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-    val uris        = setURI.validate(_.toString.length > 3)
-    val bytes       = setByte.validate(_ > 3)
-    val shorts      = setShort.validate(_ > 3)
-    val chars       = setChar.validate(_ > 'c')
-//    val refs        = many[Strings].validate(_ > "3")
+    val stringSet         = setString.validate(_ > "c")
+    val intSet            = setInt.validate(_ > 3)
+    val longSet           = setLong.validate(_ > 3L)
+    val floatSet          = setFloat.validate(_ > 3.3f)
+    val doubleSet         = setDouble.validate(_ > 3.3)
+    val booleanSet        = setBoolean.validate(_ == false)
+    val bigIntSet         = setBigInt.validate(_ > BigInt(3))
+    val bigDecimalSet     = setBigDecimal.validate(_ > BigDecimal(3.3))
+    val dateSet           = setDate.validate(_.after(new Date(1057010400000L)))
+    val durationSet       = setDuration.validate(_.compareTo(Duration.ofMinutes(2)) > 0)
+    val instantSet        = setInstant.validate(_.compareTo(Instant.ofEpochSecond(2)) > 0)
+    val localDateSet      = setLocalDate.validate(_.compareTo(LocalDate.of(2002, 1, 1)) > 0)
+    val localTimeSet      = setLocalTime.validate(_.compareTo(LocalTime.of(2, 2)) > 0)
+    val localDateTimeSet  = setLocalDateTime.validate(_.compareTo(LocalDateTime.of(2002, 1, 1, 1, 2)) > 0)
+    val offsetTimeSet     = setOffsetTime.validate(_.compareTo(OffsetTime.of(2, 2, 2, 2, ZoneOffset.ofHours(2))) > 0)
+    val offsetDateTimeSet = setOffsetDateTime.validate(_.compareTo(OffsetDateTime.of(2002, 1, 1, 1, 1, 1, 1, ZoneOffset.ofHours(2))) > 0)
+    val zonedDateTimeSet  = setZonedDateTime.validate(_.compareTo(ZonedDateTime.of(2002, 1, 1, 1, 1, 1, 1, ZoneOffset.ofHours(2))) > 0)
+    val uuidSet           = setUUID.validate(_.toString != "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    val uriSet            = setURI.validate(_.toString.length > 3)
+    val byteSet           = setByte.validate(_ > 3)
+    val shortSet          = setShort.validate(_ > 3)
+    val charSet           = setChar.validate(_ > 'c')
+    val refs              = many[Strings]
+
+    val stringSeq         = seqString.validate(_ > "c")
+    val intSeq            = seqInt.validate(_ > 3)
+    val longSeq           = seqLong.validate(_ > 3L)
+    val floatSeq          = seqFloat.validate(_ > 3.3f)
+    val doubleSeq         = seqDouble.validate(_ > 3.3)
+    val booleanSeq        = seqBoolean.validate(_ == false)
+    val bigIntSeq         = seqBigInt.validate(_ > BigInt(3))
+    val bigDecimalSeq     = seqBigDecimal.validate(_ > BigDecimal(3.3))
+    val dateSeq           = seqDate.validate(_.after(new Date(1057010400000L)))
+    val durationSeq       = seqDuration.validate(_.compareTo(Duration.ofMinutes(2)) > 0)
+    val instantSeq        = seqInstant.validate(_.compareTo(Instant.ofEpochSecond(2)) > 0)
+    val localDateSeq      = seqLocalDate.validate(_.compareTo(LocalDate.of(2002, 1, 1)) > 0)
+    val localTimeSeq      = seqLocalTime.validate(_.compareTo(LocalTime.of(2, 2)) > 0)
+    val localDateTimeSeq  = seqLocalDateTime.validate(_.compareTo(LocalDateTime.of(2002, 1, 1, 1, 2)) > 0)
+    val offsetTimeSeq     = seqOffsetTime.validate(_.compareTo(OffsetTime.of(2, 2, 2, 2, ZoneOffset.ofHours(2))) > 0)
+    val offsetDateTimeSeq = seqOffsetDateTime.validate(_.compareTo(OffsetDateTime.of(2002, 1, 1, 1, 1, 1, 1, ZoneOffset.ofHours(2))) > 0)
+    val zonedDateTimeSeq  = seqZonedDateTime.validate(_.compareTo(ZonedDateTime.of(2002, 1, 1, 1, 1, 1, 1, ZoneOffset.ofHours(2))) > 0)
+    val uuidSeq           = seqUUID.validate(_.toString != "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    val uriSeq            = seqURI.validate(_.toString.length > 3)
+    val shortSeq          = seqShort.validate(_ > 3)
+    val charSeq           = seqChar.validate(_ > 'c')
+
+    // Validation not supported for map attributes
+    // val intMap = mapInt.validate(_ > 3)
   }
 
   trait Constants {
@@ -139,6 +182,7 @@ object Validation extends DataModel(4) {
             |be odd. Found: $v""".stripMargin
       }: PartialFunction[Int, String] // Not needed in Scala 2.13 and 3.x
     )
+
   }
 
 
@@ -203,10 +247,11 @@ object Validation extends DataModel(4) {
       "Value must be an odd number between 3 and 9 but not `int7` value `$int7`"
     )
 
-    val int8           = oneInt
-    val str            = oneString
-    val ints           = setInt
-    val strs           = setString
+    val int8   = oneInt
+    val str    = oneString
+    val intSet = setInt
+    val strs   = setString
+
     val multipleErrors = oneInt.validate(
       {
         case v if v > 4 =>
@@ -219,8 +264,8 @@ object Validation extends DataModel(4) {
           "Test 3: Number must be smaller than `str` value `$str` length `${str.length}` * 2. Found: $v"
 
         case v if {
-          v != ints.value.head - 3
-        } => "Test 4: Number must not be `ints` head value `${ints.head}` minus 3. Found: $v"
+          v != intSet.value.head - 3
+        } => "Test 4: Number must not be `intSet` head value `${intSet.head}` minus 3. Found: $v"
 
         case v if {
           val divider = strs.value.size

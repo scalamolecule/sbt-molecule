@@ -147,21 +147,19 @@ object MoleculePlugin extends sbt.AutoPlugin {
     val targetFilesData = files2TupleRec("", classesDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new Manifest, None)
 
+    // Hack to allow the above jars to be created in parallel before source code is deleted
+    Thread.sleep(5000)
 
-    // Maybe we don't need this
-    //    // Hack to allow the above jars to be created in parallel before source code is deleted
-    //    Thread.sleep(2000)
-    //
-    //    // Cleanup now obsolete generated/compiled code
-    //    moleculeDataModelPaths.value.foreach { path =>
-    //      // Delete class files compiled from generated source files
-    //      // Leave other class files in paths untouched
-    //      sbt.IO.delete(classesDir / path / "dsl")
-    //      sbt.IO.delete(classesDir / path / "schema")
-    //
-    //      // Delete all generated source files
-    //      sbt.IO.delete(src_managedDir / path)
-    //    }
+    // Cleanup now obsolete generated/compiled code
+    moleculeDataModelPaths.value.foreach { path =>
+      // Delete class files compiled from generated source files
+      // Leave other class files in paths untouched
+      sbt.IO.delete(classesDir / path / "dsl")
+      sbt.IO.delete(classesDir / path / "schema")
+
+      // Delete all generated source files
+      sbt.IO.delete(src_managedDir / path)
+    }
   }
 
   private def files2TupleRec(
@@ -169,7 +167,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   ): Seq[(File, String)] = {
     sbt.IO.listFiles(directory) flatMap {
       case file if file.isFile &&
-        (file.name.endsWith(tpe) || file.name.endsWith(".sjsir")) &&
+        (file.name.endsWith(tpe) || file.name.endsWith(".sjsir") || file.name.endsWith(".tasty")) &&
         transferDirs.exists(path.startsWith) &&
         !file.name.endsWith(s"DataModel$tpe") &&
         !file.name.endsWith(s"DataModel$$$tpe") => Seq((file, s"$path${file.getName}"))
