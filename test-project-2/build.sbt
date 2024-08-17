@@ -5,7 +5,7 @@ organization := "org.scalamolecule"
 scalaVersion := "2.13.14"
 libraryDependencies ++= Seq(
   "com.lihaoyi" %% "utest" % "0.8.3",
-  "org.scalamolecule" %% "molecule-sql-h2" % "0.10.0",
+  "org.scalamolecule" %% "molecule-sql-h2" % "0.10.1",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 Test / parallelExecution := false

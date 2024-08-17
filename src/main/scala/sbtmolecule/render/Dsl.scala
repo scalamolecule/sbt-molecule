@@ -116,7 +116,7 @@ case class Dsl(
 
 
   private val nss: String = (0 to schema.maxArity)
-    .map(Dsl_Arities(schema, partPrefix, nsList, attrList, namespace, _).get).mkString("\n\n")
+    .map(Dsl_Arities(scalaVersion, schema, partPrefix, nsList, attrList, namespace, _).get).mkString("\n\n")
 
   val idCoord = s"coord = Seq(${nsList.indexOf(ns)}, ${attrList.indexOf(ns + ".id")})"
 

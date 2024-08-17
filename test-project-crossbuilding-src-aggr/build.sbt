@@ -23,7 +23,7 @@ lazy val app = (project in file("app"))
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-sql-h2" % "0.10.0",
+      "org.scalamolecule" %% "molecule-sql-h2" % "0.10.1",
       "com.lihaoyi" %% "utest" % "0.8.3" % Test,
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),

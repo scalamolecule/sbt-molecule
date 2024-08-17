@@ -29,11 +29,11 @@ object RenderDSL extends TestSuite {
 
     "DSL" - {
 
-      //      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
+      Dsl(typesNss, "", typesNss.parts.head.nss(0), scalaVersion = "213").get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(1)).get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(2)).get ==> "check"
-//            Dsl(validationNss, "", validationNss.parts.head.nss(11)).get ==> "check"
-      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
+      //            Dsl(validationNss, "", validationNss.parts.head.nss(11)).get ==> "check"
+      //      Dsl(refsNss, "", refsNss.parts.head.nss(0)).get ==> "check"
       //      Dsl(partitionsNss, "accounting_", partitionsNss.parts(0).nss(0)).get ==> "check"
       //      Dsl(partitions2Nss, "", partitions2Nss.parts(0).nss(0)).get ==> "check"
       //      Dsl(partitionsNss, "y_", partitionsNss.parts(1).nss(0)).get ==> "check"
