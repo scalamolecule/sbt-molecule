@@ -148,6 +148,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     sbt.IO.jar(targetFilesData, targetJar, new Manifest, None)
 
     // Hack to allow the above jars to be created in parallel before source code is deleted
+    // todo: how can we determine when it's safe to delete the generated source files?
     Thread.sleep(5000)
 
     // Cleanup now obsolete generated/compiled code

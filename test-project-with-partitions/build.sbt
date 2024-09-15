@@ -1,6 +1,6 @@
 
 name := "sbt-molecule-test-project-with-partitions"
-version := "1.9.0"
+version := "1.9.1"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.14"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")

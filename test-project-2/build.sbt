@@ -1,6 +1,6 @@
 
 name := "sbt-molecule-test-project-2"
-version := "1.9.0"
+version := "1.9.1"
 organization := "org.scalamolecule"
 scalaVersion := "2.13.14"
 libraryDependencies ++= Seq(
@@ -8,7 +8,6 @@ libraryDependencies ++= Seq(
   "org.scalamolecule" %% "molecule-sql-h2" % "0.10.1",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
-Test / parallelExecution := false
 
 // Molecule
 enablePlugins(MoleculePlugin)

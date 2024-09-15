@@ -1,8 +1,8 @@
 
 name := "sbt-molecule-test-project-crossbuilding-jar"
-version := "1.9.0"
+version := "1.9.1"
 organization := "org.scalamolecule"
-crossScalaVersions := Seq("2.12.19", "2.13.14")
+crossScalaVersions := Seq("2.12.20", "2.13.14", "3.3.3")
 ThisBuild / scalaVersion := "2.13.14"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
@@ -13,14 +13,12 @@ libraryDependencies ++= Seq(
 
 testFrameworks += new TestFramework("utest.runner.Framework")
 
-// Ensure clojure loads correctly for async tests run from sbt
-Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
-
 // Find scala version specific jars in respective libs
 unmanagedBase := {
   CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, 12)) => file(unmanagedBase.value.getPath ++ "/2.12")
     case Some((2, 13)) => file(unmanagedBase.value.getPath ++ "/2.13")
-    case _             => file(unmanagedBase.value.getPath ++ "/2.12")
+    case _             => file(unmanagedBase.value.getPath ++ "/3.3")
   }
 }
 

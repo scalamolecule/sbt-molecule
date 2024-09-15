@@ -1,15 +1,18 @@
-import sbt.Keys.{exportJars, testFrameworks, version}
+import sbt.Keys.{testFrameworks, version}
 
-
-lazy val scala212               = "2.12.19"
+lazy val scala212               = "2.12.20"
 lazy val scala213               = "2.13.14"
 lazy val scala3                 = "3.3.3"
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
-ThisBuild / organization := "com.example"
-ThisBuild / version := "1.9.0"
-ThisBuild / scalaVersion := scala3
-
+inThisBuild(
+  List(
+    organization := "com.example",
+    version := "1.9.1",
+    scalaVersion := scala3,
+    crossScalaVersions := supportedScalaVersions,
+  )
+)
 
 lazy val root = (project in file("."))
   .aggregate(app)
@@ -17,9 +20,8 @@ lazy val root = (project in file("."))
 lazy val app = (project in file("app"))
   .enablePlugins(MoleculePlugin)
   .settings(
-    crossScalaVersions := supportedScalaVersions,
-    name := "sbt-molecule-test-project-crossbuilding-src-aggr",
-    version := "1.9.0",
+    name := "sbt-molecule-test-project-crossbuilding-jar-aggr",
+    version := "1.9.1",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
@@ -28,8 +30,14 @@ lazy val app = (project in file("app"))
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
 
-    // Ensure clojure loads correctly for async tests run from sbt
-    Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat,
+    // Find scala version specific jars in respective libs
+    unmanagedBase := {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, 12)) => file(unmanagedBase.value.getPath ++ "/2.12")
+        case Some((2, 13)) => file(unmanagedBase.value.getPath ++ "/2.13")
+        case _             => file(unmanagedBase.value.getPath ++ "/3.3")
+      }
+    },
 
     // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
     moleculePluginActive := sys.props.get("molecule").contains("true"),
