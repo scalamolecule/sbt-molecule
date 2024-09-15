@@ -10,7 +10,7 @@ case class Schema(schema: MetaSchema) {
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}.dataModel/`
+        |* 1. edit data model file in `${schema.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
         |package ${schema.pkg}.schema

@@ -11,7 +11,7 @@ case class Schema_PostgreSQL(schema: MetaSchema) extends Schema_SqlBase(schema) 
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}.dataModel/`
+        |* 1. edit data model file in `${schema.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
         |package ${schema.pkg}.schema

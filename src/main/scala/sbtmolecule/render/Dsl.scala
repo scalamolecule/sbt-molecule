@@ -125,7 +125,7 @@ case class Dsl(
        |* AUTO-GENERATED Molecule DSL boilerplate code for namespace `$ns`
        |*
        |* To change:
-       |* 1. Edit data model in $pkg.dataModel.$domain
+       |* 1. Edit data model in $pkg.$domain
        |* 2. `sbt compile -Dmolecule=true`
        |*/
        |package $pkg.$domain

@@ -54,7 +54,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
   )
 
   private val (pkg, afterPkg) = tree.children.collectFirst {
-    case Pkg(Term.Select(pkg, Term.Name("dataModel")), afterPkg) => (pkg.toString, afterPkg)
+    case Pkg(pkg, afterPkg) => (pkg.toString, afterPkg)
   }.getOrElse(unexpected(tree, ". Couldn't find package definition in code:\n"))
 
 
@@ -72,7 +72,7 @@ class DataModel2MetaSchema(filePath: String, pkgPath: String, scalaVersion: Stri
     val fullNs = if (ns.isEmpty && attr.isEmpty) "" else
       s" for attribute $ns.$attr"
     throw ModelError(
-      s"""Problem in data model $pkg.dataModel.$domain$fullNs:
+      s"""Problem in data model $pkg.$domain$fullNs:
          |$msg
          |""".stripMargin
     )

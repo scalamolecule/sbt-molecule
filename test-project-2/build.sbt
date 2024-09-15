@@ -18,7 +18,7 @@ moleculePluginActive := sys.props.get("molecule").contains("true")
 // or have it on/off for all sbt compilations:
 //moleculePluginActive := true
 
-moleculeDataModelPaths := Seq("app")
+moleculeDataModelPaths := Seq("app/dataModel")
 
 // Optionally generate source files instead of jars.
 //moleculeMakeJars := false

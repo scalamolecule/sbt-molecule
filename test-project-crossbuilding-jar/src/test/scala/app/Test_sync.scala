@@ -1,6 +1,6 @@
 package app
 
-import app.dsl.Person._
+import app.dataModel.dsl.Person._
 import molecule.sql.h2.sync._
 import utest._
 

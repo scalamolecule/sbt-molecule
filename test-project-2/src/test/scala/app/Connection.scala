@@ -1,6 +1,6 @@
 package app
 
-import app.schema._
+import app.dataModel.schema._
 import molecule.base.api.Schema
 import molecule.core.marshalling.JdbcProxy
 import molecule.core.spi.Conn

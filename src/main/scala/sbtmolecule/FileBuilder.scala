@@ -12,20 +12,20 @@ object FileBuilder {
 
     // Loop domain directories
     dataModelDirs.flatMap { dataModelDir =>
-      val dataModelDirs: Array[File] = sbt.IO.listFiles(sourceDir / dataModelDir)
+      val definitionDir = sourceDir / dataModelDir
       assert(
-        dataModelDirs.exists(f => f.isDirectory && f.getName == "dataModel"),
-        s"\nMissing `dataModel` package inside moleculeDataModelPaths:\n" + sourceDir / dataModelDir
+        definitionDir.isDirectory,
+        s"\nPath in moleculeDataModelPaths is not a directory:\n" + definitionDir
       )
 
-      // Loop data model files in each domain directory
-      sbt.IO.listFiles(sourceDir / dataModelDir / "dataModel")
+      // Loop Data Model files in each definition directory
+      sbt.IO.listFiles(definitionDir)
         .filter(f => f.isFile)
         .flatMap { dataModelFile =>
           val schema = DataModel2MetaSchema(dataModelFile.getPath, scalaVersion)
 
           val dslFiles: Seq[File] = {
-            var nsIndex = 0
+            var nsIndex   = 0
             var attrIndex = 0
             for {
               part <- schema.parts

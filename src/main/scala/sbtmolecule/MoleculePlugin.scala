@@ -13,7 +13,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   object autoImport {
     // api
     lazy val moleculeDataModelPaths = settingKey[Seq[String]](
-      "Seq of paths to directories having a `dataModel` directory with data model files."
+      "Seq of paths to directories with Data Model files."
     )
     lazy val moleculePluginActive   = settingKey[Boolean](
       "Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds."
@@ -73,7 +73,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         val codeOrJars = if (moleculeMakeJars.?.value.getOrElse(true)) "jars" else "source code"
         println(
           s"""------------------------------------------------------------------------
-             |Generating Molecule DSL $platform $codeOrJars for data models in:
+             |Generating Molecule DSL $platform $codeOrJars for Data Models in:
              |${paths.mkString("\n")}
              |------------------------------------------------------------------------""".stripMargin
         )

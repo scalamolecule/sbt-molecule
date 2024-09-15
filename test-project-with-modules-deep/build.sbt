@@ -26,8 +26,8 @@ lazy val app = (project in file("app"))
     // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
     moleculePluginActive := sys.props.get("molecule").contains("true"),
     moleculeDataModelPaths := Seq(
-      "app/domains",
-      "app/domains/nested",
+      "app/domains/dataModel",
+      "app/domains/nested/dataModel",
     ), // Mandatory
     moleculeMakeJars := true, // Optional, default: true
   )
