@@ -5,12 +5,12 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.9.1",
+    version := "1.10.0",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalamolecule" %% "molecule-base" % "0.10.1",
-      "com.lihaoyi" %% "utest" % "0.8.3" % Test
+      "org.scalamolecule" %% "molecule-base" % "0.13.0",
+      "com.lihaoyi" %% "utest" % "0.8.4" % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )
@@ -24,7 +24,7 @@ lazy val publishSettings: Seq[Def.Setting[_]] = Seq(
   publishMavenStyle := true,
   versionScheme := Some("early-semver"),
   publishTo := (if (isSnapshot.value) Some(snapshots) else Some(releases)),
-  //  Test / publishArtifact := false,
+  Test / publishArtifact := false,
   pomIncludeRepository := (_ => false),
   homepage := Some(url("http://scalamolecule.org")),
   description := "sbt-molecule",

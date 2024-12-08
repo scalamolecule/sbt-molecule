@@ -52,7 +52,7 @@ object RenderDSL extends TestSuite {
       //      validationNss.parts.head ==> "check"
       //
       //
-      //      Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
+            Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(1), 1, 36).get ==> "check"
       //
       //      Dsl(uniqueNss, "", uniqueNss.parts.head.nss(0)).get ==> "check"

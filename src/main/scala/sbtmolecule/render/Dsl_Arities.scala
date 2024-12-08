@@ -105,19 +105,24 @@ case class Dsl_Arities(
       val nextNextNs = if (secondLast) s"X${arity + 3}" else ns_2
       val nextNs     = if (last) s"X${arity + 2}" else ns_1
 
-      val filters = if (card == CardOne && attr != "id" && refNs.isEmpty) baseType match {
-        case "String" => "_String "
-        case "Int"    => "_Number "
-        case "Long"   => "_Number "
-        case "BigInt" => "_Number "
-        case "Byte"   => "_Number "
-        case "Short"  => "_Number "
-        case _        => "        "
-      } else "        "
+      val filtersMan = if (card == CardOne && attr != "id" && refNs.isEmpty) baseType match {
+        case "String"                                     => "_String  "
+        case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer "
+        case "Double" | "BigDecimal" | "Float"            => "_Decimal "
+        case "Boolean"                                    => "_Boolean "
+        case _                                            => "         "
+      } else "         "
 
-      lazy val exprM = s"Expr${c}Man${_1}$filters[$tpesM, $ns_1, $nextNextNs]"
-      lazy val exprO = s"Expr${c}Opt${_1}        [$tpesO, $ns_1, $nextNextNs]"
-      lazy val exprT = s"Expr${c}Tac${_0}$filters[$tpesT, $ns_0, $nextNs]"
+      val filtersOpt = "         "
+      val filtersTac = if (card == CardOne && attr != "id" && refNs.isEmpty) baseType match {
+        case "String"                                     => "_String  "
+        case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer "
+        case _                                            => "         "
+      } else "         "
+
+      lazy val exprM = s"Expr${c}Man${_1}$filtersMan[$tpesM, $ns_1, $nextNextNs]"
+      lazy val exprO = s"Expr${c}Opt${_1}$filtersOpt[$tpesO, $ns_1, $nextNextNs]"
+      lazy val exprT = s"Expr${c}Tac${_0}$filtersTac[$tpesT, $ns_0, $nextNs]"
 
       if (!last) {
         man += s"""lazy val $attr  $padA = new $ns_1[$tpesM]($elemsM) with $exprM with $card"""

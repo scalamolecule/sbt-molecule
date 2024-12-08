@@ -1,11 +1,11 @@
 
 name := "sbt-molecule-test-project-2"
-version := "1.9.1"
+version := "1.10.0"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.14"
+scalaVersion := "2.13.15"
 libraryDependencies ++= Seq(
-  "com.lihaoyi" %% "utest" % "0.8.3",
-  "org.scalamolecule" %% "molecule-sql-h2" % "0.10.1",
+  "com.lihaoyi" %% "utest" % "0.8.4",
+  "org.scalamolecule" %% "molecule-sql-h2" % "0.13.0",
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
 
@@ -21,3 +21,6 @@ moleculeDataModelPaths := Seq("app/dataModel")
 
 // Optionally generate source files instead of jars.
 //moleculeMakeJars := false
+
+//resolvers += "molecule" at "file://" + baseDirectory.value
+//libraryDependencies += "lib_molecule" %% name.value % "0.1.0"
