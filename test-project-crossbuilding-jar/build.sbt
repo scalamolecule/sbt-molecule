@@ -1,13 +1,13 @@
 
 name := "sbt-molecule-test-project-crossbuilding-jar"
-version := "1.10.0"
+version := "1.11.0"
 organization := "org.scalamolecule"
 crossScalaVersions := Seq("2.12.20", "2.13.15", "3.3.4")
 ThisBuild / scalaVersion := "2.13.15"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-sql-h2" % "0.13.0",
+  "org.scalamolecule" %% "molecule-sql-h2" % "0.15.0",
   "com.lihaoyi" %% "utest" % "0.8.4",
 )
 

@@ -29,7 +29,7 @@ object RenderDSL extends TestSuite {
 
     "DSL" - {
 
-      Dsl(typesNss, "", typesNss.parts.head.nss(0), scalaVersion = "213").get ==> "check"
+//      Dsl(typesNss, "", typesNss.parts.head.nss(0), scalaVersion = "213").get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(1)).get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(2)).get ==> "check"
       //            Dsl(validationNss, "", validationNss.parts.head.nss(11)).get ==> "check"
@@ -52,7 +52,7 @@ object RenderDSL extends TestSuite {
       //      validationNss.parts.head ==> "check"
       //
       //
-            Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
+//            Dsl(typesNss, "", typesNss.parts.head.nss(0)).get ==> "check"
       //      Dsl(typesNss, "", typesNss.parts.head.nss(1), 1, 36).get ==> "check"
       //
       //      Dsl(uniqueNss, "", uniqueNss.parts.head.nss(0)).get ==> "check"
@@ -68,9 +68,9 @@ object RenderDSL extends TestSuite {
       //      Schema_Datomic(refsNss).get ==> "check"
       //
       //      Schema_MariaDB(typesNss).get ==> "check"
-      //      Schema_SQlite(typesNss).get ==> "check"
+            Schema_SQlite(typesNss).get ==> "check"
       //      Schema_PostgreSQL(typesNss).get ==> "check"
-      //      Schema_H2(typesNss).get ==> "check"
+//            Schema_H2(typesNss).get ==> "check"
       //      Schema_H2(refsNss).get ==> "check"
       //      Schema_Mysql(refsNss).get ==> "check"
       //      Schema_H2(uniqueNss).get ==> "check"

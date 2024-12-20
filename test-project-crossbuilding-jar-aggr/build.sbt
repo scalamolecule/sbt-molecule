@@ -8,7 +8,7 @@ lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 inThisBuild(
   List(
     organization := "com.example",
-    version := "1.10.0",
+    version := "1.11.0",
     scalaVersion := scala3,
     crossScalaVersions := supportedScalaVersions,
   )
@@ -23,11 +23,11 @@ lazy val app = project
   .enablePlugins(MoleculePlugin)
   .settings(
     name := "sbt-molecule-test-project-crossbuilding-jar-aggr",
-    version := "1.10.0",
+    version := "1.11.0",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-sql-h2" % "0.13.0",
+      "org.scalamolecule" %% "molecule-sql-h2" % "0.15.0",
       "com.lihaoyi" %% "utest" % "0.8.4" % Test,
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),

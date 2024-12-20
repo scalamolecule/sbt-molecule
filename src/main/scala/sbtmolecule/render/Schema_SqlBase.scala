@@ -129,11 +129,16 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
           val count      = constraints.count(_ == refAttr)
           val refAttr2   = refAttr1 + (if (count == 1) quote else "_" + count + quote)
           val constraint = s"${quote}_$refAttr2" + padS(m4, refAttr2)
-          s"ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref (id);"
-      }.mkString("", "\n|      |", "\n|      |"))
+          s"-- ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref (id);"
+      }.mkString(
+        "-- Optional reference constraints to avoid orphan relationships (add manually)\n|      |",
+        "\n|      |",
+        "\n|      |"
+      ))
     }
 
     (tableDefinitions ++ foreignKeys).mkString("\n|      |")
+//    (tableDefinitions).mkString("\n|      |")
   }
 
   protected def getReserved = if (hasReserved) {

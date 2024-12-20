@@ -52,11 +52,14 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
         val key      = refAttr1 + padS(maxRefAttr, refAttr1)
         val refNs1   = clean(dialect, refNs)
         val ref      = refNs1 + padS(maxRefNs, refNs1)
-        s"CONSTRAINT _$key FOREIGN KEY ($key) REFERENCES $ref (id)"
+        s"-- CONSTRAINT _$key FOREIGN KEY ($key) REFERENCES $ref (id)"
       }
     }
 
-    val columns = (fields ++ foreignKeys).mkString(s",\n|      |  ")
+    val optForeignKeys = if(foreignKeys.isEmpty) "" else
+      foreignKeys.mkString("\n|      |  ", s",\n|      |  ", "")
+
+    val columns = fields.mkString(s",\n|      |  ") + optForeignKeys
 
     val table =
       s"""CREATE TABLE IF NOT EXISTS $ns$tableSuffix (
@@ -76,9 +79,9 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
 
         s"""CREATE TABLE IF NOT EXISTS ${ns}_${refAttr}_$refNs (
            |      |  $key1 BIGINT,
-           |      |  $key2 BIGINT,
-           |      |  CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanNs (id),
-           |      |  CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefNs (id)
+           |      |  $key2 BIGINT
+           |      |  -- CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanNs (id),
+           |      |  -- CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefNs (id)
            |      |);
            |      |"""
     }
@@ -91,8 +94,8 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
     reservedNss = Array.empty[Boolean]
     reservedAttrs = Array.empty[Boolean]
     reservedNssAttrs = Array.empty[String]
-    var hasRefs            = false
-    val tables             = nss.flatMap { ns =>
+    var hasRefs = false
+    val tables  = nss.flatMap { ns =>
       refs2.clear() // foreign key constraints per table
       reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(ns.ns.toLowerCase)
       val result = createTable(ns, dialect)
@@ -102,12 +105,12 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
       reservedAttrs = Array.empty[Boolean]
       result
     }
-    val enforceForeignKeys = if (hasRefs)
-      """PRAGMA foreign_keys = 1;
-        |      |
-        |      |"""
-    else ""
-    tables.mkString(enforceForeignKeys, "\n|      |", "")
+        val enforceForeignKeys = if (hasRefs)
+          """-- PRAGMA foreign_keys = 1;
+            |      |
+            |      |"""
+        else ""
+        tables.mkString(enforceForeignKeys, "\n|      |", "")
   }
 
   def get: String =
