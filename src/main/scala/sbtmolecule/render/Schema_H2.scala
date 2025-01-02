@@ -1,28 +1,27 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.render.sql.*
+import sbtmolecule.sqlDialect.H2
 
 
-case class Schema_H2(schema: MetaSchema) extends Schema_SqlBase(schema) {
+case class Schema_H2(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
 
   def get: String =
     s"""|/*
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}/`
+        |* 1. edit domain definition file in `${metaDomain.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
-        |package ${schema.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api.Schema
-        |import molecule.base.ast._
+        |import molecule.base.api._
         |
         |
-        |trait ${schema.domain}Schema_H2 extends Schema {
+        |object ${metaDomain.domain}Schema_h2 extends ${metaDomain.domain}Schema with Schema_h2 {
         |
-        |  override val sqlSchema_h2: String =
+        |  override val schemaData: List[String] = List(
         |    \"\"\"
         |      |${tables(H2)}
         |      |CREATE ALIAS IF NOT EXISTS removeFromArray_ID             FOR "molecule.sql.h2.functions.removeFromArray_ID";
@@ -97,9 +96,6 @@ case class Schema_H2(schema: MetaSchema) extends Schema_SqlBase(schema) {
         |      |CREATE ALIAS IF NOT EXISTS removePairs_Short          FOR "molecule.sql.h2.functions.removePairs_Short";
         |      |CREATE ALIAS IF NOT EXISTS removePairs_Char           FOR "molecule.sql.h2.functions.removePairs_Char";
         |      |\"\"\".stripMargin
-        |
-        |
-        |  // Index to lookup if name collides with db keyword
-        |  override val sqlReserved_h2: Option[Reserved] = $getReserved
+        |  )$getReserved
         |}""".stripMargin
 }

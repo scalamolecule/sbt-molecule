@@ -12,13 +12,13 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   object autoImport {
     // api
-    lazy val moleculeDataModelPaths = settingKey[Seq[String]](
-      "Seq of paths to directories with Data Model files."
+    lazy val moleculeDomainPaths  = settingKey[Seq[String]](
+      "Seq of paths to directories with Domain definition files."
     )
-    lazy val moleculePluginActive   = settingKey[Boolean](
+    lazy val moleculePluginActive = settingKey[Boolean](
       "Only generate sources/jars if true. Defaults to false to avoid re-generating on all project builds."
     )
-    lazy val moleculeMakeJars       = settingKey[Boolean](
+    lazy val moleculeMakeJars     = settingKey[Boolean](
       "Whether jars are created from generated source files."
     )
 
@@ -59,7 +59,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
             scalaSource.value
         }
 
-        val paths = moleculeDataModelPaths.?.value.getOrElse(Nil)
+        val paths = moleculeDomainPaths.?.value.getOrElse(Nil)
         paths.foreach { path =>
           val fullPath = srcDir + "/" + path
           val dir      = new java.io.File(fullPath)
@@ -72,10 +72,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
         val platform   = if (isJvm) "jvm" else "js"
         val codeOrJars = if (moleculeMakeJars.?.value.getOrElse(true)) "jars" else "source code"
         println(
-          s"""------------------------------------------------------------------------
-             |Generating Molecule DSL $platform $codeOrJars for Data Models in:
+          s"""----------------------------------------------------------------------------
+             |Generating Molecule DSL $platform $codeOrJars for Domain structure definitions in:
              |${paths.mkString("\n")}
-             |------------------------------------------------------------------------""".stripMargin
+             |----------------------------------------------------------------------------""".stripMargin
+
         )
         val scalaVers = CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((2, 13)) => "213"
@@ -83,7 +84,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
           case _             => "3"
         }
 
-        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDataModelPaths.value, scalaVers)
+        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDomainPaths.value, scalaVers)
 
         // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
         val cacheDir = streams.value.cacheDirectory / "moleculeBoilerplateTesting"
@@ -129,7 +130,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
       case "js" | "jvm"   => pathSegments.init.last + "-" + last
       case _              => last
     }
-    val transferDirs      = moleculeDataModelPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
+    val transferDirs      = moleculeDomainPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
     val cross             = if (crossScalaVersions.value.size == 1) "" else {
       val v = CrossVersion.partialVersion(scalaVersion.value).get
       s"/${v._1}.${v._2}"
@@ -152,7 +153,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     Thread.sleep(5000)
 
     // Cleanup now obsolete generated/compiled code
-    moleculeDataModelPaths.value.foreach { path =>
+    moleculeDomainPaths.value.foreach { path =>
       // Delete class files compiled from generated source files
       // Leave other class files in paths untouched
       sbt.IO.delete(classesDir / path / "dsl")
@@ -170,10 +171,11 @@ object MoleculePlugin extends sbt.AutoPlugin {
       case file if file.isFile &&
         (file.name.endsWith(tpe) || file.name.endsWith(".sjsir") || file.name.endsWith(".tasty")) &&
         transferDirs.exists(path.startsWith) &&
-        !file.name.endsWith(s"DataModel$tpe") &&
-        !file.name.endsWith(s"DataModel$$$tpe") => Seq((file, s"$path${file.getName}"))
-      case otherFile if otherFile.isFile        => Nil
-      case dir                                  => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
+        //        !file.name.endsWith(s"Domain$tpe") &&
+        //        !file.name.endsWith(s"Domain$$$tpe") => Seq((file, s"$path${file.getName}"))
+        !file.name.endsWith(s"Domain$tpe") => Seq((file, s"$path${file.getName}"))
+      case otherFile if otherFile.isFile   => Nil
+      case dir                             => files2TupleRec(s"$path${dir.getName}/", dir, tpe, transferDirs)
     }
   }
 }

@@ -1,28 +1,27 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.render.sql.*
+import sbtmolecule.sqlDialect.Postgres
 
 
-case class Schema_PostgreSQL(schema: MetaSchema) extends Schema_SqlBase(schema) {
+case class Schema_PostgreSQL(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
 
   def get: String =
     s"""|/*
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}/`
+        |* 1. edit domain definition file in `${metaDomain.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
-        |package ${schema.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api.Schema
-        |import molecule.base.ast._
+        |import molecule.base.api._
         |
         |
-        |trait ${schema.domain}Schema_PostgreSQL extends Schema {
+        |object ${metaDomain.domain}Schema_postgres extends ${metaDomain.domain}Schema with Schema_postgres {
         |
-        |  override val sqlSchema_postgres: String =
+        |  override val schemaData: List[String] = List(
         |    \"\"\"
         |      |${tables(Postgres)}
         |      |CREATE OR REPLACE FUNCTION _final_median(numeric[])
@@ -46,9 +45,6 @@ case class Schema_PostgreSQL(schema: MetaSchema) extends Schema_SqlBase(schema) 
         |      |  INITCOND='{}'
         |      |);
         |      |\"\"\".stripMargin
-        |
-        |
-        |  // Index to lookup if name collides with db keyword
-        |  override val sqlReserved_postgres: Option[Reserved] = $getReserved
+        |  )$getReserved
         |}""".stripMargin
 }

@@ -3,40 +3,34 @@ package sbtmolecule.render
 import molecule.base.ast.*
 
 
-case class Schema(schema: MetaSchema) {
+case class Schema(metaDomain: MetaDomain) {
 
   def get: String =
     s"""|/*
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}/`
+        |* 1. edit domain definition file in `${metaDomain.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
-        |package ${schema.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
         |import molecule.base.api.Schema
         |import molecule.base.ast._
         |
         |
-        |object ${schema.domain}Schema extends Schema
-        |  with ${schema.domain}Schema_Datomic
-        |  with ${schema.domain}Schema_H2
-        |  with ${schema.domain}Schema_MariaDB
-        |  with ${schema.domain}Schema_Mysql
-        |  with ${schema.domain}Schema_PostgreSQL
-        |  with ${schema.domain}Schema_SQlite {
+        |trait ${metaDomain.domain}Schema extends Schema {
         |
-        |  val metaSchema: MetaSchema =
-        |    ${schema.render(2)}
+        |  override val metaDomain: MetaDomain =
+        |    ${metaDomain.render(2)}
         |
         |
-        |  val nsMap: Map[String, MetaNs] = ${schema.nsMap(1)}
+        |  override val entityMap: Map[String, MetaEntity] = ${metaDomain.entityMap(1)}
         |
         |
-        |  val attrMap: Map[String, (Card, String, Seq[String])] = ${schema.attrMap(1)}
+        |  override val attrMap: Map[String, (Card, String, Seq[String])] = ${metaDomain.attrMap(1)}
         |
         |
-        |  val uniqueAttrs: List[String] = ${schema.uniqueAttrs}
+        |  override val uniqueAttrs: List[String] = ${metaDomain.uniqueAttrs}
         |}""".stripMargin
 }

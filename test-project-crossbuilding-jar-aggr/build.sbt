@@ -8,29 +8,29 @@ lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 inThisBuild(
   List(
     organization := "com.example",
-    version := "1.11.0",
+    version := "1.11.1",
     scalaVersion := scala3,
     crossScalaVersions := supportedScalaVersions,
   )
 )
 
-//lazy val root = (project in file("."))
 lazy val root = project
   .aggregate(app)
 
-//lazy val app = (project in file("app"))
 lazy val app = project
   .enablePlugins(MoleculePlugin)
   .settings(
     name := "sbt-molecule-test-project-crossbuilding-jar-aggr",
-    version := "1.11.0",
+    version := "1.11.1",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-sql-h2" % "0.15.0",
-      "com.lihaoyi" %% "utest" % "0.8.4" % Test,
+      "org.scalamolecule" %% "molecule-sql-h2" % "0.15.1",
+      "org.scalameta" %% "munit" % "1.0.3" % Test,
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
+    Test / parallelExecution := false,
+    Test / fork := true,
 
     // Find scala version specific jars in respective libs
     unmanagedBase := {
@@ -41,8 +41,6 @@ lazy val app = project
       }
     },
 
-    // Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
     moleculePluginActive := sys.props.get("molecule").contains("true"),
-    moleculeDataModelPaths := Seq("app/dataModel"), // Mandatory
-    moleculeMakeJars := true, // Optional, default: true
+    moleculeDomainPaths := Seq("app/domain"),
   )

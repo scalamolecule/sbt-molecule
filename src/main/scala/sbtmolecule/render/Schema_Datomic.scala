@@ -4,12 +4,12 @@ import molecule.base.ast.*
 import molecule.base.util.RegexMatching
 
 
-case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
+case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
 
-  private val flatNss: Seq[MetaNs] = schema.parts.flatMap(_.nss)
+  private val flatNss: Seq[MetaEntity] = metaDomain.groups.flatMap(_.ents)
 
   private val datomicPartitions: String = {
-    val parts = schema.parts.filterNot(_.part.isEmpty).map(_.part)
+    val parts = metaDomain.groups.filterNot(_.group.isEmpty).map(_.group)
     if (parts.isEmpty) "\"\"" else {
       edn(parts.map { part =>
         s"""|        {:db/id      "$part"
@@ -30,7 +30,7 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
   }
 
-  private def datomicCardinality(a: MetaAttr): String = a.card match {
+  private def datomicCardinality(metaAttribute: MetaAttribute): String = metaAttribute.card match {
     case CardOne => "one"
     case CardSet => "many"
     case CardSeq => "one" // Array values encoded in one byte Array
@@ -38,38 +38,38 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     case other   => throw new Exception("Yet unsupported cardinality: " + other)
   }
 
-  private def datomicType(a: MetaAttr): String = {
+  private def datomicType(a: MetaAttribute): String = {
     if (a.card == CardSeq && a.baseTpe == "Byte") {
       "bytes"
     } else a.baseTpe match {
-      case "ID" if a.refNs.nonEmpty => "ref"
-      case "ID"                     => "ref"
-      case "String"                 => "string"
-      case "Int"                    => "long"
-      case "Long"                   => "long"
-      case "Float"                  => "float"
-      case "Double"                 => "double"
-      case "Boolean"                => "boolean"
-      case "BigInt"                 => "bigint"
-      case "BigDecimal"             => "bigdec"
-      case "Date"                   => "instant"
-      case "Duration"               => "string"
-      case "Instant"                => "string"
-      case "LocalDate"              => "string"
-      case "LocalTime"              => "string"
-      case "LocalDateTime"          => "string"
-      case "OffsetTime"             => "string"
-      case "OffsetDateTime"         => "string"
-      case "ZonedDateTime"          => "string"
-      case "UUID"                   => "uuid"
-      case "URI"                    => "uri"
-      case "Byte"                   => "long"
-      case "Short"                  => "long"
-      case "Char"                   => "string"
+      case "ID" if a.ref.nonEmpty => "ref"
+      case "ID"                      => "ref"
+      case "String"                  => "string"
+      case "Int"                     => "long"
+      case "Long"                    => "long"
+      case "Float"                   => "float"
+      case "Double"                  => "double"
+      case "Boolean"                 => "boolean"
+      case "BigInt"                  => "bigint"
+      case "BigDecimal"              => "bigdec"
+      case "Date"                    => "instant"
+      case "Duration"                => "string"
+      case "Instant"                 => "string"
+      case "LocalDate"               => "string"
+      case "LocalTime"               => "string"
+      case "LocalDateTime"           => "string"
+      case "OffsetTime"              => "string"
+      case "OffsetDateTime"          => "string"
+      case "ZonedDateTime"           => "string"
+      case "UUID"                    => "uuid"
+      case "URI"                     => "uri"
+      case "Byte"                    => "long"
+      case "Short"                   => "long"
+      case "Char"                    => "string"
     }
   }
 
-  private def attrStmts(ns: String, a: MetaAttr): String = {
+  private def attrStmts(ns: String, a: MetaAttribute): String = {
     val mandatory = Seq(
       s""":db/ident         :$ns/${a.attr}""",
       s""":db/valueType     :db.type/${datomicType(a)}""",
@@ -122,16 +122,20 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
     }
   }
 
-  private def attrDefs(ns: MetaNs): String = ns.attrs.tail // no id attribute in Datomic
-    .map(attrStmts(ns.ns, _))
+  private def attrDefs(metaEntity: MetaEntity): String = metaEntity.attrs.tail // no id attribute in Datomic
+    .map(attrStmts(metaEntity.ent, _))
     .mkString("{", "}\n\n        {", "}")
 
   private val datomicSchema: String = edn(flatNss.map { ns =>
-    val delimiter = "-" * (50 - ns.ns.length)
-    s"""|        ;; ${ns.ns} $delimiter
+    val delimiter = "-" * (50 - ns.ent.length)
+    s"""|        ;; ${ns.ent} $delimiter
         |
         |        ${attrDefs(ns)}""".stripMargin
   }.mkString("\n\n\n"))
+
+  private val schemaData = List(
+    datomicPartitions, datomicSchema, datomicAliases
+  ).mkString("List(\n    ", ",\n\n    ", "\n  )")
 
   private def edn(defs: String): String =
     s"""|
@@ -146,23 +150,16 @@ case class Schema_Datomic(schema: MetaSchema) extends RegexMatching {
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}/`
+        |* 1. edit domain definition file in `${metaDomain.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
-        |package ${schema.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api.Schema
-        |import molecule.base.ast._
-        |
-        |
-        |trait ${schema.domain}Schema_Datomic extends Schema {
-        |
-        |  val datomicPartitions: String = $datomicPartitions
+        |import molecule.base.api._
         |
         |
-        |  val datomicSchema: String = $datomicSchema
+        |object ${metaDomain.domain}Schema_datomic extends ${metaDomain.domain}Schema with Schema_datomic {
         |
-        |
-        |  val datomicAliases: String = $datomicAliases
+        |  override val schemaData: List[String] = $schemaData
         |}""".stripMargin
 }

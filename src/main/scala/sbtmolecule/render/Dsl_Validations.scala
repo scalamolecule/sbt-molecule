@@ -3,8 +3,8 @@ package sbtmolecule.render
 import molecule.base.ast.*
 
 
-case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
-  extends DslFormatting(schema, namespace) {
+case class Dsl_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
+  extends DslFormatting(metaDomain, metaEntity) {
 
   def validationMethod(
     attr: String,
@@ -123,7 +123,7 @@ case class Dsl_Validations(schema: MetaSchema, namespace: MetaNs)
       } else if (error.isEmpty) {
         val indentedTest = test.split('\n').toList.mkString(s"|$pad           |", s"\n||$pad           |  ", "")
         s"""Seq(
-           |$pad        s\"\"\"$ns.$attr with value `$$v` doesn't satisfy validation:
+           |$pad        s\"\"\"$ent.$attr with value `$$v` doesn't satisfy validation:
            |$pad         $indentedTest
            |$pad|$pad           |\"\"\".stripMargin
            |$pad      )""".stripMargin('#')

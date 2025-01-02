@@ -15,10 +15,7 @@ if [ -d "target"  ]; then
     rm -r target
 fi
 
-# Create jars with boilerplate code and delete generated sources
 sbt +compile -Dmolecule=true
-
-# Test with boilerplate code in jars
 sbt +test
 
 cd ..

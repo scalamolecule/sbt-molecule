@@ -4,21 +4,21 @@ import molecule.base.ast.*
 
 
 case class Dsl(
-  schema: MetaSchema,
-  partPrefix: String,
-  namespace: MetaNs,
+  metaDomain: MetaDomain,
+  groupPrefix: String,
+  metaEntity: MetaEntity,
   nsIndex: Int = 0,
   attrIndexPrev: Int = 0,
   scalaVersion: String = "3"
-) extends DslFormatting(schema, namespace) {
+) extends DslFormatting(metaDomain, metaEntity) {
 
-  private val nsList  : Seq[String] = schema.parts.flatMap(_.nss.map(_.ns))
-  private val attrList: Seq[String] = {
+  private val entityList: Seq[String] = metaDomain.groups.flatMap(_.ents.map(_.ent))
+  private val attrList  : Seq[String] = {
     for {
-      part <- schema.parts
-      ns <- part.nss
-      a <- ns.attrs
-    } yield ns.ns + "." + a.attr
+      group <- metaDomain.groups
+      entity <- group.ents
+      a <- entity.attrs
+    } yield entity.ent + "." + a.attr
   }
 
   var attrIndex = attrIndexPrev
@@ -35,37 +35,36 @@ case class Dsl(
       "scala.reflect.ClassTag"
     )
     val typeImports = attrs.collect {
-      case MetaAttr(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
-      case MetaAttr(_, _, "UUID", _, _, _, _, _, _, _) => "java.util.UUID"
-      case MetaAttr(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
+      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
+      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _) => "java.util.UUID"
+      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
     val higherKinds = if (scalaVersion == "212") Seq("scala.language.higherKinds") else Nil
     (baseImports ++ typeImports ++ higherKinds).sorted.mkString("import ", "\nimport ", "")
   }
 
-  private val validationExtractor = Dsl_Validations(schema, namespace)
+  private val validationExtractor = Dsl_Validations(metaDomain, metaEntity)
 
-  private val baseNs: String = {
+  private val baseEntity: String = {
     val man = List.newBuilder[String]
     val opt = List.newBuilder[String]
     val tac = List.newBuilder[String]
     val vas = List.newBuilder[String]
 
-    val refNsIndexes  = attrs.collect { case a if a.refNs.isDefined => nsList.indexOf(a.refNs.get) }
-    val maxRefNsIndex = if (refNsIndexes.isEmpty) 0 else refNsIndexes.max.toString.length
-    val padRefNsIndex = (reNsIndex: Int) => padS(maxRefNsIndex, reNsIndex.toString)
-    val maxAttrIndex  = (attrIndexPrev + attrs.length).toString.length
-    val padAttrIndex  = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
+    val refIndexes   = attrs.collect { case a if a.ref.isDefined => entityList.indexOf(a.ref.get) }
+    val maxRefIndex  = if (refIndexes.isEmpty) 0 else refIndexes.max.toString.length
+    val padRefIndex  = (reIndex: Int) => padS(maxRefIndex, reIndex.toString)
+    val maxAttrIndex = (attrIndexPrev + attrs.length).toString.length
+    val padAttrIndex = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
 
     attrs.collect {
-      case MetaAttr(attr, card, tpe, refNsOpt, options, _, _, _, valueAttrs, validations) =>
+      case MetaAttribute(attr, card, tpe, refOpt, _, _, _, _, valueAttrs, validations) =>
         val valids  = if (validations.nonEmpty) {
           val valueAttrMetas = attrs.collect {
-            case MetaAttr(attr1, card1, tpe1, _, _, _, _, _, _, _)
+            case MetaAttribute(attr1, card1, tpe1, _, _, _, _, _, _, _)
               if valueAttrs.contains(attr1) =>
-              //              val fullTpe = if (card1.isInstanceOf[CardOne.type]) tpe1 else s"Set[$tpe1]"
               val isCardOne = card1.isInstanceOf[CardOne.type]
-              val fullTpe = card1 match {
+              val fullTpe   = card1 match {
                 case CardOne                   => tpe1
                 case CardSet                   => s"Set[$tpe1]"
                 case CardSeq if tpe1 == "Byte" => s"Array[Byte]"
@@ -85,47 +84,47 @@ case class Dsl(
         val padA    = padAttr(attr)
         val padT0   = padType(tpe)
         val padAI   = padAttrIndex(attrIndex)
-        val coord   = refNsOpt.fold {
-          val padRNI = if (maxRefNsIndex == 0) "" else "  " + " " * maxRefNsIndex
+        val coord   = refOpt.fold {
+          val padRNI = if (maxRefIndex == 0) "" else "  " + " " * maxRefIndex
           s""", coord = Seq($nsIndex, $attrIndex$padAI$padRNI)"""
-        } { refNs =>
-          val refNsIndex = nsList.indexOf(refNs)
-          val padRNI     = padRefNsIndex(refNsIndex)
-          s""", coord = Seq($nsIndex, $attrIndex$padAI, $refNsIndex$padRNI)"""
+        } { ref =>
+          val refIndex = entityList.indexOf(ref)
+          val padRNI   = padRefIndex(refIndex)
+          s""", coord = Seq($nsIndex, $attrIndex$padAI, $refIndex$padRNI)"""
         }
-        val refNs   = refNsOpt.fold("")(refNs => s""", refNs = Some("$refNs")""")
+        val ref1    = refOpt.fold("")(ref => s""", ref = Some("$ref")""")
         val attrMan = "Attr" + card._marker + "Man" + tpe
         val attrOpt = "Attr" + card._marker + "Opt" + tpe
         val attrTac = "Attr" + card._marker + "Tac" + tpe
         attrIndex += 1
 
-        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
+        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$ent", "$attr"$padA$coord$ref1$valids)"""
         if (attr != "id") {
-          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
+          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$ent", "$attr"$padA$coord$ref1$valids)"""
         }
-        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ns", "$attr"$padA$coord$refNs$valids)"""
+        tac += s"""protected lazy val ${attr}_tac$padA: $attrTac$padT0 = $attrTac$padT0("$ent", "$attr"$padA$coord$ref1$valids)"""
     }
     val vas1     = vas.result()
     val vas2     = if (vas1.isEmpty) Nil else "" +: vas1
     val attrDefs = (man.result() ++ Seq("") ++ opt.result() ++ Seq("") ++ tac.result() ++ vas2).mkString("\n  ")
 
-    s"""trait ${ns}_base {
+    s"""trait ${ent}_base {
        |  $attrDefs
        |}""".stripMargin
   }
 
 
-  private val nss: String = (0 to schema.maxArity)
-    .map(Dsl_Arities(scalaVersion, schema, partPrefix, nsList, attrList, namespace, _).get).mkString("\n\n")
+  private val entities: String = (0 to metaDomain.maxArity)
+    .map(Dsl_Arities(scalaVersion, metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
-  val idCoord = s"coord = Seq(${nsList.indexOf(ns)}, ${attrList.indexOf(ns + ".id")})"
+  val idCoord = s"coord = Seq(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
 
   def get: String = {
     s"""/*
-       |* AUTO-GENERATED Molecule DSL boilerplate code for namespace `$ns`
+       |* AUTO-GENERATED Molecule DSL boilerplate code for entity `$ent`
        |*
        |* To change:
-       |* 1. Edit data model in $pkg.$domain
+       |* 1. Edit domain structure in $pkg.$domain
        |* 2. `sbt compile -Dmolecule=true`
        |*/
        |package $pkg.$domain
@@ -133,15 +132,15 @@ case class Dsl(
        |$imports
        |
        |
-       |$baseNs
+       |$baseEntity
        |
-       |object $ns extends $ns_0[Nothing](Nil) {
-       |  final def apply(id : Long, ids: Long*) = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, id +: ids, $idCoord)))
-       |  final def apply(ids: Iterable[Long])   = new $ns_0[String](List(AttrOneTacID("$ns", "id", Eq, ids.toSeq, $idCoord)))
+       |object $ent extends $ent_0[Nothing](Nil) {
+       |  final def apply(id : Long, ids: Long*) = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, id +: ids, $idCoord)))
+       |  final def apply(ids: Iterable[Long])   = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, ids.toSeq, $idCoord)))
        |}
        |
        |
-       |$nss
+       |$entities
        |""".stripMargin
   }
 }

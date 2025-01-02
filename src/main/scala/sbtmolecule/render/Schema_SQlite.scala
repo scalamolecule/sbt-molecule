@@ -1,31 +1,31 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.render.sql.*
+import sbtmolecule.sqlDialect.{Dialect, SQlite}
 import scala.collection.mutable.ListBuffer
 
 
-case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
+case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
 
-  private val refs2 = ListBuffer.empty[(String, String)] // refAttr, refNs
+  private val refs2 = ListBuffer.empty[(String, String)] // refAttr, ref
 
-  protected def createTable(metaNs: MetaNs, dialect: Dialect): Seq[String] = {
-    val ns = metaNs.ns
-    def reserved(a: MetaAttr): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
-    val max = metaNs.attrs.map {
-      case a if a.card == CardSet && a.refNs.nonEmpty => 0
-      case a if reserved(a)                           => a.attr.length + 1
-      case a                                          => a.attr.length
+  protected def createTable(metaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
+    val ent = metaEntity.ent
+    def reserved(a: MetaAttribute): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
+    val max = metaEntity.attrs.map {
+      case a if a.card == CardSet && a.ref.nonEmpty => 0
+      case a if reserved(a)                            => a.attr.length + 1
+      case a                                           => a.attr.length
     }.max.max(2)
 
-    val tableSuffix = if (dialect.reservedKeyWords.contains(ns.toLowerCase)) "_" else ""
+    val tableSuffix = if (dialect.reservedKeyWords.contains(ent.toLowerCase)) "_" else ""
 
-    val fields = metaNs.attrs.flatMap {
+    val fields = metaEntity.attrs.flatMap {
       case a if a.attr == "id" =>
         reservedAttrs = reservedAttrs :+ false
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
-      case a if a.card == CardSet && a.refNs.nonEmpty =>
+      case a if a.card == CardSet && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
         None
 
@@ -39,49 +39,49 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
           a.attr
         }
         // Add foreign key reference
-        a.refNs.foreach(refNs => refs2 += ((a.attr, refNs)))
+        a.ref.foreach(refEntity => refs2 += ((a.attr, refEntity)))
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }
 
     val foreignKeys = if (refs2.isEmpty) Nil else {
-      val maxRefAttr = refs2.map(r => clean(dialect, r._1).length).max
-      val maxRefNs   = refs2.map(r => clean(dialect, r._2).length).max
-      refs2.map { case (refAttr, refNs) =>
+      val maxRefAttr   = refs2.map(r => clean(dialect, r._1).length).max
+      val maxRefEntity = refs2.map(r => clean(dialect, r._2).length).max
+      refs2.map { case (refAttr, ref) =>
         val refAttr1 = clean(dialect, refAttr)
         val key      = refAttr1 + padS(maxRefAttr, refAttr1)
-        val refNs1   = clean(dialect, refNs)
-        val ref      = refNs1 + padS(maxRefNs, refNs1)
-        s"-- CONSTRAINT _$key FOREIGN KEY ($key) REFERENCES $ref (id)"
+        val refEnt1  = clean(dialect, ref)
+        val ref1     = refEnt1 + padS(maxRefEntity, refEnt1)
+        s"-- CONSTRAINT _$key FOREIGN KEY ($key) REFERENCES $ref1 (id)"
       }
     }
 
-    val optForeignKeys = if(foreignKeys.isEmpty) "" else
+    val optForeignKeys = if (foreignKeys.isEmpty) "" else
       foreignKeys.mkString("\n|      |  ", s",\n|      |  ", "")
 
     val columns = fields.mkString(s",\n|      |  ") + optForeignKeys
 
     val table =
-      s"""CREATE TABLE IF NOT EXISTS $ns$tableSuffix (
+      s"""CREATE TABLE IF NOT EXISTS $ent$tableSuffix (
          |      |  $columns
          |      |);
          |      |"""
 
-    val joinTables = metaNs.attrs.collect {
-      case MetaAttr(refAttr, CardSet, _, Some(refNs), _, _, _, _, _, _) =>
-        val (id1, id2) = if (ns == refNs) ("1_id", "2_id") else ("id", "id")
-        val (l1, l2)   = (ns.length, refNs.length)
-        val (p1, p2)   = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
-        val key1       = s"${ns}_$id1$p1"
-        val key2       = s"${refNs}_$id2$p2"
-        val cleanNs    = clean(dialect, ns)
-        val cleanRefNs = clean(dialect, refNs)
+    val joinTables = metaEntity.attrs.collect {
+      case MetaAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
+        val (id1, id2)     = if (ent == ref) ("1_id", "2_id") else ("id", "id")
+        val (l1, l2)       = (ent.length, ref.length)
+        val (p1, p2)       = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
+        val key1           = s"${ent}_$id1$p1"
+        val key2           = s"${ref}_$id2$p2"
+        val cleanEntity    = clean(dialect, ent)
+        val cleanRefEntity = clean(dialect, ref)
 
-        s"""CREATE TABLE IF NOT EXISTS ${ns}_${refAttr}_$refNs (
+        s"""CREATE TABLE IF NOT EXISTS ${ent}_${refAttr}_$ref (
            |      |  $key1 BIGINT,
            |      |  $key2 BIGINT
-           |      |  -- CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanNs (id),
-           |      |  -- CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefNs (id)
+           |      |  -- CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanEntity (id),
+           |      |  -- CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefEntity (id)
            |      |);
            |      |"""
     }
@@ -93,24 +93,24 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
     hasReserved = false
     reservedNss = Array.empty[Boolean]
     reservedAttrs = Array.empty[Boolean]
-    reservedNssAttrs = Array.empty[String]
-    var hasRefs = false
-    val tables  = nss.flatMap { ns =>
+    reservedEntityAttrs = Array.empty[String]
+    var hasRefs            = false
+    val tables             = entities.flatMap { entity =>
       refs2.clear() // foreign key constraints per table
-      reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(ns.ns.toLowerCase)
-      val result = createTable(ns, dialect)
+      reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
+      val result = createTable(entity, dialect)
       hasRefs = hasRefs || refs2.nonEmpty
-      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs
-        .mkString(s"\n      // ${ns.ns}\n      ", ", ", "")
+      reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs
+        .mkString(s"\n      // ${entity.ent}\n      ", ", ", "")
       reservedAttrs = Array.empty[Boolean]
       result
     }
-        val enforceForeignKeys = if (hasRefs)
-          """-- PRAGMA foreign_keys = 1;
-            |      |
-            |      |"""
-        else ""
-        tables.mkString(enforceForeignKeys, "\n|      |", "")
+    val enforceForeignKeys = if (hasRefs)
+      """-- PRAGMA foreign_keys = 1;
+        |      |
+        |      |"""
+    else ""
+    tables.mkString(enforceForeignKeys, "\n|      |", "")
   }
 
   def get: String =
@@ -118,23 +118,19 @@ case class Schema_SQlite(schema: MetaSchema) extends Schema_SqlBase(schema) {
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}/`
+        |* 1. edit domain definition file in `${metaDomain.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
-        |package ${schema.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api.Schema
-        |import molecule.base.ast._
+        |import molecule.base.api._
         |
         |
-        |trait ${schema.domain}Schema_SQlite extends Schema {
+        |object ${metaDomain.domain}Schema_sqlite extends ${metaDomain.domain}Schema with Schema_sqlite {
         |
-        |  override val sqlSchema_sqlite: String =
+        |  override val schemaData: List[String] = List(
         |    \"\"\"
         |      |${tables(SQlite)}\"\"\".stripMargin
-        |
-        |
-        |  // Index to lookup if name collides with db keyword
-        |  override val sqlReserved_sqlite: Option[Reserved] = $getReserved
+        |  )$getReserved
         |}""".stripMargin
 }

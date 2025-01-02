@@ -2,37 +2,37 @@ package sbtmolecule.render
 
 import molecule.base.ast.*
 import molecule.base.util.{BaseHelpers, RegexMatching}
-import sbtmolecule.render.sql.*
+import sbtmolecule.sqlDialect.{Dialect, Postgres}
 import scala.collection.mutable.ListBuffer
 
 
-abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with BaseHelpers {
+abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHelpers {
 
-  protected val nss: Seq[MetaNs] = schema.parts.flatMap(_.nss)
+  protected val entities: Seq[MetaEntity] = metaDomain.groups.flatMap(_.ents)
 
-  protected var hasReserved      = false
-  protected var reservedNss      = Array.empty[Boolean]
-  protected var reservedAttrs    = Array.empty[Boolean]
-  protected var reservedNssAttrs = Array.empty[String]
-  protected val refs             = ListBuffer.empty[(String, String, String)] // ns, refAttr, refNs
+  protected var hasReserved         = false
+  protected var reservedNss         = Array.empty[Boolean]
+  protected var reservedAttrs       = Array.empty[Boolean]
+  protected var reservedEntityAttrs = Array.empty[String]
+  protected val refs                = ListBuffer.empty[(String, String, String)] // entity, refAttr, ref
 
-  private def createTable(metaNs: MetaNs, dialect: Dialect): Seq[String] = {
-    val ns = metaNs.ns
-    def reserved(a: MetaAttr): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
-    val max = metaNs.attrs.map {
-      case a if a.card == CardSet && a.refNs.nonEmpty => 0
-      case a if reserved(a)                           => a.attr.length + 1
-      case a                                          => a.attr.length
+  private def createTable(MetaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
+    val entity = MetaEntity.ent
+    def reserved(a: MetaAttribute): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
+    val max = MetaEntity.attrs.map {
+      case a if a.card == CardSet && a.ref.nonEmpty => 0
+      case a if reserved(a)                            => a.attr.length + 1
+      case a                                           => a.attr.length
     }.max.max(2)
 
-    val tableSuffix = if (dialect.reservedKeyWords.contains(ns.toLowerCase)) "_" else ""
+    val tableSuffix = if (dialect.reservedKeyWords.contains(entity.toLowerCase)) "_" else ""
 
-    val columns = metaNs.attrs.flatMap {
+    val columns = MetaEntity.attrs.flatMap {
       case a if a.attr == "id" =>
         reservedAttrs = reservedAttrs :+ false
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
-      case a if a.card == CardSet && a.refNs.nonEmpty =>
+      case a if a.card == CardSet && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
         None
 
@@ -46,28 +46,28 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
           a.attr
         }
         // Add foreign key references
-        a.refNs.foreach(refNs => refs += ((ns, a.attr, refNs)))
+        a.ref.foreach(refEntity => refs += ((entity, a.attr, refEntity)))
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }.mkString(s",\n|      |  ")
 
     val table =
-      s"""CREATE TABLE IF NOT EXISTS $ns$tableSuffix (
+      s"""CREATE TABLE IF NOT EXISTS $entity$tableSuffix (
          |      |  $columns
          |      |);
          |      |"""
 
-    val joinTables = metaNs.attrs.collect {
-      case MetaAttr(refAttr, CardSet, _, Some(refNs), _, _, _, _, _, _) =>
-        val joinTable  = s"${ns}_${refAttr}_$refNs"
-        val (id1, id2) = if (ns == refNs) ("1_id", "2_id") else ("id", "id")
-        val (l1, l2)   = (ns.length, refNs.length)
+    val joinTables = MetaEntity.attrs.collect {
+      case MetaAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
+        val joinTable  = s"${entity}_${refAttr}_$ref"
+        val (id1, id2) = if (entity == ref) ("1_id", "2_id") else ("id", "id")
+        val (l1, l2)   = (entity.length, ref.length)
         val (p1, p2)   = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
-        val ref1       = s"${ns}_$id1$p1"
-        val ref2       = s"${refNs}_$id2$p2"
+        val ref1       = s"${entity}_$id1$p1"
+        val ref2       = s"${ref}_$id2$p2"
         refs ++= List(
-          (joinTable, s"${ns}_$id1", ns),
-          (joinTable, s"${refNs}_$id2", refNs),
+          (joinTable, s"${entity}_$id1", entity),
+          (joinTable, s"${ref}_$id2", ref),
         )
         s"""CREATE TABLE IF NOT EXISTS $joinTable (
            |      |  $ref1 BIGINT,
@@ -87,13 +87,13 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
     hasReserved = false
     reservedNss = Array.empty[Boolean]
     reservedAttrs = Array.empty[Boolean]
-    reservedNssAttrs = Array.empty[String]
+    reservedEntityAttrs = Array.empty[String]
 
-    val tableDefinitions = nss.flatMap { ns =>
-      reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(ns.ns.toLowerCase)
-      val result = createTable(ns, dialect)
-      reservedNssAttrs = reservedNssAttrs :+ reservedAttrs
-        .mkString(s"\n      // ${ns.ns}\n      ", ", ", "")
+    val tableDefinitions = entities.flatMap { entity =>
+      reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
+      val result = createTable(entity, dialect)
+      reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs
+        .mkString(s"\n    // ${entity.ent}\n    ", ", ", "")
       reservedAttrs = Array.empty[Boolean]
       result
     }
@@ -108,28 +108,27 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
       var m3 = 0
       var m4 = 0
       refs.foreach {
-        case (ns, refAttr, refNs) =>
-          m1 = clean(dialect, ns).length.max(m1)
+        case (ent, refAttr, ref) =>
+          m1 = clean(dialect, ent).length.max(m1)
           m2 = clean(dialect, refAttr).length.max(m2)
-          m3 = clean(dialect, refNs).length.max(m3)
+          m3 = clean(dialect, ref).length.max(m3)
           m4 = ((clean(dialect, refAttr) + quote).length + 2).max(m4)
       }
 
       val constraints = ListBuffer.empty[String]
       List(refs.map {
-        case (ns, refAttr, refNs) =>
+        case (ent, refAttr, ref) =>
           constraints += refAttr
-          val ns1        = clean(dialect, ns)
-          val table      = ns1 + padS(m1, ns1)
+          val ent1       = clean(dialect, ent)
+          val table      = ent1 + padS(m1, ent1)
           val refAttr1   = clean(dialect, refAttr)
           val key        = refAttr1 + padS(m2, refAttr1)
-          val nsKey      = ns + "_" + refAttr
-          val refNs1     = clean(dialect, refNs)
-          val ref        = refNs1 + padS(m3, refNs1)
+          val refEnt1    = clean(dialect, ref)
+          val ref1       = refEnt1 + padS(m3, refEnt1)
           val count      = constraints.count(_ == refAttr)
           val refAttr2   = refAttr1 + (if (count == 1) quote else "_" + count + quote)
           val constraint = s"${quote}_$refAttr2" + padS(m4, refAttr2)
-          s"-- ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref (id);"
+          s"-- ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id);"
       }.mkString(
         "-- Optional reference constraints to avoid orphan relationships (add manually)\n|      |",
         "\n|      |",
@@ -138,18 +137,17 @@ abstract class Schema_SqlBase(schema: MetaSchema) extends RegexMatching with Bas
     }
 
     (tableDefinitions ++ foreignKeys).mkString("\n|      |")
-//    (tableDefinitions).mkString("\n|      |")
   }
 
   protected def getReserved = if (hasReserved) {
-    s"""Some(Reserved(
+    s"""
        |
-       |    // Namespace names colliding
-       |    Array(${reservedNss.mkString(", ")}),
        |
-       |    // Attribute names colliding
-       |    Array(${reservedNssAttrs.mkString(",\n        ")}
-       |    )
-       |  ))""".stripMargin
-  } else "None"
+       |  // Indexes to lookup if entity/attribute names collides with db keyword
+       |
+       |  override val reservedEntities: Array[Boolean] = Array(${reservedNss.mkString(", ")})
+       |
+       |  override val reservedAttributes: Array[Boolean] = Array(${reservedEntityAttrs.mkString(",\n    ")}
+       |  )""".stripMargin
+  } else ""
 }

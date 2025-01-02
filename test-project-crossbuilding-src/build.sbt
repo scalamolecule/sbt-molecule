@@ -1,18 +1,17 @@
 
 name := "sbt-molecule-test-project-crossbuilding-src"
-version := "1.11.0"
+version := "1.11.1"
 organization := "org.scalamolecule"
 crossScalaVersions := Seq("2.12.20", "2.13.15", "3.3.4")
 ThisBuild / scalaVersion := "2.13.15"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-sql-h2" % "0.15.0",
-  "com.lihaoyi" %% "utest" % "0.8.4",
+  "org.scalamolecule" %% "molecule-sql-h2" % "0.15.1",
+  "org.scalameta" %% "munit" % "1.0.3" % Test,
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
-
-// Ensure clojure loads correctly for async tests run from sbt
-//Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.Flat
+Test / parallelExecution := false
+Test / fork := true
 
 unmanagedBase := {
   CrossVersion.partialVersion(scalaVersion.value) match {
@@ -22,10 +21,7 @@ unmanagedBase := {
   }
 }
 
-// Molecule
 enablePlugins(MoleculePlugin)
-
-// Generate Molecule boilerplate code with `sbt clean compile -Dmolecule=true`
 moleculePluginActive := sys.props.get("molecule").contains("true")
-moleculeDataModelPaths := Seq("app/dataModel") // Mandatory
-moleculeMakeJars := false // Optional, default: true
+moleculeDomainPaths := Seq("app/domain")
+moleculeMakeJars := false

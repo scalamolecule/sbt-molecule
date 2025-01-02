@@ -1,33 +1,29 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.render.sql.*
+import sbtmolecule.sqlDialect.MariaDB
 
 
-case class Schema_MariaDB(schema: MetaSchema) extends Schema_SqlBase(schema) {
+case class Schema_MariaDB(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
 
   def get: String =
     s"""|/*
         |* AUTO-GENERATED schema boilerplate code
         |*
         |* To change:
-        |* 1. edit data model file in `${schema.pkg}/`
+        |* 1. edit domain definition file in `${metaDomain.pkg}/`
         |* 2. `sbt compile -Dmolecule=true`
         |*/
-        |package ${schema.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api.Schema
-        |import molecule.base.ast._
+        |import molecule.base.api._
         |
         |
-        |trait ${schema.domain}Schema_MariaDB extends Schema {
+        |object ${metaDomain.domain}Schema_mariadb extends ${metaDomain.domain}Schema with Schema_mariadb {
         |
-        |  override val sqlSchema_mariadb: String =
+        |  override val schemaData: List[String] = List(
         |    \"\"\"
         |      |${tables(MariaDB)}\"\"\".stripMargin
-        |
-        |
-        |  // Index to lookup if name collides with db keyword
-        |  override val sqlReserved_mariadb: Option[Reserved] = $getReserved
+        |  )$getReserved
         |}""".stripMargin
 }

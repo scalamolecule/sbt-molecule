@@ -14,5 +14,8 @@ fi
 if [ -d "target"  ]; then
     rm -r target
 fi
-sbt +test -Dmolecule=true
+
+sbt +compile -Dmolecule=true
+sbt +test
+
 cd ..

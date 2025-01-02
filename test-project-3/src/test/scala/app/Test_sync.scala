@@ -1,16 +1,13 @@
 package app
 
-import app.dataModel.dsl.Person._
+import app.domain.dsl.Person._
 import molecule.sql.h2.sync._
-import utest._
 
 
-object Test_sync extends TestSuite with Connection {
+class Test_sync extends TestSetup {
 
-  override lazy val tests = Tests {
-    "test" - h2 { implicit conn =>
-      Person.name("Bob").age(42).save.transact
-      Person.name.age.query.get ==> List(("Bob", 42))
-    }
+  "test" - h2 { implicit conn =>
+    Person.name("Bob").age(42).save.transact
+    Person.name.age.query.get ==> List(("Bob", 42))
   }
 }
