@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHelpers {
 
-  protected val entities: Seq[MetaEntity] = metaDomain.groups.flatMap(_.ents)
+  protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
 
   protected var hasReserved         = false
   protected var reservedNss         = Array.empty[Boolean]

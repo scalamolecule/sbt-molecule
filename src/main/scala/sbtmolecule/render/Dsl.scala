@@ -5,18 +5,18 @@ import molecule.base.ast.*
 
 case class Dsl(
   metaDomain: MetaDomain,
-  groupPrefix: String,
+  segmentPrefix: String,
   metaEntity: MetaEntity,
   nsIndex: Int = 0,
   attrIndexPrev: Int = 0,
   scalaVersion: String = "3"
 ) extends DslFormatting(metaDomain, metaEntity) {
 
-  private val entityList: Seq[String] = metaDomain.groups.flatMap(_.ents.map(_.ent))
+  private val entityList: Seq[String] = metaDomain.segments.flatMap(_.ents.map(_.ent))
   private val attrList  : Seq[String] = {
     for {
-      group <- metaDomain.groups
-      entity <- group.ents
+      segment <- metaDomain.segments
+      entity <- segment.ents
       a <- entity.attrs
     } yield entity.ent + "." + a.attr
   }
@@ -30,9 +30,8 @@ case class Dsl(
       "molecule.boilerplate.api.Keywords._",
       "molecule.boilerplate.api._",
       "molecule.boilerplate.api.expression._",
-      "molecule.boilerplate.ast.Model",
-      "molecule.boilerplate.ast.Model._",
-      "scala.reflect.ClassTag"
+      "molecule.boilerplate.ast.DataModel",
+      "molecule.boilerplate.ast.DataModel._",
     )
     val typeImports = attrs.collect {
       case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"

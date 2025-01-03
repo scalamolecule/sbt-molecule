@@ -1,8 +1,8 @@
 package app.domains.nested
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Animal extends Domain(2) {
+object Animal extends DomainStructure(2) {
 
   trait Animal {
     val name = oneString

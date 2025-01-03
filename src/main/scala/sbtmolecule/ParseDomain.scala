@@ -39,7 +39,7 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     // Generic attributes
     "id",
 
-    // Model elements access
+    // Data model elements
     "elements"
   )
 
@@ -62,11 +62,11 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     afterPkg.collectFirst {
       case Defn.Object(_, Term.Name(domain),
       Template.internal.Latest(_,
-      List(Init.internal.Latest(Type.Name("Domain"), _,
+      List(Init.internal.Latest(Type.Name("DomainStructure"), _,
       List(Term.ArgClause(List(Lit.Int(maxArity)), _))
       )), _, body, _)) => (domain, maxArity, body)
     }.getOrElse(
-      unexpected(tree, ". Couldn't find `object <YourDomain> extends Domain(<arity>) {...}` in code:\n")
+      unexpected(tree, ". Couldn't find `object <YourDomain> extends DomainStructure(<arity>) {...}` in code:\n")
     )
   }
 
@@ -81,27 +81,27 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
   }
 
   def metaDomain: MetaDomain = {
-    val hasGroups = body.exists {
+    val hasSegements = body.exists {
       case q"object $_ { ..$_ }" => true
       case _                     => false
     }
-    val groups    = if (hasGroups) {
+    val segments     = if (hasSegements) {
       body.map {
-        case q"object $scope { ..$entities }" =>
-          MetaGroup(scope.toString, getEntities(scope.toString + "_", entities))
+        case q"object $segment { ..$entities }" =>
+          MetaSegment(segment.toString, getEntities(segment.toString + "_", entities))
 
         case q"trait $entity $template" => noMix()
       }
     } else {
-      Seq(MetaGroup("", getEntities("", body)))
+      Seq(MetaSegment("", getEntities("", body)))
     }
-    checkCircularMandatoryRefs(groups)
-    val scopes1 = addBackRefs(groups)
-    MetaDomain(pkg, domain, maxArity, scopes1)
+    checkCircularMandatoryRefs(segments)
+    val segments1 = addBackRefs(segments)
+    MetaDomain(pkg, domain, maxArity, segments1)
   }
 
-  private def checkCircularMandatoryRefs(groups: Seq[MetaGroup]): Unit = {
-    val mappings: Map[String, Seq[(String, String)]] = groups
+  private def checkCircularMandatoryRefs(segments: Seq[MetaSegment]): Unit = {
+    val mappings: Map[String, Seq[(String, String)]] = segments
       .flatMap(_.ents
         .filter(_.attrs.exists(ref =>
           ref.ref.nonEmpty && ref.options.contains("mandatory")
@@ -136,28 +136,28 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     }
   }
 
-  private def fullEntity(scopePrefix: String, entity: String): String = {
-    if (entity.contains(".")) entity.replace(".", "_") else scopePrefix + entity
+  private def fullEntity(segmentPrefix: String, entity: String): String = {
+    if (entity.contains(".")) entity.replace(".", "_") else segmentPrefix + entity
   }
 
-  private def addBackRefs(scopes: Seq[MetaGroup]): Seq[MetaGroup] = {
-    scopes.map { scope =>
-      val entities1 = scope.ents.map { entity =>
+  private def addBackRefs(segments: Seq[MetaSegment]): Seq[MetaSegment] = {
+    segments.map { segment =>
+      val entities1 = segment.ents.map { entity =>
         entity.copy(backRefs = backRefs.getOrElse(entity.ent, Nil).distinct.sorted)
       }
-      scope.copy(ents = entities1)
+      segment.copy(ents = entities1)
     }
   }
 
-  private def getEntities(scopePrefix: String, entities: Seq[Stat]): Seq[MetaEntity] = {
+  private def getEntities(segmentPrefix: String, entities: Seq[Stat]): Seq[MetaEntity] = {
     entities.map {
-      case q"trait $entityTpe { ..$attrs }" => getEntity(scopePrefix, entityTpe, attrs)
+      case q"trait $entityTpe { ..$attrs }" => getEntity(segmentPrefix, entityTpe, attrs)
       case q"object $o { ..$_ }"            => noMix()
       case other                            => unexpected(other)
     }
   }
 
-  private def getEntity(scopePrefix: String, entityTpe: Name, attrs: Seq[Stat]): MetaEntity = {
+  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: Seq[Stat]): MetaEntity = {
     val entity = entityTpe.toString
     if (entity.head.isLower) {
       err(s"Please change entity trait name `$entity` to start with upper case letter.")
@@ -165,7 +165,7 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     if (attrs.isEmpty) {
       err(s"Please define attribute(s) in entity $entity")
     }
-    val metaAttrs      = getAttrs(scopePrefix, entity, attrs)
+    val metaAttrs      = getAttrs(segmentPrefix, entity, attrs)
     val mandatoryAttrs = metaAttrs.collect {
       case a if a.ref.isEmpty && a.options.contains("mandatory") => a.attr
     }
@@ -173,7 +173,7 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
       case a if a.ref.nonEmpty && a.options.contains("mandatory") => a.attr -> a.ref.get
     }
 
-    // Merge required groups with common attributes
+    // Merge required groups of attributes with common attributes
     val reqGroups       = metaAttrs.collect {
       case a if a.requiredAttrs.nonEmpty => a.requiredAttrs
     }
@@ -195,10 +195,10 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
       } else a
     }
 
-    MetaEntity(scopePrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
+    MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
-  private def getAttrs(scopePrefix: String, entity: String, attrs: Seq[Stat]): Seq[MetaAttribute] = attrs.map {
+  private def getAttrs(segmentPrefix: String, entity: String, attrs: Seq[Stat]): Seq[MetaAttribute] = attrs.map {
     case q"val $attr = $defs" =>
       val a = attr.toString
       if (reservedAttrNames.contains(a)) {
@@ -207,18 +207,18 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
             reservedAttrNames.mkString("\n  ")
         )
       }
-      acc(scopePrefix, entity, defs, MetaAttribute(a, CardOne, ""))
+      acc(segmentPrefix, entity, defs, MetaAttribute(a, CardOne, ""))
 
     case other => unexpected(other)
   }
 
-  private def saveDescr(scopePrefix: String, entity: String, prev: Tree, a: MetaAttribute, attr: String, s: String) = {
+  private def saveDescr(segmentPrefix: String, entity: String, prev: Tree, a: MetaAttribute, attr: String, s: String) = {
     if (s.isEmpty)
       err(s"Can't apply empty String as description option for attribute $attr")
     else if (s.contains("\""))
       err(s"Description option for attribute $attr can't contain quotation marks.")
     else
-      acc(scopePrefix, entity, prev, a.copy(description = Some(s)))
+      acc(segmentPrefix, entity, prev, a.copy(description = Some(s)))
   }
 
   @tailrec
@@ -561,16 +561,16 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     }
   }
 
-  private def addBackRef(scopePrefix: String, backRefNs: String, entity: String): Unit = {
-    val fullN              = fullEntity(scopePrefix, entity)
-    val backRefNs1         = fullEntity(scopePrefix, backRefNs)
+  private def addBackRef(segmentPrefix: String, backRefNs: String, entity: String): Unit = {
+    val fullN              = fullEntity(segmentPrefix, entity)
+    val backRefNs1         = fullEntity(segmentPrefix, backRefNs)
     val curBackRefEntities = backRefs.getOrElse(fullN, Nil)
     backRefs = backRefs + (fullN -> (curBackRefEntities :+ backRefNs1))
   }
 
   private def handleValidationCases(
     prev: Tree,
-    scopePrefix: String,
+    segmentPrefix: String,
     entity: String,
     a: MetaAttribute,
     cases: Seq[Case],
@@ -604,7 +604,7 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     val valueAttrs2 = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
     val reqAttrs1   = a.requiredAttrs ++ valueAttrs2
     val attr1       = a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations)
-    acc(scopePrefix, entity, prev, attr1)
+    acc(segmentPrefix, entity, prev, attr1)
   }
 
   private def oneValidationCall(entity: String, a: MetaAttribute) = if (a.validations.nonEmpty) {

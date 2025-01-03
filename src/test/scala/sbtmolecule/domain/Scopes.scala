@@ -1,8 +1,8 @@
 package sbtmolecule.domain
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Scopes extends Domain(3) {
+object Scopes extends DomainStructure(3) {
 
   object accounting {
     trait Invoice {

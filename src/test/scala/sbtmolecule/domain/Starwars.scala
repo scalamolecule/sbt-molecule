@@ -1,8 +1,8 @@
 package sbtmolecule.domain
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Starwars extends Domain(6) {
+object Starwars extends DomainStructure(6) {
 
   trait Character {
     val name      = oneString

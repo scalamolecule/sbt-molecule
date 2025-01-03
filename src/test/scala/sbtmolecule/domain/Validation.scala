@@ -2,10 +2,10 @@ package sbtmolecule.domain
 
 import java.time.*
 import java.util.Date
-import molecule.Domain
+import molecule.DomainStructure
 import scala.collection.immutable.Seq
 
-object Validation extends Domain(5) {
+object Validation extends DomainStructure(5) {
 
   trait Strings {
     val email        = oneString.email

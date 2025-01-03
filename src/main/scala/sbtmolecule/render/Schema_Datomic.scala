@@ -6,10 +6,10 @@ import molecule.base.util.RegexMatching
 
 case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
 
-  private val flatNss: Seq[MetaEntity] = metaDomain.groups.flatMap(_.ents)
+  private val flatNss: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
 
   private val datomicPartitions: String = {
-    val parts = metaDomain.groups.filterNot(_.group.isEmpty).map(_.group)
+    val parts = metaDomain.segments.filterNot(_.segment.isEmpty).map(_.segment)
     if (parts.isEmpty) "\"\"" else {
       edn(parts.map { part =>
         s"""|        {:db/id      "$part"

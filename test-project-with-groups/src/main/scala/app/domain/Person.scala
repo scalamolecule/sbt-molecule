@@ -1,8 +1,8 @@
 package app.domain
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Person extends Domain(5) {
+object Person extends DomainStructure(5) {
 
   object male {
     trait Character {

@@ -17,24 +17,24 @@ object FileBuilder {
         s"\nPath in moleculeDomainPaths is not a directory:\n" + definitionDir
       )
 
-      // Loop Data Model files in each definition directory
+      // Loop Data Structure files in each domain directory
       sbt.IO.listFiles(definitionDir)
         .filter(f => f.isFile)
         .flatMap { domainFile =>
           val metaDomain = ParseDomain(domainFile.getPath, scalaVersion)
 
           val dslFiles: Seq[File] = {
-            var entityIndex   = 0
-            var attrIndex = 0
+            var entityIndex = 0
+            var attrIndex   = 0
             for {
-              metaGroup <- metaDomain.groups
-              metaEntity <- metaGroup.ents
+              metaSegment <- metaDomain.segments
+              metaEntity <- metaSegment.ents
             } yield {
-              val entityFile  = metaDomain.pkg.split('.').toList.foldLeft(managedDir)(
+              val entityFile    = metaDomain.pkg.split('.').toList.foldLeft(managedDir)(
                 (dir, pkg) => dir / pkg
               ) / "dsl" / metaDomain.domain / s"${metaEntity.ent}.scala"
-              val scopePrefix = if (metaGroup.group.isEmpty) "" else metaGroup.group + "_"
-              val code        = Dsl(metaDomain, scopePrefix, metaEntity, entityIndex, attrIndex, scalaVersion).get
+              val segmentPrefix = if (metaSegment.segment.isEmpty) "" else metaSegment.segment + "_"
+              val code          = Dsl(metaDomain, segmentPrefix, metaEntity, entityIndex, attrIndex, scalaVersion).get
               entityIndex += 1
               attrIndex += metaEntity.attrs.length
               IO.write(entityFile, code)

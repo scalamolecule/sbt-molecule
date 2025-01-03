@@ -247,7 +247,7 @@ case class Dsl_Arities(
       val isOwner      = options.contains("owner")
       val owner        = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
-      val refObj       = s"""Model.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
+      val refObj       = s"""DataModel.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
 
       val withInit = if (arity == maxArity)
         ""
@@ -318,7 +318,7 @@ case class Dsl_Arities(
         val prevNsIndex = entityList.indexOf(backRef)
         val curNsIndex  = entityList.indexOf(ent)
         val coord       = s"Seq($prevNsIndex, $curNsIndex)"
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ Model.BackRef("$backRef", "$ent", $coord))""")
+        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ DataModel.BackRef("$backRef", "$ent", $coord))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }

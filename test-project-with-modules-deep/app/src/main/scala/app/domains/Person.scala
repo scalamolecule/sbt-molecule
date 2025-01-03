@@ -1,8 +1,8 @@
 package app.domains
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Person extends Domain(2) {
+object Person extends DomainStructure(2) {
 
   trait Person {
     val name = oneString

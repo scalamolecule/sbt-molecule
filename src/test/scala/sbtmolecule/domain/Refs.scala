@@ -1,8 +1,8 @@
 package sbtmolecule.domain
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Refs extends Domain(10) {
+object Refs extends DomainStructure(10) {
 
   trait A {
     val i    = oneInt

@@ -1,8 +1,8 @@
 package sbtmolecule.domain
 
-import molecule.Domain
+import molecule.DomainStructure
 
-object Cardinalities extends Domain(6) {
+object Cardinalities extends DomainStructure(6) {
 
   //  trait Card1 {
   //    val one = oneInt
