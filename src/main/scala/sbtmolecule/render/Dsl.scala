@@ -27,11 +27,11 @@ case class Dsl(
     val baseImports = Seq(
       "java.time._",
       "molecule.base.ast._",
-      "molecule.boilerplate.api.Keywords._",
-      "molecule.boilerplate.api._",
-      "molecule.boilerplate.api.expression._",
-      "molecule.boilerplate.ast.DataModel",
-      "molecule.boilerplate.ast.DataModel._",
+      "molecule.core.api.Keywords._",
+      "molecule.core.api._",
+      "molecule.core.api.expression._",
+      "molecule.core.ast.DataModel",
+      "molecule.core.ast.DataModel._",
     )
     val typeImports = attrs.collect {
       case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
@@ -116,7 +116,15 @@ case class Dsl(
   private val entities: String = (0 to metaDomain.maxArity)
     .map(Dsl_Arities(scalaVersion, metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
-  val idCoord = s"coord = Seq(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
+  private val idCoord = s"coord = Seq(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
+
+  private val (rightRefOp, rightRef) = if (refs.isEmpty) ("", "") else (
+    s"with RightRefOp_0[${ent}_1_refs] with RightRef_0[${ent}_1_refs] ",
+    s"""
+       |
+       |  override protected def _optEntity[EntityTpl](optElements: List[Element]): ${ent}_1_refs[Option[EntityTpl], Any] =
+       |    new ${ent}_1_refs[Option[EntityTpl], Any](List(DataModel.OptEntity(optElements, null /* following ref is inserted */)))""".stripMargin
+  )
 
   def get: String = {
     s"""/*
@@ -133,9 +141,9 @@ case class Dsl(
        |
        |$baseEntity
        |
-       |object $ent extends $ent_0[Nothing](Nil) {
+       |object $ent extends $ent_0[Nothing](Nil) $rightRefOp{
        |  final def apply(id : Long, ids: Long*) = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, id +: ids, $idCoord)))
-       |  final def apply(ids: Iterable[Long])   = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, ids.toSeq, $idCoord)))
+       |  final def apply(ids: Iterable[Long])   = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, ids.toSeq, $idCoord)))$rightRef
        |}
        |
        |

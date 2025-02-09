@@ -15,39 +15,42 @@ object RenderDSL extends TestSuite {
   lazy val unique        = ParseDomain(basePath + "Uniques.scala", "213")
   lazy val validation    = ParseDomain(basePath + "Validation.scala", "213")
   lazy val scopes        = ParseDomain(basePath + "Scopes.scala", "213")
+  lazy val segments      = ParseDomain(basePath + "Segments.scala", "213")
 
 
   override def tests: Tests = Tests {
 
     "DSL" - {
-      //      Dsl(types, "", types.groups.head.entities(0), scalaVersion = "213").get ==> "check"
-      //      Dsl(types, "", types.groups.head.entities(1)).get ==> "check"
-      //      Dsl(types, "", types.groups.head.entities(2)).get ==> "check"
-      //      Dsl(validation, "", validation.groups.head.entities(11)).get ==> "check"
-      //      Dsl(refs, "", refs.groups.head.entities(0)).get ==> "check"
-      //      Dsl(scopes, "", scopes.groups(0).entities(0)).get ==> "check"
-      //      Dsl(validation, "", validation.groups(0).entities(0)).get ==> "check"
-      //      Dsl(validation, "", validation.groups(0).entities(3)).get ==> "check" // Constants
-      //      Dsl(validation, "", validation.groups(0).entities(4)).get ==> "check" // Variables
-      //      Dsl(cardinalities, "", cardinalities.groups(0).entities(0)).get ==> "check"
-      //      Dsl(starwars, "", starwars.groups(0).entities(2)).get ==> "check"
+      //            Dsl(types, "", types.segments.head.ents(0), scalaVersion = "213").get ==> "check"
+      //      Dsl(types, "", types.segments.head.ents(1)).get ==> "check"
+      //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check"
+      //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"
+      //      Dsl(refs, "", refs.segments.head.ents(0)).get ==> "check"
+      //      Dsl(scopes, "", scopes.segments(0).ents(0)).get ==> "check"
+      Dsl(segments, "", segments.segments(0).ents(0)).get ==> "check"
+      //      Dsl(unique, "", unique.segments(0).ents(0)).get ==> "check"
+      //      Dsl(validation, "", validation.segments(0).ents(0)).get ==> "check"
+      //      Dsl(validation, "", validation.segments(0).ents(3)).get ==> "check" // Constants
+      //      Dsl(validation, "", validation.segments(0).ents(4)).get ==> "check" // Variables
+      //      Dsl(cardinalities, "", cardinalities.segments(0).ents(0)).get ==> "check"
+      //      Dsl(starwars, "", starwars.segments(0).ents(2)).get ==> "check"
       //
       //      validation ==> "check"
-      //      validation.groups.head.entities(3) ==> "check"
-      //      validation.groups.head.entities(4) ==> "check"
-      //      validation.groups.head.entities(12) ==> "check"
+      //      validation.segments.head.ents(3) ==> "check"
+      //      validation.segments.head.ents(4) ==> "check"
+      //      validation.segments.head.ents(12) ==> "check"
       //      validation.attrMap() ==> "check"
-      //      validation.groups.head ==> "check"
+      //      validation.segments.head ==> "check"
       //
       //
-      //      Dsl(types, "", types.groups.head.entities(0)).get ==> "check"
-      //      Dsl(types, "", types.groups.head.entities(1), 1, 36).get ==> "check"
+      //      Dsl(types, "", types.segments.head.ents(0)).get ==> "check"
+      //      Dsl(types, "", types.segments.head.ents(1), 1, 36).get ==> "check"
       //
-      //      Dsl(unique, "", unique.groups.head.entities(0)).get ==> "check"
-      //      Dsl(unique, "", unique.groups.head.entities(1)).get ==> "check"
+      //      Dsl(unique, "", unique.segments.head.ents(0)).get ==> "check"
+      //      Dsl(unique, "", unique.segments.head.ents(1)).get ==> "check"
       //
-      //      Dsl(refs, "", refs.groups.head.entities(0)).get ==> "check"
-      //      Dsl(refs, "", refs.groups.head.entities(1)).get ==> "check"
+      //      Dsl(refs, "", refs.segments.head.ents(0)).get ==> "check"
+      //      Dsl(refs, "", refs.segments.head.ents(1)).get ==> "check"
       //
       //      Schema(types).get ==> "check"
 

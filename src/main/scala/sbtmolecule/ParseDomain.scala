@@ -561,11 +561,11 @@ class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) exten
     }
   }
 
-  private def addBackRef(segmentPrefix: String, backRefNs: String, entity: String): Unit = {
+  private def addBackRef(segmentPrefix: String, backRefEntity: String, entity: String): Unit = {
     val fullN              = fullEntity(segmentPrefix, entity)
-    val backRefNs1         = fullEntity(segmentPrefix, backRefNs)
+    val backRefEntity1     = fullEntity(segmentPrefix, backRefEntity)
     val curBackRefEntities = backRefs.getOrElse(fullN, Nil)
-    backRefs = backRefs + (fullN -> (curBackRefEntities :+ backRefNs1))
+    backRefs = backRefs + (fullN -> (curBackRefEntities :+ backRefEntity1))
   }
 
   private def handleValidationCases(

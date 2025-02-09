@@ -14,8 +14,8 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
     def reserved(a: MetaAttribute): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
     val max = metaEntity.attrs.map {
       case a if a.card == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a)                            => a.attr.length + 1
-      case a                                           => a.attr.length
+      case a if reserved(a)                         => a.attr.length + 1
+      case a                                        => a.attr.length
     }.max.max(2)
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(ent.toLowerCase)) "_" else ""
@@ -91,13 +91,13 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
 
   override protected def tables(dialect: Dialect): String = {
     hasReserved = false
-    reservedNss = Array.empty[Boolean]
+    reservedEntities = Array.empty[Boolean]
     reservedAttrs = Array.empty[Boolean]
     reservedEntityAttrs = Array.empty[String]
     var hasRefs            = false
     val tables             = entities.flatMap { entity =>
       refs2.clear() // foreign key constraints per table
-      reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
+      reservedEntities = reservedEntities :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
       val result = createTable(entity, dialect)
       hasRefs = hasRefs || refs2.nonEmpty
       reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs

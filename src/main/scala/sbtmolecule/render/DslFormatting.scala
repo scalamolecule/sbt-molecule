@@ -10,7 +10,7 @@ class DslFormatting(metaDomain: MetaDomain, metaEntity: MetaEntity, arity: Int =
   val maxArity = metaDomain.maxArity
   val ent      = metaEntity.ent
   val attrs    = metaEntity.attrs
-  val refs     = attrs.filter(_.attr.nonEmpty)
+  val refs     = attrs.filter(_.ref.nonEmpty)
   val backRefs = metaEntity.backRefs
 
   def camel(s: String) = s"${s.head.toUpper}${s.tail}"

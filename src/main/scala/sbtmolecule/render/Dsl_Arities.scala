@@ -101,8 +101,8 @@ case class Dsl_Arities(
       lazy val elemsO = s"elements :+ ${attr}_opt$padA"
       lazy val elemsT = s"elements :+ ${attr}_tac$padA"
 
-      val nextNextNs = if (secondLast) s"X${arity + 3}" else ent_2
-      val nextNs     = if (last) s"X${arity + 2}" else ent_1
+      val nextNextEntity = if (secondLast) s"X${arity + 3}" else ent_2
+      val nextEntity     = if (last) s"X${arity + 2}" else ent_1
 
       val filtersMan = if (card == CardOne && attr != "id" && ref.isEmpty) baseType match {
         case "String"                                     => "_String  "
@@ -119,9 +119,9 @@ case class Dsl_Arities(
         case _                                            => "         "
       } else "         "
 
-      lazy val exprM = s"Expr${c}Man${_1}$filtersMan[$tpesM, $ent_1, $nextNextNs]"
-      lazy val exprO = s"Expr${c}Opt${_1}$filtersOpt[$tpesO, $ent_1, $nextNextNs]"
-      lazy val exprT = s"Expr${c}Tac${_0}$filtersTac[$tpesT, $ent_0, $nextNs]"
+      lazy val exprM = s"Expr${c}Man${_1}$filtersMan[$tpesM, $ent_1, $nextNextEntity]"
+      lazy val exprO = s"Expr${c}Opt${_1}$filtersOpt[$tpesO, $ent_1, $nextNextEntity]"
+      lazy val exprT = s"Expr${c}Tac${_0}$filtersTac[$tpesT, $ent_0, $nextEntity]"
 
       if (!last) {
         man += s"""lazy val $attr  $padA = new $ent_1[$tpesM]($elemsM) with $exprM with $card"""
@@ -232,30 +232,41 @@ case class Dsl_Arities(
     }
   }
 
-  private val hasRefOne      = refs.exists(_.card == CardOne)
-  private val hasRefMany     = refs.exists(_.card == CardSet)
-  private val withOptRefInit = s" with OptRefInit"
-  private val withNestedInit = s" with NestedInit"
+  private val hasRefOne  = refs.exists(_.card == CardOne)
+  private val hasRefMany = refs.exists(_.card == CardSet)
   refs.collect {
     case MetaAttribute(attr, card, _, Some(ref0), options, _, _, _, _, _) =>
-      val refName      = camel(attr)
-      val pRefAttr     = padRefAttr(attr)
-      val pRef       = padRefEntity(ref0)
-      val nsIndex      = entityList.indexOf(ent)
-      val refAttrIndex = attrList.indexOf(ent + "." + attr)
-      val refNsIndex   = entityList.indexOf(ref0)
-      val isOwner      = options.contains("owner")
-      val owner        = s"$isOwner" + (if (isOwner) " " else "") // align true/false
-      val coord        = s"Seq($nsIndex, $refAttrIndex, $refNsIndex)"
-      val refObj       = s"""DataModel.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
+      val refName        = camel(attr)
+      val pRefAttr       = padRefAttr(attr)
+      val pRef           = padRefEntity(ref0)
+      val nsIndex        = entityList.indexOf(ent)
+      val refAttrIndex   = attrList.indexOf(ent + "." + attr)
+      val refEntityIndex = entityList.indexOf(ref0)
+      val isOwner        = options.contains("owner")
+      val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
+      val coord          = s"Seq($nsIndex, $refAttrIndex, $refEntityIndex)"
+      val refObj         = s"""DataModel.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
 
-      val withInit = if (arity == maxArity)
-        ""
-      else if (card == CardOne)
-        withOptRefInit
-      else
-        withNestedInit
-      ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj)$withInit"""
+      if (hasRefOne && arity == 1) {
+        if (arity == maxArity) {
+          if (card == CardOne)
+            ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef($refObj))"""
+          else
+            ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef$refObj))"""
+        } else if (card == CardOne) {
+          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef($refObj)) with OptRefInit"""
+        } else {
+          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef($refObj)) with NestedInit"""
+        }
+      } else {
+        if (arity == maxArity) {
+            ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj)"""
+        } else if (card == CardOne) {
+          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj) with OptRefInit"""
+        } else {
+          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj) with NestedInit"""
+        }
+      }
   }
 
   private val manAttrs = if (last) "" else man.result().mkString("", "\n  ", "\n\n  ")
@@ -264,8 +275,8 @@ case class Dsl_Arities(
 
   private val elements = "override val elements: List[Element]"
 
-  private val lastNs   = if (last) s"X${arity + 2}" else ent_1
-  private val modelOps = s"ModelOps_$arity[${`A..V, `}t, $ent_0, $lastNs]"
+  private val lastEntity = if (last) s"X${arity + 2}" else ent_1
+  private val modelOps   = s"ModelOps_$arity[${`A..V, `}t, $ent_0, $lastEntity]"
 
   private val resolvers = res.result().mkString("\n  ")
 
@@ -293,17 +304,28 @@ case class Dsl_Arities(
     }
   }
 
-  private val optRef = if (hasRefOne && arity < maxArity) {
+  private val optRefInit = if (hasRefOne && arity < maxArity) {
     val ns_refs = ent_1 + "_refs"
     s"""trait OptRefInit extends OptRefOp_$arity[${`A..V, `}$ns_refs] with OptRef_$arity[${`A..V, `}$ns_refs] { self: Molecule =>
-       |    override protected def _optRef[RefTpl](optRefElements: List[Element]): $ns_refs[${`A..V, `}Option[RefTpl], Any] = new $ns_refs[${`A..V, `}Option[RefTpl], Any](self.elements.init :+ OptRef(self.elements.last.asInstanceOf[Ref], optRefElements))
+       |    override protected def _optRef[RefTpl](optRefElements: List[Element]): $ns_refs[${`A..V, `}Option[RefTpl], Any] =
+       |      new $ns_refs[${`A..V, `}Option[RefTpl], Any](self.elements.init :+ OptRef(self.elements.last.asInstanceOf[Ref], optRefElements))
        |  }""".stripMargin
   } else ""
 
-  private val nested = if (hasRefMany && arity < maxArity) {
+  private val nestedInit = if (hasRefMany && arity < maxArity) {
     s"""trait NestedInit extends NestedOp_$arity${`[A..V]`} with Nested_$arity${`[A..V]`} { self: Molecule =>
-       |    override protected def _nestedMan[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] = new NestedInit_$n0(self.elements.init :+ Nested   (self.elements.last.asInstanceOf[Ref], nestedElements))
-       |    override protected def _nestedOpt[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] = new NestedInit_$n0(self.elements.init :+ OptNested(self.elements.last.asInstanceOf[Ref], nestedElements))
+       |    override protected def _nestedMan[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] =
+       |      new NestedInit_$n0(self.elements.init :+ Nested(self.elements.last.asInstanceOf[Ref], nestedElements))
+       |
+       |    override protected def _nestedOpt[NestedTpl](nestedElements: List[Element]): NestedInit_$n0[${`A..V, `}NestedTpl] =
+       |      new NestedInit_$n0(self.elements.init :+ OptNested(self.elements.last.asInstanceOf[Ref], nestedElements))
+       |  }""".stripMargin
+  } else ""
+
+  private val addRef = if (hasRefOne && arity == 1) {
+    s"""  private def addRef(ref: DataModel.Ref) = elements match {
+       |    case List(OptEntity(optElements, _)) => List(OptEntity(optElements, ref))
+       |    case _                               => elements :+ ref
        |  }""".stripMargin
   } else ""
 
@@ -314,17 +336,17 @@ case class Dsl_Arities(
     val max = backRefs.map(_.length).max
     backRefs.flatMap { backRef =>
       if (ent == backRef) None else {
-        val pad         = padS(max, backRef)
-        val prevNsIndex = entityList.indexOf(backRef)
-        val curNsIndex  = entityList.indexOf(ent)
-        val coord       = s"Seq($prevNsIndex, $curNsIndex)"
+        val pad             = padS(max, backRef)
+        val prevEntityIndex = entityList.indexOf(backRef)
+        val curEntityIndex  = entityList.indexOf(ent)
+        val coord           = s"Seq($prevEntityIndex, $curEntityIndex)"
         Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ DataModel.BackRef("$backRef", "$ent", $coord))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }
 
   private val (refClass, refClassBody) = if (refResult.isEmpty && backRefs.isEmpty) ("", "") else {
-    val refHandles = List(optRef, nested, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
+    val refHandles = List(optRefInit, nestedInit, addRef, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
     (
       s"${ent_0}_refs[${`A..V, `}t](elements) with ",
       s"""

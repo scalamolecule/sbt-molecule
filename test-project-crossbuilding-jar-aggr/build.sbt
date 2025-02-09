@@ -1,14 +1,14 @@
 import sbt.Keys.{testFrameworks, version}
 
 lazy val scala212               = "2.12.20"
-lazy val scala213               = "2.13.15"
-lazy val scala3                 = "3.3.4"
+lazy val scala213               = "2.13.16"
+lazy val scala3                 = "3.3.5"
 lazy val supportedScalaVersions = List(scala212, scala213, scala3)
 
 inThisBuild(
   List(
     organization := "com.example",
-    version := "1.11.2",
+    version := "1.11.3-SNAPSHOT",
     scalaVersion := scala3,
     crossScalaVersions := supportedScalaVersions,
   )
@@ -21,11 +21,11 @@ lazy val app = project
   .enablePlugins(MoleculePlugin)
   .settings(
     name := "sbt-molecule-test-project-crossbuilding-jar-aggr",
-    version := "1.11.2",
+    version := "1.11.3-SNAPSHOT",
     organization := "org.scalamolecule",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions"),
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-sql-h2" %  "0.15.2",
+      "org.scalamolecule" %% "molecule-sql-h2" %  "0.15.3-SNAPSHOT",
       "org.scalameta" %% "munit" % "1.0.3" % Test,
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),

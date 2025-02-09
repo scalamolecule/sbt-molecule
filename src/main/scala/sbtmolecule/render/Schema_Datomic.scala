@@ -6,7 +6,7 @@ import molecule.base.util.RegexMatching
 
 case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
 
-  private val flatNss: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
+  private val flatEntities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
 
   private val datomicPartitions: String = {
     val parts = metaDomain.segments.filterNot(_.segment.isEmpty).map(_.segment)
@@ -20,7 +20,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
   }
 
   private val datomicAliases: String = {
-    val attrsWithAlias = flatNss.flatMap(_.attrs.tail).filter(_.alias.nonEmpty)
+    val attrsWithAlias = flatEntities.flatMap(_.attrs.tail).filter(_.alias.nonEmpty)
     if (attrsWithAlias.isEmpty) "\"\"" else {
       edn(attrsWithAlias.map { a =>
         val (attr, alias) = (a.attr, a.alias.get)
@@ -43,29 +43,29 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
       "bytes"
     } else a.baseTpe match {
       case "ID" if a.ref.nonEmpty => "ref"
-      case "ID"                      => "ref"
-      case "String"                  => "string"
-      case "Int"                     => "long"
-      case "Long"                    => "long"
-      case "Float"                   => "float"
-      case "Double"                  => "double"
-      case "Boolean"                 => "boolean"
-      case "BigInt"                  => "bigint"
-      case "BigDecimal"              => "bigdec"
-      case "Date"                    => "instant"
-      case "Duration"                => "string"
-      case "Instant"                 => "string"
-      case "LocalDate"               => "string"
-      case "LocalTime"               => "string"
-      case "LocalDateTime"           => "string"
-      case "OffsetTime"              => "string"
-      case "OffsetDateTime"          => "string"
-      case "ZonedDateTime"           => "string"
-      case "UUID"                    => "uuid"
-      case "URI"                     => "uri"
-      case "Byte"                    => "long"
-      case "Short"                   => "long"
-      case "Char"                    => "string"
+      case "ID"                   => "ref"
+      case "String"               => "string"
+      case "Int"                  => "long"
+      case "Long"                 => "long"
+      case "Float"                => "float"
+      case "Double"               => "double"
+      case "Boolean"              => "boolean"
+      case "BigInt"               => "bigint"
+      case "BigDecimal"           => "bigdec"
+      case "Date"                 => "instant"
+      case "Duration"             => "string"
+      case "Instant"              => "string"
+      case "LocalDate"            => "string"
+      case "LocalTime"            => "string"
+      case "LocalDateTime"        => "string"
+      case "OffsetTime"           => "string"
+      case "OffsetDateTime"       => "string"
+      case "ZonedDateTime"        => "string"
+      case "UUID"                 => "uuid"
+      case "URI"                  => "uri"
+      case "Byte"                 => "long"
+      case "Short"                => "long"
+      case "Char"                 => "string"
     }
   }
 
@@ -126,7 +126,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     .map(attrStmts(metaEntity.ent, _))
     .mkString("{", "}\n\n        {", "}")
 
-  private val datomicSchema: String = edn(flatNss.map { ns =>
+  private val datomicSchema: String = edn(flatEntities.map { ns =>
     val delimiter = "-" * (50 - ns.ent.length)
     s"""|        ;; ${ns.ent} $delimiter
         |

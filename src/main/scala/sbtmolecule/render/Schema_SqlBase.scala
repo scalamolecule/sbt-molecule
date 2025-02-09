@@ -11,7 +11,7 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
   protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
 
   protected var hasReserved         = false
-  protected var reservedNss         = Array.empty[Boolean]
+  protected var reservedEntities    = Array.empty[Boolean]
   protected var reservedAttrs       = Array.empty[Boolean]
   protected var reservedEntityAttrs = Array.empty[String]
   protected val refs                = ListBuffer.empty[(String, String, String)] // entity, refAttr, ref
@@ -21,8 +21,8 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
     def reserved(a: MetaAttribute): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
     val max = MetaEntity.attrs.map {
       case a if a.card == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a)                            => a.attr.length + 1
-      case a                                           => a.attr.length
+      case a if reserved(a)                         => a.attr.length + 1
+      case a                                        => a.attr.length
     }.max.max(2)
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(entity.toLowerCase)) "_" else ""
@@ -85,12 +85,12 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
 
   protected def tables(dialect: Dialect): String = {
     hasReserved = false
-    reservedNss = Array.empty[Boolean]
+    reservedEntities = Array.empty[Boolean]
     reservedAttrs = Array.empty[Boolean]
     reservedEntityAttrs = Array.empty[String]
 
     val tableDefinitions = entities.flatMap { entity =>
-      reservedNss = reservedNss :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
+      reservedEntities = reservedEntities :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
       val result = createTable(entity, dialect)
       reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs
         .mkString(s"\n    // ${entity.ent}\n    ", ", ", "")
@@ -145,7 +145,7 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
        |
        |  // Indexes to lookup if entity/attribute names collides with db keyword
        |
-       |  override val reservedEntities: Array[Boolean] = Array(${reservedNss.mkString(", ")})
+       |  override val reservedEntities: Array[Boolean] = Array(${reservedEntities.mkString(", ")})
        |
        |  override val reservedAttributes: Array[Boolean] = Array(${reservedEntityAttrs.mkString(",\n    ")}
        |  )""".stripMargin
