@@ -246,26 +246,12 @@ case class Dsl_Arities(
       val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord          = s"Seq($nsIndex, $refAttrIndex, $refEntityIndex)"
       val refObj         = s"""DataModel.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
-
-      if (hasRefOne && arity == 1) {
-        if (arity == maxArity) {
-          if (card == CardOne)
-            ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef($refObj))"""
-          else
-            ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef$refObj))"""
-        } else if (card == CardOne) {
-          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef($refObj)) with OptRefInit"""
-        } else {
-          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](addRef($refObj)) with NestedInit"""
-        }
+      if (arity == maxArity) {
+        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj)"""
+      } else if (card == CardOne) {
+        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj) with OptRefInit"""
       } else {
-        if (arity == maxArity) {
-            ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj)"""
-        } else if (card == CardOne) {
-          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj) with OptRefInit"""
-        } else {
-          ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj) with NestedInit"""
-        }
+        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj) with NestedInit"""
       }
   }
 
@@ -322,13 +308,6 @@ case class Dsl_Arities(
        |  }""".stripMargin
   } else ""
 
-  private val addRef = if (hasRefOne && arity == 1) {
-    s"""  private def addRef(ref: DataModel.Ref) = elements match {
-       |    case List(OptEntity(optElements, _)) => List(OptEntity(optElements, ref))
-       |    case _                               => elements :+ ref
-       |  }""".stripMargin
-  } else ""
-
   private val refResult = ref.result()
   private val refDefs   = if (refResult.isEmpty) "" else refResult.mkString("\n\n  ", "\n  ", "")
 
@@ -346,7 +325,7 @@ case class Dsl_Arities(
   }
 
   private val (refClass, refClassBody) = if (refResult.isEmpty && backRefs.isEmpty) ("", "") else {
-    val refHandles = List(optRefInit, nestedInit, addRef, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
+    val refHandles = List(optRefInit, nestedInit, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
     (
       s"${ent_0}_refs[${`A..V, `}t](elements) with ",
       s"""

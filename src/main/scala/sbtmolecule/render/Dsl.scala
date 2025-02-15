@@ -119,11 +119,11 @@ case class Dsl(
   private val idCoord = s"coord = Seq(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
 
   private val (rightRefOp, rightRef) = if (refs.isEmpty) ("", "") else (
-    s"with RightRefOp_0[${ent}_1_refs] with RightRef_0[${ent}_1_refs] ",
+    s"with OptEntityOp_0[${ent}_1_refs] with OptEntity_0[${ent}_1_refs] ",
     s"""
        |
-       |  override protected def _optEntity[EntityTpl](optElements: List[Element]): ${ent}_1_refs[Option[EntityTpl], Any] =
-       |    new ${ent}_1_refs[Option[EntityTpl], Any](List(DataModel.OptEntity(optElements, null /* following ref is inserted */)))""".stripMargin
+       |  override protected def _optEntity[OptEntityTpl](attrs: List[Attr]): ${ent}_1_refs[Option[OptEntityTpl], Any] =
+       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](List(DataModel.OptEntity(attrs)))""".stripMargin
   )
 
   def get: String = {

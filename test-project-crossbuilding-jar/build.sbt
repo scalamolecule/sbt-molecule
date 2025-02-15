@@ -7,7 +7,7 @@ ThisBuild / scalaVersion := "2.13.16"
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions")
 
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-sql-h2" %  "0.15.3-SNAPSHOT",
+  "org.scalamolecule" %% "molecule-sql-h2" %  "0.16.0",
   "org.scalameta" %% "munit" % "1.0.3" % Test,
 )
 testFrameworks += new TestFramework("utest.runner.Framework")

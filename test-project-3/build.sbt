@@ -4,7 +4,7 @@ version := "1.11.3-SNAPSHOT"
 organization := "org.scalamolecule"
 scalaVersion := "3.3.5"
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-sql-h2" %  "0.15.3-SNAPSHOT",
+  "org.scalamolecule" %% "molecule-sql-h2" %  "0.16.0",
   "org.scalameta" %% "munit" % "1.0.3" % Test,
 )
 testFrameworks += new TestFramework("utest.runner.Framework")

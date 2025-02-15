@@ -4,10 +4,10 @@
 trap "exit" INT
 
 echo "##########################################################################"
-echo "test-project-with-partitions"
+echo "test-project-with-segments"
 echo "##########################################################################"
 
-cd test-project-with-partitions
+cd test-project-with-segments
 if [ -d "lib"  ]; then
     rm -r lib
 fi

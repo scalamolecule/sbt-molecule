@@ -12,9 +12,9 @@ sh test-project-3/test.sh
 sh test-project-crossbuilding-jar/test.sh
 sh test-project-crossbuilding-jar-aggr/test.sh
 sh test-project-crossbuilding-src/test.sh
-sh test-project-with-groups/test.sh
 sh test-project-with-modules/test.sh
 sh test-project-with-modules-deep/test.sh
+sh test-project-with-segments/test.sh
 
 echo "======================================================"
 echo "DONE testing all MoleculePlugin projects"
