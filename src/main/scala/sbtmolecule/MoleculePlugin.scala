@@ -3,7 +3,7 @@ package sbtmolecule
 import java.util.jar.Manifest
 import sbt.Keys.*
 import sbt.plugins.JvmPlugin
-import sbt.{CrossVersion, Def, *}
+import sbt.{Def, *}
 
 
 object MoleculePlugin extends sbt.AutoPlugin {
@@ -78,13 +78,8 @@ object MoleculePlugin extends sbt.AutoPlugin {
              |----------------------------------------------------------------------------""".stripMargin
 
         )
-        val scalaVers = CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((2, 13)) => "213"
-          case Some((2, 12)) => "212"
-          case _             => "3"
-        }
 
-        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDomainPaths.value, scalaVers)
+        val sourceFiles = FileBuilder(srcDir, sourceManaged.value, moleculeDomainPaths.value)
 
         // Avoid re-generating boilerplate if nothing has changed when running `sbt compile`
         val cacheDir = streams.value.cacheDirectory / "moleculeBoilerplateTesting"
@@ -131,20 +126,16 @@ object MoleculePlugin extends sbt.AutoPlugin {
       case _              => last
     }
     val transferDirs      = moleculeDomainPaths.value.flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
-    val cross             = if (crossScalaVersions.value.size == 1) "" else {
-      val v = CrossVersion.partialVersion(scalaVersion.value).get
-      s"/${v._1}.${v._2}"
-    }
 
     // Create source jar from generated source files
     val src_managedDir = sourceManaged.value
-    val srcJar         = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier-sources.jar")
+    val srcJar         = new File(baseDirectory.value + s"/lib/molecule-$jarFileIdentifier-sources.jar")
     val srcFilesData   = files2TupleRec("", src_managedDir, ".scala", transferDirs)
     sbt.IO.jar(srcFilesData, srcJar, new Manifest, None)
 
     // Create jar from class files compiled from generated source files
     val classesDir      = classDirectory.value
-    val targetJar       = new File(baseDirectory.value + s"/lib$cross/molecule-$jarFileIdentifier.jar")
+    val targetJar       = new File(baseDirectory.value + s"/lib/molecule-$jarFileIdentifier.jar")
     val targetFilesData = files2TupleRec("", classesDir, ".class", transferDirs)
     sbt.IO.jar(targetFilesData, targetJar, new Manifest, None)
 

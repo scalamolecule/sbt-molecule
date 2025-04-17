@@ -4,7 +4,7 @@ import java.sql.DriverManager
 import app.domains.nested.schema.AnimalSchema_h2
 import app.domains.schema.PersonSchema_h2
 import molecule.base.api.Schema_h2
-import molecule.core.marshalling.JdbcProxy_h2
+import molecule.core.marshalling.JdbcProxy
 import molecule.core.spi.Conn
 import molecule.sql.core.facade.JdbcHandler_JVM
 import munit.FunSuite
@@ -17,7 +17,7 @@ trait TestSetup extends FunSuite {
     val url = "jdbc:h2:mem:test" + Random.nextInt().abs
     Class.forName("org.h2.Driver") // Explicitly load the driver
     Manager { use =>
-      val proxy   = JdbcProxy_h2(url, schema)
+      val proxy   = JdbcProxy(url, schema)
       val sqlConn = use(DriverManager.getConnection(proxy.url))
       val conn    = use(JdbcHandler_JVM.recreateDb(proxy, sqlConn))
       test(conn)

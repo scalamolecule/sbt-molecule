@@ -8,26 +8,26 @@ import utest.*
 object RenderDSL extends TestSuite {
   val projectRoot = System.getProperty("user.dir")
   lazy val basePath      = projectRoot + "/src/test/scala/sbtmolecule/domain/"
-  lazy val cardinalities = ParseDomain(basePath + "Cardinalities.scala", "213")
-  lazy val starwars      = ParseDomain(basePath + "Starwars.scala", "213")
-  lazy val types         = ParseDomain(basePath + "Types.scala", "213")
-  lazy val refs          = ParseDomain(basePath + "Refs.scala", "213")
-  lazy val unique        = ParseDomain(basePath + "Uniques.scala", "213")
-  lazy val validation    = ParseDomain(basePath + "Validation.scala", "213")
-  lazy val scopes        = ParseDomain(basePath + "Scopes.scala", "213")
-  lazy val segments      = ParseDomain(basePath + "Segments.scala", "213")
+  lazy val cardinalities = ParseDomain(basePath + "Cardinalities.scala")
+  lazy val starwars      = ParseDomain(basePath + "Starwars.scala")
+  lazy val types         = ParseDomain(basePath + "Types.scala")
+  lazy val refs          = ParseDomain(basePath + "Refs.scala")
+  lazy val unique        = ParseDomain(basePath + "Uniques.scala")
+  lazy val validation    = ParseDomain(basePath + "Validation.scala")
+  lazy val scopes        = ParseDomain(basePath + "Scopes.scala")
+  lazy val segments      = ParseDomain(basePath + "Segments.scala")
 
 
   override def tests: Tests = Tests {
 
     "DSL" - {
-      //            Dsl(types, "", types.segments.head.ents(0), scalaVersion = "213").get ==> "check"
+      Dsl(types, "", types.segments.head.ents(0)).get ==> "check"
       //      Dsl(types, "", types.segments.head.ents(1)).get ==> "check"
       //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check"
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"
       //      Dsl(refs, "", refs.segments.head.ents(0)).get ==> "check"
       //      Dsl(scopes, "", scopes.segments(0).ents(0)).get ==> "check"
-      Dsl(segments, "", segments.segments(0).ents(0)).get ==> "check"
+      //      Dsl(segments, "", segments.segments(0).ents(0)).get ==> "check"
       //      Dsl(unique, "", unique.segments(0).ents(0)).get ==> "check"
       //      Dsl(validation, "", validation.segments(0).ents(0)).get ==> "check"
       //      Dsl(validation, "", validation.segments(0).ents(3)).get ==> "check" // Constants

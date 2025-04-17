@@ -1,11 +1,10 @@
 
-name := "sbt-molecule-test-project-2"
-version := "1.11.3-SNAPSHOT"
+name := "sbt-molecule-test-project"
+version := "1.13.0-SNAPSHOT"
 organization := "org.scalamolecule"
-scalaVersion := "2.13.16"
-
+scalaVersion := "3.6.4"
 libraryDependencies ++= Seq(
-  "org.scalamolecule" %% "molecule-sql-h2" % "0.16.0",
+  "org.scalamolecule" %% "molecule-sql-h2" %  "0.18.0",
   "org.scalameta" %% "munit" % "1.0.3" % Test,
 )
 testFrameworks += new TestFramework("utest.runner.Framework")

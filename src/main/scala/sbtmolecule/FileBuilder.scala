@@ -7,7 +7,7 @@ import sbtmolecule.render.*
 
 object FileBuilder {
 
-  def apply(sourceDir: File, managedDir: File, domainDirs: Seq[String], scalaVersion: String): Seq[File] = {
+  def apply(sourceDir: File, managedDir: File, domainDirs: Seq[String]): Seq[File] = {
 
     // Loop domain directories
     domainDirs.flatMap { domainDir =>
@@ -21,7 +21,7 @@ object FileBuilder {
       sbt.IO.listFiles(definitionDir)
         .filter(f => f.isFile)
         .flatMap { domainFile =>
-          val metaDomain = ParseDomain(domainFile.getPath, scalaVersion)
+          val metaDomain = ParseDomain(domainFile.getPath)
 
           val dslFiles: Seq[File] = {
             var entityIndex = 0
@@ -34,7 +34,7 @@ object FileBuilder {
                 (dir, pkg) => dir / pkg
               ) / "dsl" / metaDomain.domain / s"${metaEntity.ent}.scala"
               val segmentPrefix = if (metaSegment.segment.isEmpty) "" else metaSegment.segment + "_"
-              val code          = Dsl(metaDomain, segmentPrefix, metaEntity, entityIndex, attrIndex, scalaVersion).get
+              val code          = Dsl(metaDomain, segmentPrefix, metaEntity, entityIndex, attrIndex).get
               entityIndex += 1
               attrIndex += metaEntity.attrs.length
               IO.write(entityFile, code)

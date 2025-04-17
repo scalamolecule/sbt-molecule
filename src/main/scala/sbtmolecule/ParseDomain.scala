@@ -9,20 +9,16 @@ import scala.collection.mutable.ListBuffer
 import scala.meta.*
 
 object ParseDomain {
-  def apply(filePath: String, scalaVersion: String = "3"): MetaDomain = {
+  def apply(filePath: String): MetaDomain = {
     val bytes   = Files.readAllBytes(Paths.get(filePath))
     val pkgPath = new String(bytes, "UTF-8")
-    new ParseDomain(filePath, pkgPath, scalaVersion).metaDomain
+    new ParseDomain(filePath, pkgPath).metaDomain
   }
 }
 
-class ParseDomain(filePath: String, pkgPath: String, scalaVersion: String) extends BaseHelpers {
+class ParseDomain(filePath: String, pkgPath: String) extends BaseHelpers {
   private val virtualFile = Input.VirtualFile(filePath, pkgPath)
-  private val dialect     = scalaVersion match {
-    case "3"   => dialects.Scala3(virtualFile)
-    case "213" => dialects.Scala213(virtualFile)
-    case "212" => dialects.Scala212(virtualFile)
-  }
+  private val dialect     = dialects.Scala3(virtualFile)
 
   private val tree = dialect.parse[Source].get
 

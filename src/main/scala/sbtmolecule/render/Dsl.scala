@@ -8,8 +8,7 @@ case class Dsl(
   segmentPrefix: String,
   metaEntity: MetaEntity,
   nsIndex: Int = 0,
-  attrIndexPrev: Int = 0,
-  scalaVersion: String = "3"
+  attrIndexPrev: Int = 0
 ) extends DslFormatting(metaDomain, metaEntity) {
 
   private val entityList: Seq[String] = metaDomain.segments.flatMap(_.ents.map(_.ent))
@@ -38,8 +37,7 @@ case class Dsl(
       case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _) => "java.util.UUID"
       case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
-    val higherKinds = if (scalaVersion == "212") Seq("scala.language.higherKinds") else Nil
-    (baseImports ++ typeImports ++ higherKinds).sorted.mkString("import ", "\nimport ", "")
+    (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
   }
 
   private val validationExtractor = Dsl_Validations(metaDomain, metaEntity)
@@ -114,7 +112,7 @@ case class Dsl(
 
 
   private val entities: String = (0 to metaDomain.maxArity)
-    .map(Dsl_Arities(scalaVersion, metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
+    .map(Dsl_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
   private val idCoord = s"coord = Seq(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
 

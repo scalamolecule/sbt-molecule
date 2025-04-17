@@ -4,7 +4,6 @@ import molecule.base.ast.*
 
 
 case class Dsl_Arities(
-  scalaVersion: String,
   metaDomain: MetaDomain,
   entityList: Seq[String],
   attrList: Seq[String],
@@ -268,8 +267,6 @@ case class Dsl_Arities(
 
 
   private val filterAttrs = {
-    val (widh, wpad) = if (scalaVersion == "3") ("&", " ") else ("with", "    ")
-
     if (first) {
       s"""
          |
@@ -278,15 +275,15 @@ case class Dsl_Arities(
     } else if (last) {
       s"""
          |
-         |  override protected def _attrSortTac[ns1[_], ns2[_, _]](op: Op, a: ModelOps_0[t, ns1, ns2] $widh CardOne) = new $ent_0[${`A..V`}, t](filterAttr(elements, op, a)) with SortAttrs${_0}[${`A..V`}, t, $ent_0]
-         |  override protected def _attrTac    [ns1[_], ns2[_, _]](op: Op, a: ModelOps_0[t, ns1, ns2] $wpad        ) = new $ent_0[${`A..V`}, t](filterAttr(elements, op, a))""".stripMargin
+         |  override protected def _attrSortTac[ns1[_], ns2[_, _]](op: Op, a: ModelOps_0[t, ns1, ns2] & CardOne) = new $ent_0[${`A..V`}, t](filterAttr(elements, op, a)) with SortAttrs${_0}[${`A..V`}, t, $ent_0]
+         |  override protected def _attrTac    [ns1[_], ns2[_, _]](op: Op, a: ModelOps_0[t, ns1, ns2]          ) = new $ent_0[${`A..V`}, t](filterAttr(elements, op, a))""".stripMargin
     } else {
       s"""
          |
-         |  override protected def _attrSortTac[   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2] $widh CardOne) = new $ent_0[${`A..V`},    t](filterAttr(elements, op, a)) with SortAttrs${_0}[${`A..V`},    t, $ent_0]
-         |  override protected def _attrSortMan[   ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[$V, t, ns1, ns2] $wpad        ) = new $ent_1[${`A..V`}, $V, t](filterAttr(elements, op, a)) with SortAttrs${_1}[${`A..V`}, $V, t, $ent_1]
-         |  override protected def _attrTac    [   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2] $wpad        ) = new $ent_0[${`A..V`},    t](filterAttr(elements, op, a))
-         |  override protected def _attrMan    [X, ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[X, t, ns1, ns2] $wpad        ) = new $ent_1[${`A..V`}, X, t](filterAttr(elements, op, a))""".stripMargin
+         |  override protected def _attrSortTac[   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2] & CardOne) = new $ent_0[${`A..V`},    t](filterAttr(elements, op, a)) with SortAttrs${_0}[${`A..V`},    t, $ent_0]
+         |  override protected def _attrSortMan[   ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[$V, t, ns1, ns2]          ) = new $ent_1[${`A..V`}, $V, t](filterAttr(elements, op, a)) with SortAttrs${_1}[${`A..V`}, $V, t, $ent_1]
+         |  override protected def _attrTac    [   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2]          ) = new $ent_0[${`A..V`},    t](filterAttr(elements, op, a))
+         |  override protected def _attrMan    [X, ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[X, t, ns1, ns2]          ) = new $ent_1[${`A..V`}, X, t](filterAttr(elements, op, a))""".stripMargin
     }
   }
 
