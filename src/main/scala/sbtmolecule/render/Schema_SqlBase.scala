@@ -2,7 +2,7 @@ package sbtmolecule.render
 
 import molecule.base.ast.*
 import molecule.base.util.{BaseHelpers, RegexMatching}
-import sbtmolecule.sqlDialect.{Dialect, Postgres}
+import sbtmolecule.db.sqlDialect.{Dialect, Postgres}
 import scala.collection.mutable.ListBuffer
 
 

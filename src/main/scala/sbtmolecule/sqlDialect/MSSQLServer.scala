@@ -1,4 +1,4 @@
-package sbtmolecule.sqlDialect
+package sbtmolecule.db.sqlDialect
 
 import molecule.base.ast.{CardOne, MetaAttribute}
 

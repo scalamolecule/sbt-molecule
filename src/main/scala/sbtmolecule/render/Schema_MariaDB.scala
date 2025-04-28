@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.sqlDialect.MariaDB
+import sbtmolecule.db.sqlDialect.MariaDB
 
 
 case class Schema_MariaDB(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {

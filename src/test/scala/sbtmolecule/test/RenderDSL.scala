@@ -1,6 +1,6 @@
 package sbtmolecule.test
 
-import sbtmolecule.ParseDomain
+import sbtmolecule.ParseDomainStructure
 import sbtmolecule.render.*
 import utest.*
 
@@ -8,14 +8,14 @@ import utest.*
 object RenderDSL extends TestSuite {
   val projectRoot = System.getProperty("user.dir")
   lazy val basePath      = projectRoot + "/src/test/scala/sbtmolecule/domain/"
-  lazy val cardinalities = ParseDomain(basePath + "Cardinalities.scala")
-  lazy val starwars      = ParseDomain(basePath + "Starwars.scala")
-  lazy val types         = ParseDomain(basePath + "Types.scala")
-  lazy val refs          = ParseDomain(basePath + "Refs.scala")
-  lazy val unique        = ParseDomain(basePath + "Uniques.scala")
-  lazy val validation    = ParseDomain(basePath + "Validation.scala")
-  lazy val scopes        = ParseDomain(basePath + "Scopes.scala")
-  lazy val segments      = ParseDomain(basePath + "Segments.scala")
+  lazy val cardinalities = ParseDomainStructure(basePath + "Cardinalities.scala")
+  lazy val starwars      = ParseDomainStructure(basePath + "Starwars.scala")
+  lazy val types         = ParseDomainStructure(basePath + "Types.scala")
+  lazy val refs          = ParseDomainStructure(basePath + "Refs.scala")
+  lazy val unique        = ParseDomainStructure(basePath + "Uniques.scala")
+  lazy val validation    = ParseDomainStructure(basePath + "Validation.scala")
+  lazy val scopes        = ParseDomainStructure(basePath + "Scopes.scala")
+  lazy val segments      = ParseDomainStructure(basePath + "Segments.scala")
 
 
   override def tests: Tests = Tests {

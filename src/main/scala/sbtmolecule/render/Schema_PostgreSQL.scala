@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.sqlDialect.Postgres
+import sbtmolecule.db.sqlDialect.Postgres
 
 
 case class Schema_PostgreSQL(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {

@@ -5,12 +5,12 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.13.0",
+    version := "1.14.0",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalamolecule" %% "molecule-base" % "0.18.0",
-      "com.lihaoyi" %% "utest" % "0.8.4" % Test
+      "org.scalamolecule" %% "molecule-base" % "0.19.0",
+      "com.lihaoyi" %% "utest" % "0.8.4" % Test,
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )

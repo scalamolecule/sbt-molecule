@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.sqlDialect.Mysql
+import sbtmolecule.db.sqlDialect.Mysql
 
 
 case class Schema_Mysql(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {

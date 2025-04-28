@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
 import molecule.base.ast.*
-import sbtmolecule.sqlDialect.{Dialect, SQlite}
+import sbtmolecule.db.sqlDialect.{Dialect, SQlite}
 import scala.collection.mutable.ListBuffer
 
 
