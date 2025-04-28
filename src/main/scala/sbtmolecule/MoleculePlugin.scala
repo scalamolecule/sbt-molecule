@@ -14,7 +14,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   object autoImport {
     // Each command cleans previously generated source files and jars
-    lazy val moleculeGen     = taskKey[Seq[MetaDomain]]("Generate Molecule source files.")
+    lazy val moleculeGen     = taskKey[Unit]("Generate Molecule source files.")
     lazy val moleculePackage = taskKey[Unit]("Generate Molecule source files, compile and package jars to lib/")
   }
 
