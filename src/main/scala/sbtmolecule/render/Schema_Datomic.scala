@@ -155,7 +155,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api._
+        |import molecule.db.core.api._
         |
         |
         |object ${metaDomain.domain}Schema_datomic extends ${metaDomain.domain}Schema with Schema_datomic {

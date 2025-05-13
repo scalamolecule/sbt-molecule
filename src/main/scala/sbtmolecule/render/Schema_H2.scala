@@ -16,7 +16,7 @@ case class Schema_H2(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) 
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api._
+        |import molecule.db.core.api._
         |
         |
         |object ${metaDomain.domain}Schema_h2 extends ${metaDomain.domain}Schema with Schema_h2 {

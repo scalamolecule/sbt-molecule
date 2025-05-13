@@ -15,8 +15,8 @@ case class Schema(metaDomain: MetaDomain) {
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api.Schema
-        |import molecule.db.base.ast._
+        |import molecule.db.base.ast.*
+        |import molecule.db.core.api.Schema
         |
         |
         |trait ${metaDomain.domain}Schema extends Schema {

@@ -16,7 +16,7 @@ case class Schema_Mysql(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomai
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api._
+        |import molecule.db.core.api._
         |
         |
         |object ${metaDomain.domain}Schema_mysql extends ${metaDomain.domain}Schema with Schema_mysql {

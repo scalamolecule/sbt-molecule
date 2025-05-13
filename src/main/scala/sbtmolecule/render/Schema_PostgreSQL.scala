@@ -16,7 +16,7 @@ case class Schema_PostgreSQL(metaDomain: MetaDomain) extends Schema_SqlBase(meta
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api._
+        |import molecule.db.core.api._
         |
         |
         |object ${metaDomain.domain}Schema_postgres extends ${metaDomain.domain}Schema with Schema_postgres {

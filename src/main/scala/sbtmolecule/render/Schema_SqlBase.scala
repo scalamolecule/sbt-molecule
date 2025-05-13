@@ -11,17 +11,22 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
   protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
 
   protected var hasReserved         = false
-  protected var reservedEntities    = Array.empty[Boolean]
-  protected var reservedAttrs       = Array.empty[Boolean]
+  protected var reservedEntities    = Array.empty[Byte]
+  protected var reservedAttrs       = Array.empty[Byte]
   protected var reservedEntityAttrs = Array.empty[String]
   protected val refs                = ListBuffer.empty[(String, String, String)] // entity, refAttr, ref
 
+
+  val b0 = 0.toByte
+  val b1 = 1.toByte
+
   private def createTable(MetaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
     val entity = MetaEntity.ent
-    def reserved(a: MetaAttribute): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
+    def reserved(a: MetaAttribute): Byte =
+      if (dialect.reservedKeyWords.contains(a.attr.toLowerCase)) b1 else b0
     val max = MetaEntity.attrs.map {
       case a if a.card == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a)                         => a.attr.length + 1
+      case a if reserved(a) == b1                   => a.attr.length + 1
       case a                                        => a.attr.length
     }.max.max(2)
 
@@ -29,7 +34,7 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
 
     val columns = MetaEntity.attrs.flatMap {
       case a if a.attr == "id" =>
-        reservedAttrs = reservedAttrs :+ false
+        reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
       case a if a.card == CardSet && a.ref.nonEmpty =>
@@ -37,12 +42,12 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
         None
 
       case a =>
-        val column = if (reserved(a)) {
+        val column = if (reserved(a) == b1) {
           hasReserved = true
-          reservedAttrs = reservedAttrs :+ true
+          reservedAttrs = reservedAttrs :+ b1
           a.attr + "_"
         } else {
-          reservedAttrs = reservedAttrs :+ false
+          reservedAttrs = reservedAttrs :+ b0
           a.attr
         }
         // Add foreign key references
@@ -85,16 +90,18 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
 
   protected def tables(dialect: Dialect): String = {
     hasReserved = false
-    reservedEntities = Array.empty[Boolean]
-    reservedAttrs = Array.empty[Boolean]
+    reservedEntities = Array.empty[Byte]
+    reservedAttrs = Array.empty[Byte]
     reservedEntityAttrs = Array.empty[String]
 
     val tableDefinitions = entities.flatMap { entity =>
-      reservedEntities = reservedEntities :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
+      val reservedEntity: Byte =
+        if (dialect.reservedKeyWords.contains(entity.ent.toLowerCase)) b1 else b0
+      reservedEntities = reservedEntities :+ reservedEntity
       val result = createTable(entity, dialect)
-      reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs
-        .mkString(s"\n    // ${entity.ent}\n    ", ", ", "")
-      reservedAttrs = Array.empty[Boolean]
+      reservedEntityAttrs = reservedEntityAttrs :+
+        reservedAttrs.mkString(s"\n    // ${entity.ent}\n    ", ", ", "")
+      reservedAttrs = Array.empty[Byte]
       result
     }
 
@@ -145,9 +152,9 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
        |
        |  // Indexes to lookup if entity/attribute names collides with db keyword
        |
-       |  override val reservedEntities: Array[Boolean] = Array(${reservedEntities.mkString(", ")})
+       |  override val reservedEntities: IArray[Byte] = IArray(${reservedEntities.mkString(", ")})
        |
-       |  override val reservedAttributes: Array[Boolean] = Array(${reservedEntityAttrs.mkString(",\n    ")}
+       |  override val reservedAttributes: IArray[Byte] = IArray(${reservedEntityAttrs.mkString(",\n    ")}
        |  )""".stripMargin
   } else ""
 }

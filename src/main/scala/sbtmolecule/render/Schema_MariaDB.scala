@@ -16,7 +16,7 @@ case class Schema_MariaDB(metaDomain: MetaDomain) extends Schema_SqlBase(metaDom
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api._
+        |import molecule.db.core.api._
         |
         |
         |object ${metaDomain.domain}Schema_mariadb extends ${metaDomain.domain}Schema with Schema_mariadb {

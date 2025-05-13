@@ -11,10 +11,11 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
 
   protected def createTable(metaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
     val ent = metaEntity.ent
-    def reserved(a: MetaAttribute): Boolean = dialect.reservedKeyWords.contains(a.attr.toLowerCase)
+    def reserved(a: MetaAttribute): Byte =
+      if (dialect.reservedKeyWords.contains(a.attr.toLowerCase)) b1 else b0
     val max = metaEntity.attrs.map {
       case a if a.card == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a)                         => a.attr.length + 1
+      case a if reserved(a) == b1                   => a.attr.length + 1
       case a                                        => a.attr.length
     }.max.max(2)
 
@@ -22,7 +23,7 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
 
     val fields = metaEntity.attrs.flatMap {
       case a if a.attr == "id" =>
-        reservedAttrs = reservedAttrs :+ false
+        reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
       case a if a.card == CardSet && a.ref.nonEmpty =>
@@ -30,12 +31,12 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
         None
 
       case a =>
-        val column = if (reserved(a)) {
+        val column = if (reserved(a) == b1) {
           hasReserved = true
-          reservedAttrs = reservedAttrs :+ true
+          reservedAttrs = reservedAttrs :+ b1
           a.attr + "_"
         } else {
-          reservedAttrs = reservedAttrs :+ false
+          reservedAttrs = reservedAttrs :+ b0
           a.attr
         }
         // Add foreign key reference
@@ -91,18 +92,24 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
 
   override protected def tables(dialect: Dialect): String = {
     hasReserved = false
-    reservedEntities = Array.empty[Boolean]
-    reservedAttrs = Array.empty[Boolean]
+    reservedEntities = Array.empty[Byte]
+    reservedAttrs = Array.empty[Byte]
     reservedEntityAttrs = Array.empty[String]
     var hasRefs            = false
     val tables             = entities.flatMap { entity =>
       refs2.clear() // foreign key constraints per table
-      reservedEntities = reservedEntities :+ dialect.reservedKeyWords.contains(entity.ent.toLowerCase)
+      val reservedEntity: Byte =
+        if (dialect.reservedKeyWords.contains(entity.ent.toLowerCase)) b1 else b0
+
+      reservedEntities = reservedEntities :+ reservedEntity
+
       val result = createTable(entity, dialect)
       hasRefs = hasRefs || refs2.nonEmpty
+
       reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs
         .mkString(s"\n      // ${entity.ent}\n      ", ", ", "")
-      reservedAttrs = Array.empty[Boolean]
+
+      reservedAttrs = Array.empty[Byte]
       result
     }
     val enforceForeignKeys = if (hasRefs)
@@ -123,7 +130,7 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.db.base.api._
+        |import molecule.db.core.api._
         |
         |
         |object ${metaDomain.domain}Schema_sqlite extends ${metaDomain.domain}Schema with Schema_sqlite {
