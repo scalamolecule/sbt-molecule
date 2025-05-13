@@ -1,8 +1,8 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
-import molecule.base.util.{BaseHelpers, RegexMatching}
-import sbtmolecule.db.sqlDialect.{Dialect, Postgres}
+import molecule.db.base.ast.*
+import molecule.db.base.util.{BaseHelpers, RegexMatching}
+import sbtmolecule.sqlDialect.{Dialect, Postgres}
 import scala.collection.mutable.ListBuffer
 
 

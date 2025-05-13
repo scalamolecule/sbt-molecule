@@ -1,6 +1,6 @@
-package sbtmolecule.db.sqlDialect
+package sbtmolecule.sqlDialect
 
-import molecule.base.ast.{CardOne, CardSeq, MetaAttribute}
+import molecule.db.base.ast.{CardOne, CardSeq, MetaAttribute}
 
 object MariaDB extends Dialect {
 

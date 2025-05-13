@@ -3,7 +3,7 @@ package crossPure
 import java.sql.DriverManager
 import crossPure.domain.dsl.Person.*
 import crossPure.domain.schema.PersonSchema_h2
-import molecule.core.marshalling.JdbcProxy
+import molecule.db.core.marshalling.JdbcProxy
 import molecule.db.sql.core.facade.{JdbcConn_JVM, JdbcHandler_JVM}
 import molecule.db.sql.h2.sync.*
 import munit.FunSuite

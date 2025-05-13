@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
-import sbtmolecule.db.sqlDialect.H2
+import molecule.db.base.ast.*
+import sbtmolecule.sqlDialect.H2
 
 
 case class Schema_H2(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
@@ -16,7 +16,7 @@ case class Schema_H2(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) 
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api._
+        |import molecule.db.base.api._
         |
         |
         |object ${metaDomain.domain}Schema_h2 extends ${metaDomain.domain}Schema with Schema_h2 {

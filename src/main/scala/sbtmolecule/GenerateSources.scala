@@ -1,7 +1,7 @@
 package sbtmolecule
 
 import java.io.File
-import molecule.base.ast.MetaDomain
+import molecule.db.base.ast.MetaDomain
 import sbt.*
 import sbtmolecule.render.*
 

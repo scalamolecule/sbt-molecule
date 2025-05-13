@@ -1,9 +1,9 @@
 package sbtmolecule
 
 import java.nio.file.{Files, Paths}
-import molecule.base.ast.*
-import molecule.base.error.ModelError
-import molecule.base.util.BaseHelpers
+import molecule.db.base.ast.*
+import molecule.db.base.error.ModelError
+import molecule.db.base.util.BaseHelpers
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.meta.*

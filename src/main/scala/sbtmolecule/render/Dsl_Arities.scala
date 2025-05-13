@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
+import molecule.db.base.ast.*
 
 
 case class Dsl_Arities(
@@ -244,7 +244,7 @@ case class Dsl_Arities(
       val isOwner        = options.contains("owner")
       val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord          = s"Seq($nsIndex, $refAttrIndex, $refEntityIndex)"
-      val refObj         = s"""DataModel.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
+      val refObj         = s"""ast.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
       if (arity == maxArity) {
         ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](elements :+ $refObj)"""
       } else if (card == CardOne) {
@@ -316,7 +316,7 @@ case class Dsl_Arities(
         val prevEntityIndex = entityList.indexOf(backRef)
         val curEntityIndex  = entityList.indexOf(ent)
         val coord           = s"Seq($prevEntityIndex, $curEntityIndex)"
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ DataModel.BackRef("$backRef", "$ent", $coord))""")
+        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](elements :+ ast.BackRef("$backRef", "$ent", $coord))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }

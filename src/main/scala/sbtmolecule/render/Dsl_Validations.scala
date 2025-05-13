@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
+import molecule.db.base.ast.*
 
 
 case class Dsl_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)

@@ -1,6 +1,6 @@
-package sbtmolecule.db.sqlDialect
+package sbtmolecule.sqlDialect
 
-import molecule.base.ast.{CardOne, MetaAttribute}
+import molecule.db.base.ast.{CardOne, MetaAttribute}
 
 object MSSQLServer extends Dialect {
 

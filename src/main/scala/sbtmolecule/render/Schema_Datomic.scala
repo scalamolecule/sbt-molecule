@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
-import molecule.base.util.RegexMatching
+import molecule.db.base.ast.*
+import molecule.db.base.util.RegexMatching
 
 
 case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
@@ -155,7 +155,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api._
+        |import molecule.db.base.api._
         |
         |
         |object ${metaDomain.domain}Schema_datomic extends ${metaDomain.domain}Schema with Schema_datomic {

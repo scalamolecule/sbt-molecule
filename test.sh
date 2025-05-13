@@ -23,7 +23,7 @@ for project in "${projects[@]}"; do
 
   (
     cd "$project"
-    sbt "moleculePackage; test"
+    sbt "clean; moleculePackage; test"
   )
 done
 

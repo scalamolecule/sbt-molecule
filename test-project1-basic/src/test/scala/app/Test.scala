@@ -2,8 +2,8 @@ package app
 
 import java.sql.DriverManager
 import app.domain.schema.*
-import molecule.base.api.*
-import molecule.core.marshalling.JdbcProxy
+import molecule.db.base.api.*
+import molecule.db.core.marshalling.JdbcProxy
 import molecule.db.sql.core.facade.{JdbcConn_JVM, JdbcHandler_JVM}
 import molecule.db.sql.h2.sync.*
 import munit.FunSuite

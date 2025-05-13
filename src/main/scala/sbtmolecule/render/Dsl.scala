@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
+import molecule.db.base.ast.*
 
 
 case class Dsl(
@@ -25,12 +25,12 @@ case class Dsl(
   private val imports: String = {
     val baseImports = Seq(
       "java.time._",
-      "molecule.base.ast._",
-      "molecule.core.api.Keywords._",
-      "molecule.core.api._",
-      "molecule.core.api.expression._",
-      "molecule.core.ast.DataModel",
-      "molecule.core.ast.DataModel._",
+      "molecule.db.base.ast._",
+      "molecule.db.core.api.Keywords._",
+      "molecule.db.core.api._",
+      "molecule.db.core.api.expression._",
+      "molecule.db.core.ast",
+      "molecule.db.core.ast._",
     )
     val typeImports = attrs.collect {
       case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
@@ -121,7 +121,7 @@ case class Dsl(
     s"""
        |
        |  override protected def _optEntity[OptEntityTpl](attrs: List[Attr]): ${ent}_1_refs[Option[OptEntityTpl], Any] =
-       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](List(DataModel.OptEntity(attrs)))""".stripMargin
+       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](List(ast.OptEntity(attrs)))""".stripMargin
   )
 
   def get: String = {

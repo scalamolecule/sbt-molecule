@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
-import molecule.base.util.BaseHelpers
+import molecule.db.base.ast.*
+import molecule.db.base.util.BaseHelpers
 
 
 class DslFormatting(metaDomain: MetaDomain, metaEntity: MetaEntity, arity: Int = 0) extends BaseHelpers {

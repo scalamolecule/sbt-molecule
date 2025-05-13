@@ -1,6 +1,6 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
+import molecule.db.base.ast.*
 
 
 case class Schema(metaDomain: MetaDomain) {
@@ -15,8 +15,8 @@ case class Schema(metaDomain: MetaDomain) {
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api.Schema
-        |import molecule.base.ast._
+        |import molecule.db.base.api.Schema
+        |import molecule.db.base.ast._
         |
         |
         |trait ${metaDomain.domain}Schema extends Schema {

@@ -3,7 +3,7 @@ package foo
 import java.sql.DriverManager
 import foo.domain.dsl.Person.*
 import foo.domain.schema.PersonSchema_h2
-import molecule.core.marshalling.JdbcProxy
+import molecule.db.core.marshalling.JdbcProxy
 import molecule.db.sql.core.facade.{JdbcConn_JVM, JdbcHandler_JVM}
 import molecule.db.sql.h2.sync.*
 import munit.FunSuite

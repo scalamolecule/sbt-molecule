@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
-import sbtmolecule.db.sqlDialect.Mysql
+import molecule.db.base.ast.*
+import sbtmolecule.sqlDialect.Mysql
 
 
 case class Schema_Mysql(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
@@ -16,7 +16,7 @@ case class Schema_Mysql(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomai
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api._
+        |import molecule.db.base.api._
         |
         |
         |object ${metaDomain.domain}Schema_mysql extends ${metaDomain.domain}Schema with Schema_mysql {

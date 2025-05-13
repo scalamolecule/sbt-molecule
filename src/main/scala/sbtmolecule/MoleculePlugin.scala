@@ -1,8 +1,8 @@
 package sbtmolecule
 
 import java.util.jar.Manifest
-import molecule.base.ast.MetaDomain
-import molecule.base.error.ModelError
+import molecule.db.base.ast.MetaDomain
+import molecule.db.base.error.ModelError
 import sbt.Keys.*
 import sbt.plugins.JvmPlugin
 import sbt.{IO, *}
@@ -173,7 +173,8 @@ object MoleculePlugin extends sbt.AutoPlugin {
          |$list
          |       $namePadding   --------   --------   ----------
          |       $namePadding    $segmentsCount$entitiesCount$attrsCount
-         |---------------------------------------------------------------------------------""".stripMargin
+         |---------------------------------------------------------------------------------
+         |""".stripMargin
     )
   }
 

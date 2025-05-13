@@ -1,7 +1,7 @@
 package sbtmolecule.render
 
-import molecule.base.ast.*
-import sbtmolecule.db.sqlDialect.{Dialect, SQlite}
+import molecule.db.base.ast.*
+import sbtmolecule.sqlDialect.{Dialect, SQlite}
 import scala.collection.mutable.ListBuffer
 
 
@@ -123,7 +123,7 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
         |*/
         |package ${metaDomain.pkg}.schema
         |
-        |import molecule.base.api._
+        |import molecule.db.base.api._
         |
         |
         |object ${metaDomain.domain}Schema_sqlite extends ${metaDomain.domain}Schema with Schema_sqlite {

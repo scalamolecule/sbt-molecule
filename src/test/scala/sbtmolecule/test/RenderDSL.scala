@@ -21,7 +21,7 @@ object RenderDSL extends TestSuite {
   override def tests: Tests = Tests {
 
     "DSL" - {
-      Dsl(types, "", types.segments.head.ents(0)).get ==> "check"
+      //      Dsl(types, "", types.segments.head.ents(0)).get ==> "check"
       //      Dsl(types, "", types.segments.head.ents(1)).get ==> "check"
       //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check"
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"
@@ -60,7 +60,7 @@ object RenderDSL extends TestSuite {
       //      Schema_MariaDB(starwars).get ==> "check"
       //      Schema_SQlite(types).get ==> "check"
       //      Schema_PostgreSQL(types).get ==> "check"
-      //      Schema_H2(types).get ==> "check"
+      Schema_H2(types).get ==> "check"
       //      Schema_H2(refs).get ==> "check"
       //      Schema_Mysql(refs).get ==> "check"
       //      Schema_H2(unique).get ==> "check"

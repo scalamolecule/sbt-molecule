@@ -1,6 +1,6 @@
-package sbtmolecule.db.sqlDialect
+package sbtmolecule.sqlDialect
 
-import molecule.base.ast.*
+import molecule.db.base.ast.*
 
 object Postgres extends Dialect {
 
