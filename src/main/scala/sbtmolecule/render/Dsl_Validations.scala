@@ -9,8 +9,8 @@ case class Dsl_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
   def validationMethod(
     attr: String,
     baseTpe: String,
-    validations: Seq[(String, String)],
-    valueAttrs: Seq[(String, Boolean, String, String, String)]
+    validations: List[(String, String)],
+    valueAttrs: List[(String, Boolean, String, String, String)]
   ): String = {
     val static = valueAttrs.isEmpty
     val single = validations.length == 1
@@ -47,7 +47,7 @@ case class Dsl_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
     body: String,
     attr: String,
     baseTpe0: String,
-    valueAttrs: Seq[(String, Boolean, String, String, String)]
+    valueAttrs: List[(String, Boolean, String, String, String)]
   ): String = {
     val baseTpe        = if (baseTpe0 == "ID") "Long" else baseTpe0
     val validator      = "Validate" + baseTpe0
@@ -140,7 +140,7 @@ case class Dsl_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
   private def getBodyMulti(
     pad: String,
     baseTpe0: String,
-    validations: Seq[(String, String)],
+    validations: List[(String, String)],
   ): String = {
     val baseTpe         = if (baseTpe0 == "ID") "Long" else baseTpe0
     val test2errorPairs = validations.map {

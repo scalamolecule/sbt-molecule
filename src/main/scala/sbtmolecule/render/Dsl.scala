@@ -75,7 +75,7 @@ case class Dsl(
             s", validator = Some(validation_$attr)"
           } else {
             val valueAttrsStr = valueAttrs.mkString("\"", "\", \"", "\"")
-            s", validator = Some(validation_$attr), valueAttrs = Seq($valueAttrsStr)"
+            s", validator = Some(validation_$attr), valueAttrs = List($valueAttrsStr)"
           }
         } else ""
         val padA    = padAttr(attr)
@@ -83,11 +83,11 @@ case class Dsl(
         val padAI   = padAttrIndex(attrIndex)
         val coord   = refOpt.fold {
           val padRNI = if (maxRefIndex == 0) "" else "  " + " " * maxRefIndex
-          s""", coord = Seq($nsIndex, $attrIndex$padAI$padRNI)"""
+          s""", coord = List($nsIndex, $attrIndex$padAI$padRNI)"""
         } { ref =>
           val refIndex = entityList.indexOf(ref)
           val padRNI   = padRefIndex(refIndex)
-          s""", coord = Seq($nsIndex, $attrIndex$padAI, $refIndex$padRNI)"""
+          s""", coord = List($nsIndex, $attrIndex$padAI, $refIndex$padRNI)"""
         }
         val ref1    = refOpt.fold("")(ref => s""", ref = Some("$ref")""")
         val attrMan = "Attr" + card._marker + "Man" + tpe
@@ -114,7 +114,7 @@ case class Dsl(
   private val entities: String = (0 to metaDomain.maxArity)
     .map(Dsl_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
-  private val idCoord = s"coord = Seq(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
+  private val idCoord = s"coord = List(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
 
   private val (rightRefOp, rightRef) = if (refs.isEmpty) ("", "") else (
     s"with OptEntityOp_0[${ent}_1_refs] with OptEntity_0[${ent}_1_refs] ",
