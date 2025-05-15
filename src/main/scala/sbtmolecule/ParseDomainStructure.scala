@@ -39,7 +39,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     "elements"
   )
 
-  private var backRefs   = Map.empty[String, Seq[String]]
+  private var backRefs   = Map.empty[String, List[String]]
   private val valueAttrs = ListBuffer.empty[String]
 
   private def noMix() = throw ModelError(
@@ -84,20 +84,20 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     val segments     = if (hasSegements) {
       body.map {
         case q"object $segment { ..$entities }" =>
-          MetaSegment(segment.toString, getEntities(segment.toString + "_", entities))
+          MetaSegment(segment.toString, getEntities(segment.toString + "_", entities.toList))
 
         case q"trait $entity $template" => noMix()
       }
     } else {
-      Seq(MetaSegment("", getEntities("", body)))
+      List(MetaSegment("", getEntities("", body)))
     }
     checkCircularMandatoryRefs(segments)
     val segments1 = addBackRefs(segments)
     MetaDomain(pkg, domain, maxArity, segments1)
   }
 
-  private def checkCircularMandatoryRefs(segments: Seq[MetaSegment]): Unit = {
-    val mappings: Map[String, Seq[(String, String)]] = segments
+  private def checkCircularMandatoryRefs(segments: List[MetaSegment]): Unit = {
+    val mappings: Map[String, List[(String, String)]] = segments
       .flatMap(_.ents
         .filter(_.attrs.exists(ref =>
           ref.ref.nonEmpty && ref.options.contains("mandatory")
@@ -107,7 +107,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
           s"${metaEntity.ent}.${ref.attr}" -> ref.ref.get
       }).toMap
 
-    def check(prevEntities: Seq[String], graph: Seq[String], entity: String): Unit = {
+    def check(prevEntities: List[String], graph: List[String], entity: String): Unit = {
       mappings.get(entity).foreach { refs =>
         // Referenced entity has mandatory refs. Keep checking
         refs.foreach {
@@ -127,7 +127,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
       case (entity, refs) => refs.foreach {
         case (refAttr, refEnt) =>
           // Recursively check each mandatory ref. Can likely be optimized...
-          check(Seq(entity), Seq(refAttr), refEnt)
+          check(List(entity), List(refAttr), refEnt)
       }
     }
   }
@@ -136,7 +136,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     if (entity.contains(".")) entity.replace(".", "_") else segmentPrefix + entity
   }
 
-  private def addBackRefs(segments: Seq[MetaSegment]): Seq[MetaSegment] = {
+  private def addBackRefs(segments: List[MetaSegment]): List[MetaSegment] = {
     segments.map { segment =>
       val entities1 = segment.ents.map { entity =>
         entity.copy(backRefs = backRefs.getOrElse(entity.ent, Nil).distinct.sorted)
@@ -145,15 +145,15 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     }
   }
 
-  private def getEntities(segmentPrefix: String, entities: Seq[Stat]): Seq[MetaEntity] = {
+  private def getEntities(segmentPrefix: String, entities: List[Stat]): List[MetaEntity] = {
     entities.map {
-      case q"trait $entityTpe { ..$attrs }" => getEntity(segmentPrefix, entityTpe, attrs)
+      case q"trait $entityTpe { ..$attrs }" => getEntity(segmentPrefix, entityTpe, attrs.toList)
       case q"object $o { ..$_ }"            => noMix()
       case other                            => unexpected(other)
     }
   }
 
-  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: Seq[Stat]): MetaEntity = {
+  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: List[Stat]): MetaEntity = {
     val entity = entityTpe.toString
     if (entity.head.isLower) {
       err(s"Please change entity trait name `$entity` to start with upper case letter.")
@@ -194,7 +194,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
-  private def getAttrs(segmentPrefix: String, entity: String, attrs: Seq[Stat]): Seq[MetaAttribute] = attrs.map {
+  private def getAttrs(segmentPrefix: String, entity: String, attrs: List[Stat]): List[MetaAttribute] = attrs.map {
     case q"val $attr = $defs" =>
       val a = attr.toString
       if (reservedAttrNames.contains(a)) {
@@ -472,19 +472,19 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
       // Validations ................................................
 
       case q"$prev.validate { ..case $cases }" =>
-        handleValidationCases(prev, pp, entity, a, cases, attr)
+        handleValidationCases(prev, pp, entity, a, cases.toList, attr)
 
       case q"$prev.validate($test)" =>
         test match {
           case q"{ ..case $cases }: PartialFunction[$_, $_]" =>
-            handleValidationCases(prev, pp, entity, a, cases, attr)
+            handleValidationCases(prev, pp, entity, a, cases.toList, attr)
 
           case _ =>
             oneValidationCall(entity, a)
             val valueAttrs1  = extractValueAttrs(entity, a, q"$test")
             val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
             val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
-            val validations1 = Seq(indent(test.toString()) -> "")
+            val validations1 = List(indent(test.toString()) -> "")
             acc(pp, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
         }
 
@@ -493,7 +493,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
         val valueAttrs1  = extractValueAttrs(entity, a, q"$test")
         val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
         val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
-        val validations1 = Seq(indent(test.toString()) -> error)
+        val validations1 = List(indent(test.toString()) -> error)
         acc(pp, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
 
       case q"$prev.validate($test, ${Term.Select(Lit.String(multilineMsg), Term.Name("stripMargin"))})" =>
@@ -501,7 +501,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
         val valueAttrs1  = extractValueAttrs(entity, a, q"$test")
         val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attr +: valueAttrs1).distinct.sorted
         val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
-        val validations1 = Seq(indent(test.toString()) -> multilineMsg)
+        val validations1 = List(indent(test.toString()) -> multilineMsg)
         acc(pp, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1))
 
       case q"$prev.validate($test, ${Term.Interpolate(Term.Name("s"), _, _)})" =>
@@ -514,37 +514,37 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
         oneValidationCall(entity, a)
         val test  = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
         val error = s"""`$$v` is not a valid email"""
-        acc(pp, entity, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.email(${Lit.String(error)})" =>
         oneValidationCall(entity, a)
         val test = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
-        acc(pp, entity, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.regex(${Lit.String(regex)})" =>
         oneValidationCall(entity, a)
         val test  = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
         val error = s"""\"$$v\" doesn't match regex pattern: ${regex.replace("$", "$$")}"""
-        acc(pp, entity, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.regex(${Lit.String(regex)}, ${Lit.String(error)})" =>
         oneValidationCall(entity, a)
         val test = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
-        acc(pp, entity, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.enums(Seq(..$vs), ${Lit.String(error)})" =>
         oneValidationCall(entity, a)
         val test = s"""v => Seq$vs.contains(v)"""
-        acc(pp, entity, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.enums(..$vs)" =>
         oneValidationCall(entity, a)
         val test  = s"""v => Seq$vs.contains(v)"""
         val error = s"""Value `$$v` is not one of the allowed values in Seq$vs"""
-        acc(pp, entity, prev, a.copy(validations = Seq(test -> error)))
+        acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.require(..$otherAttrs)" =>
-        val reqAttrs1 = a.attr +: otherAttrs.map(_.toString)
+        val reqAttrs1 = a.attr +: otherAttrs.toList.map(_.toString)
         acc(pp, entity, prev, a.copy(requiredAttrs = reqAttrs1))
 
       case q"$prev.value" => err(
@@ -569,7 +569,7 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     segmentPrefix: String,
     entity: String,
     a: MetaAttribute,
-    cases: Seq[Case],
+    cases: List[Case],
     attr: String
   ) = {
     oneValidationCall(entity, a)
@@ -636,6 +636,5 @@ class ParseDomainStructure(filePath: String, content: String) extends BaseHelper
     traverser(entity)(test)
     valueAttrs.result().distinct.sorted
   }
-
 }
 
