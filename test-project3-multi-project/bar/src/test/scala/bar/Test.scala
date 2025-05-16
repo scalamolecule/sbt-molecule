@@ -6,9 +6,9 @@ import bar.domain.schema.PersonSchema_h2
 import molecule.db.core.marshalling.JdbcProxy
 import molecule.db.sql.core.facade.{JdbcConn_JVM, JdbcHandler_JVM}
 import molecule.db.sql.h2.sync.*
-import munit.FunSuite
+import utest.*
 
-class Test extends FunSuite {
+object Test extends TestSuite {
 
   implicit val conn: JdbcConn_JVM = {
     val url     = "jdbc:h2:mem:test"
@@ -19,8 +19,11 @@ class Test extends FunSuite {
   }
 
 
-  test("test") {
-    Person.name("Bob").age(42).save.transact
-    assertEquals(Person.name.age.query.get, List(("Bob", 42)))
+  override def tests: Tests = Tests {
+
+    "test" - {
+      Person.name("Bob").age(42).save.transact
+      Person.name.age.query.get ==> List(("Bob", 42))
+    }
   }
 }

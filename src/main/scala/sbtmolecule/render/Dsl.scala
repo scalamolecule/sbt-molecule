@@ -114,14 +114,15 @@ case class Dsl(
   private val entities: String = (0 to metaDomain.maxArity)
     .map(Dsl_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
-  private val idCoord = s"coord = List(${entityList.indexOf(ent)}, ${attrList.indexOf(ent + ".id")})"
+  private val entityIndex = entityList.indexOf(ent)
+  private val idCoord = s"coord = List($entityIndex, ${attrList.indexOf(ent + ".id")})"
 
   private val (rightRefOp, rightRef) = if (refs.isEmpty) ("", "") else (
     s"with OptEntityOp_0[${ent}_1_refs] with OptEntity_0[${ent}_1_refs] ",
     s"""
        |
        |  override protected def _optEntity[OptEntityTpl](attrs: List[Attr]): ${ent}_1_refs[Option[OptEntityTpl], Any] =
-       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](List(ast.OptEntity(attrs)))""".stripMargin
+       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](DataModel(List(ast.OptEntity(attrs))))""".stripMargin
   )
 
   def get: String = {
@@ -139,9 +140,9 @@ case class Dsl(
        |
        |$baseEntity
        |
-       |object $ent extends $ent_0[Nothing](Nil) $rightRefOp{
-       |  final def apply(id : Long, ids: Long*) = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, id +: ids, $idCoord)))
-       |  final def apply(ids: Iterable[Long])   = new $ent_0[String](List(AttrOneTacID("$ent", "id", Eq, ids.toSeq, $idCoord)))$rightRef
+       |object $ent extends $ent_0[Nothing](DataModel(Nil, firstEntityIndex = $entityIndex)) $rightRefOp{
+       |  final def apply(id : Long, ids: Long*) = new $ent_0[String](DataModel(List(AttrOneTacID("$ent", "id", Eq, id +: ids, $idCoord)), firstEntityIndex = $entityIndex))
+       |  final def apply(ids: Iterable[Long])   = new $ent_0[String](DataModel(List(AttrOneTacID("$ent", "id", Eq, ids.toSeq, $idCoord)), firstEntityIndex = $entityIndex))$rightRef
        |}
        |
        |
