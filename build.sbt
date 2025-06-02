@@ -5,40 +5,40 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.15.0",
+    version := "1.16.0",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalamolecule" %% "molecule-db-base" % "0.20.0",
-      "com.lihaoyi" %% "utest" % "0.8.4" % Test
+      "org.scalamolecule" %% "molecule-db-base" % "0.21.0",
+      "com.lihaoyi" %% "utest" % "0.8.5" % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )
   .settings(publishSettings)
 
-
-lazy val snapshots = "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
-lazy val releases  = "Sonatype OSS Staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-
 lazy val publishSettings: Seq[Def.Setting[_]] = Seq(
   publishMavenStyle := true,
+  // pomIncludeRepository := (_ => false), // necessary for local snapshots?
+  publishTo := {
+    val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+    if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+    else localStaging.value
+  },
   versionScheme := Some("early-semver"),
-  publishTo := (if (isSnapshot.value) Some(snapshots) else Some(releases)),
   Test / publishArtifact := false,
-  pomIncludeRepository := (_ => false),
   homepage := Some(url("http://scalamolecule.org")),
   description := "sbt-molecule",
-  licenses := Seq("Apache 2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  licenses := List(License.Apache2),
   scmInfo := Some(ScmInfo(
     url("https://github.com/scalamolecule/sbt-molecule"),
     "scm:git:git@github.com:scalamolecule/sbt-molecule.git"
   )),
   developers := List(
     Developer(
-      id = "marcgrue",
-      name = "Marc Grue",
-      email = "marcgrue@gmail.com",
-      url = url("http://marcgrue.com")
+      "marcgrue",
+      "Marc Grue",
+      "marcgrue@gmail.com",
+      url("http://marcgrue.com")
     )
   )
 )

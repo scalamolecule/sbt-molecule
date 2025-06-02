@@ -133,21 +133,21 @@ case class Dsl_Arities(
   if (first) {
     val pArg = if (hasMap) "  " else ""
     if (hasOne) {
-      res += s"""override protected def _exprOneTac(op: Op, vs$pArg: Seq[t]$pOne) = new $ent_0[t](addOne(dataModel, op, vs)) with CardOne"""
+      res += s"""override protected def _exprOneTac(op: Op, vs$pArg: Seq[t], binding: Boolean) = new $ent_0[t](addOne  (dataModel, op, vs, binding)) with CardOne"""
     }
     if (hasSet) {
-      res += s"""override protected def _exprSet   (op: Op, vs$pArg: Set[t]$pSet) = new $ent_0[t](addSet(dataModel, op, vs)) with CardSet"""
+      res += s"""override protected def _exprSet   (op: Op, vs$pArg: Set[t]  $pBar          ) = new $ent_0[t](addSet  (dataModel, op, vs         )) with CardSet"""
     }
     if (hasSeq && seqCount > 0) {
-      res += s"""override protected def _exprSeq   (op: Op, vs$pArg: Seq[t]$pSeq) = new $ent_0[t](addSeq(dataModel, op, vs)) with CardSet"""
+      res += s"""override protected def _exprSeq   (op: Op, vs$pArg: Seq[t]  $pBar          ) = new $ent_0[t](addSeq  (dataModel, op, vs         )) with CardSet"""
     }
     if (hasByteArray) {
-      res += s"""override protected def _exprBAr   (op: Op, ba$pArg: Array[t]$pBar) = new $ent_0[t](addBAr(dataModel, op, ba)) with CardSet"""
+      res += s"""override protected def _exprBAr   (op: Op, ba$pArg: Array[t]$pBar          ) = new $ent_0[t](addBAr  (dataModel, op, ba         )) with CardSet"""
     }
     if (hasMap) {
-      res += s"""override protected def _exprMap   (op: Op, map : Map[String, t]) = new $ent_0[t](addMap  (dataModel, op, map )) with CardMap"""
-      res += s"""override protected def _exprMapK  (op: Op, keys: Seq[String]   ) = new $ent_0[t](addMapKs(dataModel, op, keys)) with CardMap"""
-      res += s"""override protected def _exprMapV  (op: Op, vs  : Seq[t]        ) = new $ent_0[t](addMapVs(dataModel, op, vs  )) with CardMap"""
+      res += s"""override protected def _exprMap   (op: Op, map : Map[String, t]          ) = new $ent_0[t](addMap  (dataModel, op, map        )) with CardMap"""
+      res += s"""override protected def _exprMapK  (op: Op, keys: Seq[String]             ) = new $ent_0[t](addMapKs(dataModel, op, keys       )) with CardMap"""
+      res += s"""override protected def _exprMapV  (op: Op, vs  : Seq[t]                  ) = new $ent_0[t](addMapVs(dataModel, op, vs         )) with CardMap"""
     }
 
   } else {
@@ -173,14 +173,14 @@ case class Dsl_Arities(
     def agg4 = s"override protected def _aggrSet   (kw: Kw, n: Option[Int]$ppAgr) = new $ent_0"
     def agg5 = s"override protected def _aggrDist  (kw: Kw                $ppAgr) = new $ent_0"
 
-    def one1 = s"override protected def _exprOneMan(op: Op, vs: Seq[t]   $ppOne) = new $ent_0"
+    def one1 = s"override protected def _exprOneMan(op: Op, vs: Seq[t], binding: Boolean) = new $ent_0"
     def one2 = s"override protected def _exprOneOpt(op: Op, v : Option[t]$ppOne) = new $ent_0"
-    def one3 = s"override protected def _exprOneTac(op: Op, vs: Seq[t]   $ppOne) = new $ent_0"
+    def one3 = s"override protected def _exprOneTac(op: Op, vs: Seq[t], binding: Boolean) = new $ent_0"
 
     def set1 = s"override protected def _exprSet   (op: Op, vs: Set[t]        $ppSet) = new $ent_0"
     def set2 = s"override protected def _exprSetOpt(op: Op, vs: Option[Set[t]]$ppSet) = new $ent_0"
 
-    def seq1 = s"override protected def _exprSeq   (op: Op, vs: Seq[t]        $ppSeq) = new $ent_0"
+    def seq1 = s"override protected def _exprSeq   (op: Op, vs: Seq[t]        $ppSet) = new $ent_0"
     def seq2 = s"override protected def _exprSeqOpt(op: Op, vs: Option[Seq[t]]$ppSeq) = new $ent_0"
 
     def bar1 = s"override protected def _exprBAr   (op: Op, ba: Array[t]        $ppBar) = new $ent_0"
@@ -196,38 +196,38 @@ case class Dsl_Arities(
 
 
     if (hasOne || hasSet) {
-      res += s"$agg1[$tInt_](toInt    (dataModel, kw    )) with SortAttrs_$arity[$ttInt_, $ent_0]"
-      res += s"$agg2[$tT___](asIs     (dataModel, kw    )) with SortAttrs_$arity[$ttT___, $ent_0]"
-      res += s"$agg3[$tDoub](toDouble (dataModel, kw    )) with SortAttrs_$arity[$ttDoub, $ent_0]"
-      res += s"$agg4[$tSet_](asIs     (dataModel, kw, n ))"
-      res += s"$agg5[$tDist](asIs     (dataModel, kw    ))"
+      res += s"$agg1[$tInt_](toInt    (dataModel, kw             )) with SortAttrs_$arity[$ttInt_, $ent_0]"
+      res += s"$agg2[$tT___](asIs     (dataModel, kw             )) with SortAttrs_$arity[$ttT___, $ent_0]"
+      res += s"$agg3[$tDoub](toDouble (dataModel, kw             )) with SortAttrs_$arity[$ttDoub, $ent_0]"
+      res += s"$agg4[$tSet_](asIs     (dataModel, kw, n          ))"
+      res += s"$agg5[$tDist](asIs     (dataModel, kw             ))"
     }
     if (hasOne) {
-      res += s"$one1[$tA___](addOne   (dataModel, op, vs)) with SortAttrs_$arity[$ttA___, $ent_0] with CardOne"
-      res += s"$one2[$tA___](addOneOpt(dataModel, op, v )) with SortAttrs_$arity[$ttA___, $ent_0]"
-      res += s"$one3[$tA___](addOne   (dataModel, op, vs)) with CardOne"
+      res += s"$one1[$tA___](addOne   (dataModel, op, vs, binding)) with SortAttrs_$arity[$ttA___, $ent_0] with CardOne"
+      res += s"$one2[$tA___](addOneOpt(dataModel, op, v          )) with SortAttrs_$arity[$ttA___, $ent_0]"
+      res += s"$one3[$tA___](addOne   (dataModel, op, vs, binding)) with CardOne"
     }
     if (hasSet) {
-      res += s"$set1[$tA___](addSet   (dataModel, op, vs)) with CardSet"
-      res += s"$set2[$tA___](addSetOpt(dataModel, op, vs))"
+      res += s"$set1[$tA___](addSet   (dataModel, op, vs         )) with CardSet"
+      res += s"$set2[$tA___](addSetOpt(dataModel, op, vs         ))"
     }
     if (hasSeq && seqCount > 0) {
-      res += s"$seq1[$uA___](addSeq   (dataModel, op, vs)) with CardSeq"
-      res += s"$seq2[$uA___](addSeqOpt(dataModel, op, vs))"
+      res += s"$seq1[$uA___](addSeq   (dataModel, op, vs         )) with CardSeq"
+      res += s"$seq2[$uA___](addSeqOpt(dataModel, op, vs         ))"
     }
     if (hasByteArray) {
-      res += s"$bar1[$uA___](addBAr   (dataModel, op, ba)) with CardSeq"
-      res += s"$bar2[$uA___](addBArOpt(dataModel, op, ba))"
+      res += s"$bar1[$uA___](addBAr   (dataModel, op, ba         )) with CardSeq"
+      res += s"$bar2[$uA___](addBArOpt(dataModel, op, ba         ))"
     }
     if (hasMap) {
-      res += s"""$map1[$tA___](addMap   (dataModel, op, map     )) with CardMap"""
-      res += s"""$map2[$tT___](addMapKs (dataModel, op, keys    )) with CardMap"""
-      res += s"""$map3[$tA___](addMapVs (dataModel, op, vs      )) with CardMap"""
-      res += s"""$map4[$tA___](addMapOpt(dataModel, op, map     )) with CardMap"""
-      res += s"""$map5[$tO___](addMapKs (dataModel, op, Seq(key))) with CardMap"""
+      res += s"""$map1[$tA___](addMap   (dataModel, op, map        )) with CardMap"""
+      res += s"""$map2[$tT___](addMapKs (dataModel, op, keys       )) with CardMap"""
+      res += s"""$map3[$tA___](addMapVs (dataModel, op, vs         )) with CardMap"""
+      res += s"""$map4[$tA___](addMapOpt(dataModel, op, map        )) with CardMap"""
+      res += s"""$map5[$tO___](addMapKs (dataModel, op, Seq(key)   )) with CardMap"""
     }
     if (hasOne) {
-      res += s"$sort[$tA___](addSort  (dataModel, sort))"
+      res += s"$sort[$tA___](addSort  (dataModel, sort           ))"
     }
   }
 
