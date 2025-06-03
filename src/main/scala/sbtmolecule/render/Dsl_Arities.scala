@@ -293,7 +293,8 @@ case class Dsl_Arities(
        |    override protected def _optRef[RefTpl](optRefDataModel: DataModel): $ns_refs[${`A..V, `}Option[RefTpl], Any] =
        |      new $ns_refs[${`A..V, `}Option[RefTpl], Any](DataModel(
        |        self.dataModel.elements.init :+ OptRef(self.dataModel.elements.last.asInstanceOf[Ref], optRefDataModel.elements),
-       |        self.dataModel.attrIndexes ++ optRefDataModel.attrIndexes
+       |        self.dataModel.attrIndexes ++ optRefDataModel.attrIndexes,
+       |        binds = self.dataModel.binds + optRefDataModel.binds
        |      ))
        |  }""".stripMargin
   } else ""
@@ -303,13 +304,15 @@ case class Dsl_Arities(
        |    override protected def _nestedMan[NestedTpl](nestedDataModel: DataModel): NestedInit_$n0[${`A..V, `}NestedTpl] =
        |      new NestedInit_$n0(DataModel(
        |        self.dataModel.elements.init :+ Nested(self.dataModel.elements.last.asInstanceOf[Ref], nestedDataModel.elements),
-       |        self.dataModel.attrIndexes ++ nestedDataModel.attrIndexes
+       |        self.dataModel.attrIndexes ++ nestedDataModel.attrIndexes,
+       |        binds = self.dataModel.binds + nestedDataModel.binds
        |      ))
        |
        |    override protected def _nestedOpt[NestedTpl](nestedDataModel: DataModel): NestedInit_$n0[${`A..V, `}NestedTpl] =
        |      new NestedInit_$n0(DataModel(
        |        self.dataModel.elements.init :+ OptNested(self.dataModel.elements.last.asInstanceOf[Ref], nestedDataModel.elements),
-       |        self.dataModel.attrIndexes ++ nestedDataModel.attrIndexes
+       |        self.dataModel.attrIndexes ++ nestedDataModel.attrIndexes,
+       |        binds = self.dataModel.binds + nestedDataModel.binds
        |      ))
        |  }""".stripMargin
   } else ""
