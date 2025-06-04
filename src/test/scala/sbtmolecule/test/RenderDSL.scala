@@ -21,9 +21,9 @@ object RenderDSL extends TestSuite {
   override def tests: Tests = Tests {
 
     "DSL" - {
-      Dsl(types, "", types.segments.head.ents(0)).get ==> "check"
-      //      Dsl(types, "", types.segments.head.ents(1)).get ==> "check"
-      //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check"
+//            Dsl(types, "", types.segments.head.ents(0)).get ==> "check" // Types
+//            Dsl(types, "", types.segments.head.ents(1)).get ==> "check" // Refs
+      //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check" // Other
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"
       //      Dsl(refs, "", refs.segments.head.ents(0)).get ==> "check"
       //      Dsl(scopes, "", scopes.segments(0).ents(0)).get ==> "check"
@@ -33,7 +33,7 @@ object RenderDSL extends TestSuite {
       //      Dsl(validation, "", validation.segments(0).ents(3)).get ==> "check" // Constants
       //      Dsl(validation, "", validation.segments(0).ents(4)).get ==> "check" // Variables
       //      Dsl(cardinalities, "", cardinalities.segments(0).ents(0)).get ==> "check"
-      //      Dsl(starwars, "", starwars.segments(0).ents(2)).get ==> "check"
+      Dsl(starwars, "", starwars.segments(0).ents(2)).get ==> "check"
       //
       //      validation ==> "check"
       //      validation.segments.head.ents(3) ==> "check"
