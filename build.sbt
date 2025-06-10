@@ -1,5 +1,7 @@
 import sbt.url
 
+val calibanVersion = "2.10.0"
+
 lazy val root = (project in file("."))
   .settings(
     sbtPlugin := true,
@@ -9,7 +11,16 @@ lazy val root = (project in file("."))
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalamolecule" %% "molecule-db-base" % "0.21.0",
+      "org.scalamolecule" %% "molecule-base" % "0.22.0-SNAPSHOT",
+
+      "com.lihaoyi" %% "requests" % "0.9.0",
+      "com.lihaoyi" %% "upickle" % "4.2.1",
+
+      "dev.zio" %% "zio" % "2.1.17",
+      "com.github.ghostdogpr" %% "caliban" % calibanVersion,
+      "com.github.ghostdogpr" %% "caliban-tools" % calibanVersion,
+      "com.github.ghostdogpr" %% "caliban-client" % calibanVersion,
+
       "com.lihaoyi" %% "utest" % "0.8.5" % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),

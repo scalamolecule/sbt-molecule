@@ -3,11 +3,11 @@ name := "test-project5-cross-pure"
 
 inThisBuild(
   List(
-    version := "1.16.0",
+    version := "1.16.2-SNAPSHOT",
     organization := "org.scalamolecule",
-    scalaVersion := "3.7.0",
+    scalaVersion := "3.7.1",
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-db-sql-h2" % "0.20.1-SNAPSHOT",
+      "org.scalamolecule" %% "molecule-db-sql-h2" % "0.22.0-SNAPSHOT",
       "com.lihaoyi" %% "utest" % "0.8.5" % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),

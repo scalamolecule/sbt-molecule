@@ -1,12 +1,11 @@
 package sbtmolecule
 
 import java.util.jar.Manifest
-import molecule.db.base.ast.MetaDomain
-import molecule.db.base.error.ModelError
+import molecule.base.ast.MetaDomain
+import molecule.base.error.ModelError
+import sbt.*
 import sbt.Keys.*
 import sbt.plugins.JvmPlugin
-import sbt.{IO, *}
-import scala.util.Try
 
 object MoleculePlugin extends sbt.AutoPlugin {
 
@@ -125,15 +124,12 @@ object MoleculePlugin extends sbt.AutoPlugin {
   }
 
 
+  // Recursively find and parse all molecule definition files
   private def files2metaDomains(files: Seq[File], acc: Seq[MetaDomain]): Seq[MetaDomain] = {
     files.flatMap {
-      case file if file.isFile => if (file.name.endsWith(".scala")) {
-        Try {
-          val metaDomain = ParseDomainStructure(file.getPath)
-          if (metaDomain.maxArity > 0) // set maxArity to 0 to skip generation for this domain
-            Seq(metaDomain) else Nil
-        }.getOrElse(Nil)
-      } else Nil
+      case file if file.isFile =>
+        if (file.name.endsWith(".scala"))
+          ParseDefinitionFile(file.getPath).optMetaDomain else Nil
 
       case dir => files2metaDomains(IO.listFiles(dir), acc)
     }
