@@ -1,22 +1,22 @@
 package sbtmolecule.graphql.dsl
 
-import molecule.base.ast.*
+import molecule.core.model.*
 import sbtmolecule.DslFormatting
 
 
-case class GraphqlEntity_Arities(
-  metaDomain: MetaDomain,
+case class GraphqlOutput_Arities(
+  dbModel: DbModel,
   entityList: Seq[String],
   attrList: Seq[String],
-  metaEntity: MetaEntity,
+  dbEntity: DbEntity,
   arity: Int
-) extends DslFormatting(metaDomain, metaEntity, arity) {
+) extends DslFormatting(dbModel, dbEntity, arity) {
 
   private val man = List.newBuilder[String]
   private val opt = List.newBuilder[String]
   private val ref = List.newBuilder[String]
 
-  private val last         = arity == metaDomain.maxArity
+  private val last         = arity == dbModel.maxArity
   private var hasOne       = false
   private var hasSeq       = false
   private var hasByteArray = false
@@ -24,16 +24,16 @@ case class GraphqlEntity_Arities(
 
   private val ptMax = {
     attrs.collect {
-      case MetaAttribute(_, CardOne, baseTpe, _, _, _, _, _, _, _) =>
+      case DbAttribute(_, CardOne, baseTpe, _, _, _, _, _, _, _) =>
         hasOne = true
         getTpe(baseTpe).length // Account for "ID" type being String
 
-      case MetaAttribute(_, CardSeq, "Byte", _, _, _, _, _, _, _) =>
+      case DbAttribute(_, CardSeq, "Byte", _, _, _, _, _, _, _) =>
         hasSeq = true
         hasByteArray = true
         7 + 4 // "Byte".length
 
-      case MetaAttribute(_, CardSeq, baseTpe, _, _, _, _, _, _, _) =>
+      case DbAttribute(_, CardSeq, baseTpe, _, _, _, _, _, _, _) =>
         hasSeq = true
         seqCount += 1
         5 + baseTpe.length
@@ -47,7 +47,7 @@ case class GraphqlEntity_Arities(
   private val ptByteArray = " " * (ptMax - 7 - 4)
 
   attrs.foreach {
-    case MetaAttribute(attr, card, baseType, ref, _, _, _, _, _, _) =>
+    case DbAttribute(attr, card, baseType, ref, _, _, _, _, _, _) =>
       val tpe  = getTpe(baseType)
       val padA = padAttr(attr)
       val pad1 = padType(tpe)
@@ -76,11 +76,11 @@ case class GraphqlEntity_Arities(
   private val hasRefOne  = refs.exists(_.card == CardOne)
   private val hasRefMany = refs.exists(_.card == CardSet)
   refs.collect {
-    case MetaAttribute(attr, card, _, Some(ref0), _, _, _, _, _, _) =>
+    case DbAttribute(attr, card, _, Some(ref0), _, _, _, _, _, _) =>
       val refName  = camel(attr)
       val pRefAttr = padRefAttr(attr)
       val pRef     = padRefEntity(ref0)
-      val refObj   = s"""ast.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card)"""
+      val refObj   = s"""molecule.core.model.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card)"""
       if (arity == maxArity) {
         ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj))"""
       } else if (card == CardOne) {
@@ -132,7 +132,7 @@ case class GraphqlEntity_Arities(
     backRefs.flatMap { backRef =>
       if (ent == backRef) None else {
         val pad = padS(max, backRef)
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(ast.BackRef("$backRef", "$ent")))""")
+        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(molecule.core.model.BackRef("$backRef", "$ent")))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }

@@ -1,17 +1,25 @@
 package sbtmolecule
 
-import molecule.core.model.*
 import molecule.core.util.BaseHelpers
 
 
-class DslFormatting(dbModel: DbModel, dbEntity: DbEntity, arity: Int = 0) extends BaseHelpers {
-  val pkg      = dbModel.pkg + ".dsl"
-  val domain   = dbModel.domain
-  val maxArity = dbModel.maxArity
-  val ent      = dbEntity.ent
-  val attrs    = dbEntity.attrs
-  val refs     = attrs.filter(_.ref.nonEmpty)
-  val backRefs = dbEntity.backRefs
+class FormatGraphql(
+//  doc: Document,
+//  pkg: String,
+//  domain: String,
+//  maxArity: Int,
+  ent: String,
+
+  arity: Int = 0
+) extends BaseHelpers {
+//  val pkg      = dbModel.pkg + ".dsl"
+//  val domain   = dbModel.domain
+//  val maxArity = dbModel.maxArity
+//  val ent      = dbEntity.ent
+
+//  val attrs    = dbEntity.attrs
+//  val refs     = attrs.filter(_.ref.nonEmpty)
+//  val backRefs = dbEntity.backRefs
 
   def camel(s: String) = s"${s.head.toUpper}${s.tail}"
 
@@ -20,15 +28,15 @@ class DslFormatting(dbModel: DbModel, dbEntity: DbEntity, arity: Int = 0) extend
     case t    => t
   }
 
-  lazy val maxAttr      = attrs.map(_.attr.length).max
-  lazy val maxBaseTpe   = attrs.map(a => getTpe(a.baseTpe).length).max
-  lazy val maxRefAttr   = attrs.filter(_.ref.isDefined).map(entity => entity.attr.length).max
-  lazy val maxRefEntity = attrs.flatMap(_.ref.map(_.length)).max
+//  lazy val maxAttr      = attrs.map(_.attr.length).max
+//  lazy val maxBaseTpe   = attrs.map(a => getTpe(a.baseTpe).length).max
+//  lazy val maxRefAttr   = attrs.filter(_.ref.isDefined).map(entity => entity.attr.length).max
+//  lazy val maxRefEntity = attrs.flatMap(_.ref.map(_.length)).max
 
-  lazy val padAttr      = (s: String) => padS(maxAttr, s)
-  lazy val padType      = (s: String) => padS(maxBaseTpe, s)
-  lazy val padRefAttr   = (s: String) => padS(maxRefAttr, s)
-  lazy val padRefEntity = (s: String) => padS(maxRefEntity, s)
+//  lazy val padAttr      = (s: String) => padS(maxAttr, s)
+//  lazy val padType      = (s: String) => padS(maxBaseTpe, s)
+//  lazy val padRefAttr   = (s: String) => padS(maxRefAttr, s)
+//  lazy val padRefEntity = (s: String) => padS(maxRefEntity, s)
 
   lazy val V        = ('A' + arity - 1).toChar
   lazy val tpes     = (0 until arity) map (n => (n + 'A').toChar)
@@ -46,4 +54,11 @@ class DslFormatting(dbModel: DbModel, dbEntity: DbEntity, arity: Int = 0) extend
 
   def padN(n: Int) = if (n < 10) s"0$n" else n
   val n0 = padN(arity)
+
+
+
+
+
+
+
 }

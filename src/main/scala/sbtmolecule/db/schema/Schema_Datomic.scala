@@ -1,15 +1,15 @@
 package sbtmolecule.db.schema
 
-import molecule.base.ast.*
-import molecule.base.util.RegexMatching
+import molecule.core.model.*
+import molecule.core.util.RegexMatching
 
 
-case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
+case class Schema_Datomic(dbModel: DbModel) extends RegexMatching {
 
-  private val flatEntities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
+  private val flatEntities: Seq[DbEntity] = dbModel.segments.flatMap(_.ents)
 
   private val datomicPartitions: String = {
-    val parts = metaDomain.segments.filterNot(_.segment.isEmpty).map(_.segment)
+    val parts = dbModel.segments.filterNot(_.segment.isEmpty).map(_.segment)
     if (parts.isEmpty) "\"\"" else {
       edn(parts.map { part =>
         s"""|        {:db/id      "$part"
@@ -30,7 +30,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     }
   }
 
-  private def datomicCardinality(metaAttribute: MetaAttribute): String = metaAttribute.card match {
+  private def datomicCardinality(dbAttribute: DbAttribute): String = dbAttribute.card match {
     case CardOne => "one"
     case CardSet => "many"
     case CardSeq => "one" // Array values encoded in one byte Array
@@ -38,7 +38,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     case other   => throw new Exception("Yet unsupported cardinality: " + other)
   }
 
-  private def datomicType(a: MetaAttribute): String = {
+  private def datomicType(a: DbAttribute): String = {
     if (a.card == CardSeq && a.baseTpe == "Byte") {
       "bytes"
     } else a.baseTpe match {
@@ -69,7 +69,7 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     }
   }
 
-  private def attrStmts(ns: String, a: MetaAttribute): String = {
+  private def attrStmts(ns: String, a: DbAttribute): String = {
     val mandatory = Seq(
       s""":db/ident         :$ns/${a.attr}""",
       s""":db/valueType     :db.type/${datomicType(a)}""",
@@ -122,8 +122,8 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     }
   }
 
-  private def attrDefs(metaEntity: MetaEntity): String = metaEntity.attrs.tail // no id attribute in Datomic
-    .map(attrStmts(metaEntity.ent, _))
+  private def attrDefs(dbEntity: DbEntity): String = dbEntity.attrs.tail // no id attribute in Datomic
+    .map(attrStmts(dbEntity.ent, _))
     .mkString("{", "}\n\n        {", "}")
 
   private val datomicSchema: String = edn(flatEntities.map { ns =>
@@ -146,12 +146,12 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
         |    \"\"\"""".stripMargin
 
 
-  val domain = metaDomain.domain
+  val domain = dbModel.domain
   def get: String =
     s"""|// AUTO-GENERATED Molecule Schema boilerplate code for the `$domain` domain
-        |package ${metaDomain.pkg}.schema
+        |package ${dbModel.pkg}.schema
         |
-        |import molecule.core.ast._
+        |import molecule.core.model.*
         |
         |
         |object ${domain}Schema_datomic extends ${domain}Schema with Schema_datomic {

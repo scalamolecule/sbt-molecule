@@ -42,30 +42,39 @@ type Human implements Character {
     appearsIn: [Episode]!
     homePlanet: String
 }
-#
-#type Query {
+
+#schema {
+#    query: QueryX
+#}
+
+#type QueryX {
+type Query {
 #    hero(episode: Episode!): Character
+    hero: Character
 #    character(id: ID!): Character
-#    human(id: ID!): Human
-#    droid(id: ID!): Droid
-#}
-#
-#
-#type Review {
-#    text: String
-#}
-#
-#input ReviewInput {
-#    stars: Int!
-#    commentary: String
-#}
-#
-#type Mutation {
-#    createReview(episode: Episode, review: ReviewInput!): Review
-#    updateHumanName(id: ID!, name: String!): Human
-#    deleteHuman(id: ID!): ID!
-#}
-#
-#type Subscription {
-#    reviewCreated: Review
-#}
+    human(id: ID!): Human
+#    droid(id: ID!, date: Date): Droid
+#    naked: Droid
+}
+
+
+type Review {
+    text: String
+}
+
+input ReviewInput {
+    stars: Int!
+    commentary: String
+}
+
+scalar Date
+
+type Mutation {
+    createReview(episode: Episode, review: ReviewInput!, created: Date): Review
+    updateHumanName(id: ID!, name: String!): Human
+    deleteHuman(id: ID!): ID!
+}
+
+type Subscription {
+    reviewCreated: Review
+}

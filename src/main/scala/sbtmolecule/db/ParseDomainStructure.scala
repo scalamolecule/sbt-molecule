@@ -1,9 +1,7 @@
 package sbtmolecule.db
 
-import molecule.base.ast.*
-import molecule.base.ast.Endpoint.Db
-import molecule.base.error.ModelError
-import molecule.base.util.BaseHelpers
+import molecule.core.model.*
+import molecule.core.util.BaseHelpers
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.meta.*
@@ -36,10 +34,10 @@ case class ParseDomainStructure(
   private var backRefs   = Map.empty[String, List[String]]
   private val valueAttrs = ListBuffer.empty[String]
 
-  private def noMix() = throw ModelError(
+  private def noMix() = throw new Exception(
     "Mixing prefixed and non-prefixed entities is not allowed."
   )
-  private def unexpected(c: Tree, msg: String = ":") = throw ModelError(
+  private def unexpected(c: Tree, msg: String = ":") = throw new Exception(
     s"Unexpected Domain definition code in file $filePath$msg\n" + c
   )
 
@@ -47,14 +45,14 @@ case class ParseDomainStructure(
   private def err(msg: String, entity: String = "", attr: String = "") = {
     val fullEntity = if (entity.isEmpty && attr.isEmpty) "" else
       s" for attribute $entity.$attr"
-    throw ModelError(
+    throw new Exception(
       s"""Problem in data model $pkg.$domain$fullEntity:
          |$msg
          |""".stripMargin
     )
   }
 
-  def getMetaDomain: MetaDomain = {
+  def getDbModel: DbModel = {
     val hasSegements = body.exists {
       case q"object $_ { ..$_ }" => true
       case _                     => false
@@ -62,27 +60,27 @@ case class ParseDomainStructure(
     val segments     = if (hasSegements) {
       body.map {
         case q"object $segment { ..$entities }" =>
-          MetaSegment(segment.toString, getEntities(segment.toString + "_", entities.toList))
+          DbSegment(segment.toString, getEntities(segment.toString + "_", entities.toList))
 
         case q"trait $entity $template" => noMix()
       }
     } else {
-      List(MetaSegment("", getEntities("", body)))
+      List(DbSegment("", getEntities("", body)))
     }
     checkCircularMandatoryRefs(segments)
     val segments1 = addBackRefs(segments)
-    MetaDomain(Db, pkg, domain, maxArity, segments1)
+    DbModel(pkg, domain, maxArity, segments1)
   }
 
-  private def checkCircularMandatoryRefs(segments: List[MetaSegment]): Unit = {
+  private def checkCircularMandatoryRefs(segments: List[DbSegment]): Unit = {
     val mappings: Map[String, List[(String, String)]] = segments
       .flatMap(_.ents
         .filter(_.attrs.exists(ref =>
           ref.ref.nonEmpty && ref.options.contains("mandatory")
         )))
-      .map(metaEntity => metaEntity.ent -> metaEntity.attrs.collect {
+      .map(dbEntity => dbEntity.ent -> dbEntity.attrs.collect {
         case ref if ref.ref.nonEmpty && ref.options.contains("mandatory") =>
-          s"${metaEntity.ent}.${ref.attr}" -> ref.ref.get
+          s"${dbEntity.ent}.${ref.attr}" -> ref.ref.get
       }).toMap
 
     def check(prevEntities: List[String], graph: List[String], entity: String): Unit = {
@@ -114,7 +112,7 @@ case class ParseDomainStructure(
     if (entity.contains(".")) entity.replace(".", "_") else segmentPrefix + entity
   }
 
-  private def addBackRefs(segments: List[MetaSegment]): List[MetaSegment] = {
+  private def addBackRefs(segments: List[DbSegment]): List[DbSegment] = {
     segments.map { segment =>
       val entities1 = segment.ents.map { entity =>
         entity.copy(backRefs = backRefs.getOrElse(entity.ent, Nil).distinct.sorted)
@@ -123,7 +121,7 @@ case class ParseDomainStructure(
     }
   }
 
-  private def getEntities(segmentPrefix: String, entities: List[Stat]): List[MetaEntity] = {
+  private def getEntities(segmentPrefix: String, entities: List[Stat]): List[DbEntity] = {
     entities.map {
       case q"trait $entityTpe { ..$attrs }" => getEntity(segmentPrefix, entityTpe, attrs.toList)
       case q"object $o { ..$_ }"            => noMix()
@@ -131,7 +129,7 @@ case class ParseDomainStructure(
     }
   }
 
-  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: List[Stat]): MetaEntity = {
+  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: List[Stat]): DbEntity = {
     val entity = entityTpe.toString
     if (entity.head.isLower) {
       err(s"Please change entity trait name `$entity` to start with upper case letter.")
@@ -159,7 +157,7 @@ case class ParseDomainStructure(
     }.distinct
 
     val reqAttrs   = reqGroupsMerged.flatten
-    val metaAttrs1 = MetaAttribute("id", CardOne, "ID") +: metaAttrs.map { a =>
+    val metaAttrs1 = DbAttribute("id", CardOne, "ID") +: metaAttrs.map { a =>
       val attr = a.attr
       if (reqAttrs.contains(attr)) {
         val otherAttrs = reqGroupsMerged.collectFirst {
@@ -169,10 +167,10 @@ case class ParseDomainStructure(
       } else a
     }
 
-    MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
+    DbEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
-  private def getAttrs(segmentPrefix: String, entity: String, attrs: List[Stat]): List[MetaAttribute] = attrs.map {
+  private def getAttrs(segmentPrefix: String, entity: String, attrs: List[Stat]): List[DbAttribute] = attrs.map {
     case q"val $attr = $defs" =>
       val a = attr.toString
       if (reservedAttrNames.contains(a)) {
@@ -181,12 +179,12 @@ case class ParseDomainStructure(
             reservedAttrNames.mkString("\n  ")
         )
       }
-      acc(segmentPrefix, entity, defs, MetaAttribute(a, CardOne, ""))
+      acc(segmentPrefix, entity, defs, DbAttribute(a, CardOne, ""))
 
     case other => unexpected(other)
   }
 
-  private def saveDescr(segmentPrefix: String, entity: String, prev: Tree, a: MetaAttribute, attr: String, s: String) = {
+  private def saveDescr(segmentPrefix: String, entity: String, prev: Tree, a: DbAttribute, attr: String, s: String) = {
     if (s.isEmpty)
       err(s"Can't apply empty String as description option for attribute $attr")
     else if (s.contains("\""))
@@ -196,7 +194,7 @@ case class ParseDomainStructure(
   }
 
   @tailrec
-  private def acc(pp: String, entity: String, t: Tree, a: MetaAttribute): MetaAttribute = {
+  private def acc(pp: String, entity: String, t: Tree, a: DbAttribute): DbAttribute = {
     val attr = entity + "." + a.attr
     t match {
 
@@ -490,13 +488,13 @@ case class ParseDomainStructure(
 
       case q"$prev.email" =>
         oneValidationCall(entity, a)
-        val test  = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
+        val test  = "(s: String) => emailRegex.regex.findFirstMatchIn(s).isDefined"
         val error = s"""`$$v` is not a valid email"""
         acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.email(${Lit.String(error)})" =>
         oneValidationCall(entity, a)
-        val test = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
+        val test = "(s: String) => emailRegex.regex.findFirstMatchIn(s).isDefined"
         acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.regex(${Lit.String(regex)})" =>
@@ -546,7 +544,7 @@ case class ParseDomainStructure(
     prev: Tree,
     segmentPrefix: String,
     entity: String,
-    a: MetaAttribute,
+    a: DbAttribute,
     cases: List[Case],
     attr: String
   ) = {
@@ -581,8 +579,8 @@ case class ParseDomainStructure(
     acc(segmentPrefix, entity, prev, attr1)
   }
 
-  private def oneValidationCall(entity: String, a: MetaAttribute) = if (a.validations.nonEmpty) {
-    throw ModelError(
+  private def oneValidationCall(entity: String, a: DbAttribute) = if (a.validations.nonEmpty) {
+    throw new Exception(
       s"Please use `validate { ..<pattern matches> }` for multiple validations of attribute `$entity.${a.attr}`"
     )
   }
@@ -609,7 +607,7 @@ case class ParseDomainStructure(
     }
   }
 
-  private def extractValueAttrs(entity: String, a: MetaAttribute, test: Stat): List[String] = {
+  private def extractValueAttrs(entity: String, a: DbAttribute, test: Stat): List[String] = {
     valueAttrs.clear()
     traverser(entity)(test)
     valueAttrs.result().distinct.sorted

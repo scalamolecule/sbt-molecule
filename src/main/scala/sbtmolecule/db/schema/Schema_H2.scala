@@ -1,17 +1,17 @@
 package sbtmolecule.db.schema
 
-import molecule.base.ast.*
+import molecule.core.model.*
 import sbtmolecule.db.schema.sqlDialect.H2
 
 
-case class Schema_H2(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
-  val domain = metaDomain.domain
+case class Schema_H2(dbModel: DbModel) extends Schema_SqlBase(dbModel) {
+  val domain = dbModel.domain
 
   def get: String =
     s"""|// AUTO-GENERATED Molecule Schema boilerplate code for the `$domain` domain
-        |package ${metaDomain.pkg}.schema
+        |package ${dbModel.pkg}.schema
         |
-        |import molecule.core.ast._
+        |import molecule.core.model.*
         |
         |
         |object ${domain}Schema_h2 extends ${domain}Schema with Schema_h2 {

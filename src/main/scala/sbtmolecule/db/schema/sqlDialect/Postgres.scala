@@ -1,14 +1,14 @@
 package sbtmolecule.db.schema.sqlDialect
 
-import molecule.base.ast.*
+import molecule.core.model.*
 
 object Postgres extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attr == "id")
+  override def tpe(dbAttribute: DbAttribute): String = {
+    if (dbAttribute.attr == "id")
       "BIGSERIAL PRIMARY KEY"
-    else metaAttribute.card match {
-      case _: CardOne => metaAttribute.baseTpe match {
+    else dbAttribute.card match {
+      case _: CardOne => dbAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "TEXT COLLATE ucs_basic"
         case "Int"            => "INTEGER"
@@ -33,7 +33,7 @@ object Postgres extends Dialect {
         case "Short"          => "SMALLINT"
         case "Char"           => "CHAR(1)"
       }
-      case _: CardSet => metaAttribute.baseTpe match {
+      case _: CardSet => dbAttribute.baseTpe match {
         case "String"         => "TEXT ARRAY"
         case "Int"            => "INTEGER ARRAY"
         case "Long"           => "BIGINT ARRAY"
@@ -58,7 +58,7 @@ object Postgres extends Dialect {
         case "Char"           => "CHAR(1) ARRAY"
       }
 
-      case _: CardSeq => metaAttribute.baseTpe match {
+      case _: CardSeq => dbAttribute.baseTpe match {
         case "String"         => "TEXT ARRAY"
         case "Int"            => "INTEGER ARRAY"
         case "Long"           => "BIGINT ARRAY"

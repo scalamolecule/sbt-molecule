@@ -1,16 +1,16 @@
 package sbtmolecule.db.dsl
 
-import molecule.base.ast.*
+import molecule.core.model.*
 import sbtmolecule.DslFormatting
 
 
-case class DbEntity_Arities(
-  metaDomain: MetaDomain,
+case class DbTable_Arities(
+  dbModel: DbModel,
   entityList: Seq[String],
   attrList: Seq[String],
-  metaEntity: MetaEntity,
+  dbEntity: DbEntity,
   arity: Int
-) extends DslFormatting(metaDomain, metaEntity, arity) {
+) extends DslFormatting(dbModel, dbEntity, arity) {
 
   private val man = List.newBuilder[String]
   private val opt = List.newBuilder[String]
@@ -19,8 +19,8 @@ case class DbEntity_Arities(
   private val ref = List.newBuilder[String]
 
   private val first      = arity == 0
-  private val last       = arity == metaDomain.maxArity
-  private val secondLast = arity == metaDomain.maxArity - 1
+  private val last       = arity == dbModel.maxArity
+  private val secondLast = arity == dbModel.maxArity - 1
 
   private var hasOne       = false
   private var hasSet       = false
@@ -59,7 +59,7 @@ case class DbEntity_Arities(
   private val ptByteArray = " " * (ptMax - 7 - 4)
 
   attrs.foreach {
-    case MetaAttribute(attr, card, baseType, ref, _, _, _, _, _, _) =>
+    case DbAttribute(attr, card, baseType, ref, _, _, _, _, _, _) =>
       val isByteArray = card == CardSeq && baseType == "Byte"
       val c           = if (isByteArray) "BAr" else card._marker
       val tpe         = getTpe(baseType)
@@ -80,7 +80,7 @@ case class DbEntity_Arities(
       lazy val tpesO = s"${`A..V, `}$tO, $tpe$pad1"
       lazy val tpesT = if (arity == 0)
         s"${`A..V`} $pad2 $tpe$pad1"
-      else if (arity == metaDomain.maxArity)
+      else if (arity == dbModel.maxArity)
         s"${`A..V`}, $tpe$pad1"
       else
         s"${`A..V`}  $pad2, $tpe$pad1"
@@ -223,7 +223,7 @@ case class DbEntity_Arities(
   private val hasRefOne  = refs.exists(_.card == CardOne)
   private val hasRefMany = refs.exists(_.card == CardSet)
   refs.collect {
-    case MetaAttribute(attr, card, _, Some(ref0), options, _, _, _, _, _) =>
+    case DbAttribute(attr, card, _, Some(ref0), options, _, _, _, _, _) =>
       val refName        = camel(attr)
       val pRefAttr       = padRefAttr(attr)
       val pRef           = padRefEntity(ref0)
@@ -233,7 +233,7 @@ case class DbEntity_Arities(
       val isOwner        = options.contains("owner")
       val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord          = s"List($nsIndex, $refAttrIndex, $refEntityIndex)"
-      val refObj         = s"""ast.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
+      val refObj         = s"""molecule.core.model.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
       if (arity == maxArity) {
         ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj))"""
       } else if (card == CardOne) {
@@ -317,7 +317,7 @@ case class DbEntity_Arities(
         val prevEntityIndex = entityList.indexOf(backRef)
         val curEntityIndex  = entityList.indexOf(ent)
         val coord           = s"List($prevEntityIndex, $curEntityIndex)"
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(ast.BackRef("$backRef", "$ent", $coord)))""")
+        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(molecule.core.model.BackRef("$backRef", "$ent", $coord)))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }

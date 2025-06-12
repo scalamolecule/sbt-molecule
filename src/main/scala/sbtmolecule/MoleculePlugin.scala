@@ -1,8 +1,7 @@
 package sbtmolecule
 
+import java.io.File
 import java.util.jar.Manifest
-import molecule.base.ast.MetaDomain
-import molecule.base.error.ModelError
 import sbt.*
 import sbt.Keys.*
 import sbt.plugins.JvmPlugin
@@ -24,37 +23,26 @@ object MoleculePlugin extends sbt.AutoPlugin {
     // Make sure generated sources are discoverable
     Compile / unmanagedSourceDirectories += sourceManaged.value,
 
-    moleculeGen := generateSources("source", Compile).value,
+    moleculeGen := generateSources(Compile).value,
 
     moleculePackage := Def.taskDyn {
-      val metaDomains = generateSources("source and jar", Compile).value
+      val pkgs = generateSources(Compile).value.map(_._1)
       Def.sequential( // make sure generated sources are fully compiled before packaging jars
         Compile / compile,
-        packJars(Compile, metaDomains),
+        packJars(Compile, pkgs),
         cleanGeneratedSources(Compile),
       )
     }.value
   )
 
-
-  private def generateSources(tpe: String, config: Configuration): Def.Initialize[Task[Seq[MetaDomain]]] = Def.task {
-    val log = streams.value.log
-
+  private def generateSources(config: Configuration): Def.Initialize[Task[Seq[(String, String)]]] = Def.task {
+    val log         = streams.value.log
     val srcDir      = getSrcDir(config).value
-    val src_managed = (config / sourceManaged).value / "moleculeGen"
+    val srcManaged = (config / sourceManaged).value / "moleculeGen"
 
     // Clear previously generated jar files to avoid conflicts
     val baseDir                                               = baseDirectory.value
     val (isJvm, platformPrefix, module, base, clsJar, srcJar) = getCoordinates(config).value
-
-    val metaDomains = files2metaDomains(IO.listFiles(srcDir), Nil)
-    if (metaDomains.isEmpty)
-      throw ModelError("No Domain definitions found in\n" + srcDir)
-
-    if (isJvm) {
-      // Only render once
-      renderDomains(tpe, metaDomains, module)
-    }
 
     val (clsJarFile, srcJarFile) = (baseDir / clsJar, baseDir / srcJar)
     if (clsJarFile.exists()) {
@@ -67,16 +55,39 @@ object MoleculePlugin extends sbt.AutoPlugin {
     }
 
     // Clear previously generated source files in moleculeGenerated namespace only
-    IO.delete(src_managed)
-    IO.createDirectory(src_managed)
+    IO.delete(srcManaged)
+    IO.createDirectory(srcManaged)
     log.success(s"Deleted previous generated sources in src_managed/main/moleculeGen/$base")
 
-    GenerateSources(src_managed, metaDomains)
+    val pkgDomains = parseAndGenerate(srcManaged, IO.listFiles(srcDir), Nil)
+    if (pkgDomains.isEmpty)
+      throw new Exception("No Domain definitions found in\n" + srcDir)
 
-    val srcPath = s"${platformPrefix}target/scala-${scalaVersion.value}/src_managed/main/moleculeGen/$base"
-    log.success(s"Generated Molecule source files in $srcPath")
+    if (isJvm) {
+      // Only render once
+      val srcPath = s"${platformPrefix}target/scala-${scalaVersion.value}/src_managed/main/moleculeGen/$base"
+      log.success(s"Generated Molecule boilerplate files for domains of '$module' in $srcPath")
+      pkgDomains.foreach { case (pkg, domain) =>
+        log.success(s"  $pkg.$domain")
+      }
+    }
 
-    metaDomains
+    pkgDomains
+  }
+
+  // Recursively find and parse all molecule definition files
+  private def parseAndGenerate(
+    srcDir: File,
+    files: Seq[File],
+    pkgDomains: Seq[(String, String)]
+  ): Seq[(String, String)] = {
+    files.flatMap {
+      case file if file.isFile =>
+        if (file.name.endsWith(".scala"))
+          ParseAndGenerate(file.getPath).generate(srcDir) else Nil
+
+      case dir => parseAndGenerate(srcDir, IO.listFiles(dir), pkgDomains)
+    }
   }
 
 
@@ -124,65 +135,12 @@ object MoleculePlugin extends sbt.AutoPlugin {
   }
 
 
-  // Recursively find and parse all molecule definition files
-  private def files2metaDomains(files: Seq[File], acc: Seq[MetaDomain]): Seq[MetaDomain] = {
-    files.flatMap {
-      case file if file.isFile =>
-        if (file.name.endsWith(".scala"))
-          ParseDefinitionFile(file.getPath).optMetaDomain else Nil
-
-      case dir => files2metaDomains(IO.listFiles(dir), acc)
-    }
-  }
-
-
-  private def renderDomains(tpe: String, metaDomains: Seq[MetaDomain], module: String): Unit = {
-    val stats         = metaDomains.map { d =>
-      val file          = s"${d.pkg}.${d.domain}"
-      val segmentLength = d.segments.length
-      val entityLength  = d.segments.map(_.ents.length).sum
-      val attrLength    = d.segments.map(_.ents.map(_.attrs.filterNot(_.attr == "id").length).sum).sum
-      val segmentCount  = (" " * (4 - segmentLength.toString.length)) + segmentLength
-      val entityCount   = (" " * (11 - entityLength.toString.length)) + entityLength
-      val attrCount     = (" " * (12 - attrLength.toString.length)) + attrLength
-      (file, segmentCount, entityCount, attrCount)
-    }
-    val maxFileLength = stats.map(_._1.length).max
-    val list          = stats.map { case (file, segmentCount, entityCount, attrCount) =>
-      val pad = " " * (maxFileLength - file.length)
-      s"$file $pad    $segmentCount$entityCount$attrCount"
-    }.mkString("\n")
-    val namePadding   = " " * (maxFileLength - "Domain".length)
-
-    val segmentsLength = metaDomains.map(_.segments.length).sum
-    val entitiesLength = metaDomains.map(_.segments.map(_.ents.length).sum).sum
-    val attrsLength    = metaDomains.map(_.segments.map(_.ents.map(_.attrs.filterNot(_.attr == "id").length).sum).sum).sum
-    val segmentsCount  = (" " * (4 - segmentsLength.toString.length)) + segmentsLength
-    val entitiesCount  = (" " * (11 - entitiesLength.toString.length)) + entitiesLength
-    val attrsCount     = (" " * (12 - attrsLength.toString.length)) + attrsLength
-
-    println(
-      s"""---------------------------------------------------------------------------------
-         |Generating Molecule $tpe files for domains in '$module':
-         |
-         |${scala.Console.BOLD}Domain $namePadding   Segments   Entities   Attributes${scala.Console.RESET}
-         |$list
-         |       $namePadding   --------   --------   ----------
-         |       $namePadding    $segmentsCount$entitiesCount$attrsCount
-         |---------------------------------------------------------------------------------
-         |""".stripMargin
-    )
-  }
-
-
-  private def packJars(config: Configuration, metaDomains: Seq[MetaDomain]): Def.Initialize[Task[Unit]] = Def.task {
-    val log = streams.value.log
-
+  private def packJars(config: Configuration, pkgs: Seq[String]): Def.Initialize[Task[Unit]] = Def.task {
+    val log                                           = streams.value.log
     val baseDir                                       = baseDirectory.value
     val (isJvm, platformPrefix, _, _, clsJar, srcJar) = getCoordinates(config).value
-
-    val dslSchemaDirs: Seq[String] = metaDomains
-      .map(_.pkg.split('.').mkString("/"))
+    val dslSchemaDirs: Seq[String]                    = pkgs
+      .map(_.split('.').mkString("/"))
       .flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
 
     val platform = if (platformPrefix.isEmpty) "" else if (isJvm) " jvm" else " js"

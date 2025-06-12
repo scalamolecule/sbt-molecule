@@ -3,7 +3,6 @@ package sbtmolecule.db
 import java.time.*
 import java.util.Date
 import molecule.DomainStructure
-import scala.collection.immutable.Seq
 
 object Validation extends DomainStructure(5) {
 

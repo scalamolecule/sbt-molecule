@@ -1,21 +1,21 @@
 package sbtmolecule.db.dsl
 
-import molecule.base.ast.*
+import molecule.core.model.*
 import sbtmolecule.DslFormatting
 
 
-case class DbEntity(
-  metaDomain: MetaDomain,
-  segmentPrefix: String,
-  metaEntity: MetaEntity,
+case class DbTable(
+  dbModel: DbModel,
+//  segmentPrefix: String,
+  dbEntity: DbEntity,
   nsIndex: Int = 0,
   attrIndexPrev: Int = 0
-) extends DslFormatting(metaDomain, metaEntity) {
+) extends DslFormatting(dbModel, dbEntity) {
 
-  private val entityList: Seq[String] = metaDomain.segments.flatMap(_.ents.map(_.ent))
+  private val entityList: Seq[String] = dbModel.segments.flatMap(_.ents.map(_.ent))
   private val attrList  : Seq[String] = {
     for {
-      segment <- metaDomain.segments
+      segment <- dbModel.segments
       entity <- segment.ents
       a <- entity.attrs
     } yield entity.ent + "." + a.attr
@@ -26,22 +26,20 @@ case class DbEntity(
   private val imports: String = {
     val baseImports = Seq(
       "java.time.*",
-      "molecule.base.ast.*",
-      "molecule.core.ast",
-      "molecule.core.ast.*",
-      "molecule.core.ast.Keywords.*",
+      "molecule.core.model.*",
+      "molecule.core.model.Keywords.Kw",
       "molecule.db.core.api.*",
       "molecule.db.core.api.expression.*",
     )
     val typeImports = attrs.collect {
-      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
-      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _) => "java.util.UUID"
-      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
+      case DbAttribute(_, _, "Date", _, _, _, _, _, _, _) => "java.util.Date"
+      case DbAttribute(_, _, "UUID", _, _, _, _, _, _, _) => "java.util.UUID"
+      case DbAttribute(_, _, "URI", _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
     (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
   }
 
-  private val validationExtractor = DbEntity_Validations(metaDomain, metaEntity)
+  private val validationExtractor = DbTable_Validations(dbModel, dbEntity)
 
   private val baseEntity: String = {
     val man = List.newBuilder[String]
@@ -56,10 +54,10 @@ case class DbEntity(
     val padAttrIndex = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
 
     attrs.collect {
-      case MetaAttribute(attr, card, tpe, refOpt, _, _, _, valueAttrs, validations, _) =>
+      case DbAttribute(attr, card, tpe, refOpt, _, _, _, valueAttrs, validations, _) =>
         val valids  = if (validations.nonEmpty) {
           val valueAttrMetas = attrs.collect {
-            case MetaAttribute(attr1, card1, tpe1, _, _, _, _, _, _, _)
+            case DbAttribute(attr1, card1, tpe1, _, _, _, _, _, _, _)
               if valueAttrs.contains(attr1) =>
               val isCardOne = card1.isInstanceOf[CardOne.type]
               val fullTpe   = card1 match {
@@ -112,8 +110,8 @@ case class DbEntity(
   }
 
 
-  private val entities: String = (0 to metaDomain.maxArity)
-    .map(DbEntity_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
+  private val entities: String = (0 to dbModel.maxArity)
+    .map(DbTable_Arities(dbModel, entityList, attrList, dbEntity, _).get).mkString("\n\n")
 
   private val entityIndex = entityList.indexOf(ent)
   private val idCoord = s"coord = List($entityIndex, ${attrList.indexOf(ent + ".id")})"
@@ -123,7 +121,7 @@ case class DbEntity(
     s"""
        |
        |  override protected def _optEntity[OptEntityTpl](attrs: List[Attr]): ${ent}_1_refs[Option[OptEntityTpl], Any] =
-       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](DataModel(List(ast.OptEntity(attrs))))""".stripMargin
+       |    new ${ent}_1_refs[Option[OptEntityTpl], Any](DataModel(List(molecule.core.model.OptEntity(attrs))))""".stripMargin
   )
 
   def get: String = {

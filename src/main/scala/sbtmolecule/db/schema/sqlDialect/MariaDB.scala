@@ -1,14 +1,14 @@
 package sbtmolecule.db.schema.sqlDialect
 
-import molecule.base.ast.{CardOne, CardSeq, MetaAttribute}
+import molecule.core.model.{CardOne, CardSeq, DbAttribute}
 
 object MariaDB extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attr == "id")
+  override def tpe(dbAttribute: DbAttribute): String = {
+    if (dbAttribute.attr == "id")
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else metaAttribute.card match {
-      case _: CardOne => metaAttribute.baseTpe match {
+    else dbAttribute.card match {
+      case _: CardOne => dbAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "LONGTEXT"
         case "Int"            => "INT"
@@ -34,7 +34,7 @@ object MariaDB extends Dialect {
         case "Char"           => "CHAR"
       }
 
-      case _: CardSeq => metaAttribute.baseTpe match {
+      case _: CardSeq => dbAttribute.baseTpe match {
         case "Byte" => "LONGBLOB" // special for byte arrays
         case _      => "JSON"
       }
