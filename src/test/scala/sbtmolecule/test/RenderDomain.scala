@@ -9,7 +9,7 @@ object RenderDomain extends TestSuite {
   lazy val basePath          = projectRoot + "/src/test/scala/sbtmolecule/db/"
   //  lazy val cardinalities = ParseAndGenerate(basePath + "Cardinalities.scala").generate.get
   //  lazy val starwars      = ParseAndGenerate(basePath + "Starwars.scala").generate.get
-  lazy val types = ParseAndGenerate(basePath + "Types.scala").dbModel
+  lazy val types = ParseAndGenerate(basePath + "Types.scala").metaDomain
   //  lazy val refs          = ParseAndGenerate(basePath + "Refs.scala").generate.get
   //  lazy val unique        = ParseAndGenerate(basePath + "Uniques.scala").generate.get
   //  lazy val validation    = ParseAndGenerate(basePath + "Validation.scala").generate.get
@@ -20,7 +20,7 @@ object RenderDomain extends TestSuite {
   override def tests: Tests = Tests {
 
     "DSL" - {
-      types.getCode(types.dbModel.segments.head.ents(0)) ==> "check" // Types
+      types.getCode(types.metaDomain.segments.head.ents(0)) ==> "check" // Types
       //            Dsl(types, "", types.segments.head.ents(1)).get ==> "check" // Refs
       //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check" // Other
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"

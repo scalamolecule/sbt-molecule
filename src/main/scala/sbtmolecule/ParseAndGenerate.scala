@@ -23,8 +23,8 @@ case class ParseAndGenerate(filePath: String) {
     if (maxArity > 0) {
       defFile match {
         case "DomainStructure" =>
-          val dbModel = ParseDomainStructure(filePath, pkg, domain, maxArity, body).getDbModel
-          GenerateSourceFiles_db(dbModel).generate(srcManaged)
+          val metaDomain = ParseDomainStructure(filePath, pkg, domain, maxArity, body).getMetaDomain
+          GenerateSourceFiles_db(metaDomain).generate(srcManaged)
 
         case "Graphql" =>
           val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
@@ -57,14 +57,18 @@ case class ParseAndGenerate(filePath: String) {
 
   // For testing:
 
-  def dbModel: GenerateSourceFiles_db = {
+  def metaDomain: GenerateSourceFiles_db = {
     val (domain, _, body, maxArity, _) = extract
-    GenerateSourceFiles_db(ParseDomainStructure(filePath, pkg, domain, maxArity, body).getDbModel)
+
+    val metaDomain = ParseDomainStructure(filePath, pkg, domain, maxArity, body).getMetaDomain
+    GenerateSourceFiles_db(metaDomain)
   }
 
   def graphql: GenerateSourceFiles_graphql = {
     val (domain, _, _, maxArity, urlOrPath) = extract
-    GenerateSourceFiles_graphql(ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc, pkg, domain, maxArity)
+
+    val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
+    GenerateSourceFiles_graphql(doc, pkg, domain, maxArity)
   }
 }
 

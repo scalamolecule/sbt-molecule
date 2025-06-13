@@ -1,14 +1,14 @@
 package sbtmolecule.db.schema
 
-import molecule.core.model.*
-import molecule.core.util.{BaseHelpers, RegexMatching}
+import molecule.base.metaModel.*
+import molecule.base.util.{BaseHelpers, RegexMatching}
 import sbtmolecule.db.schema.sqlDialect.{Dialect, Postgres}
 import scala.collection.mutable.ListBuffer
 
 
-abstract class Schema_SqlBase(dbModel: DbModel) extends RegexMatching with BaseHelpers {
+abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHelpers {
 
-  protected val entities: Seq[DbEntity] = dbModel.segments.flatMap(_.ents)
+  protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
 
   protected var hasReserved         = false
   protected var reservedEntities    = Array.empty[Byte]
@@ -20,11 +20,11 @@ abstract class Schema_SqlBase(dbModel: DbModel) extends RegexMatching with BaseH
   val b0 = 0.toByte
   val b1 = 1.toByte
 
-  private def createTable(DbEntity: DbEntity, dialect: Dialect): Seq[String] = {
-    val entity = DbEntity.ent
-    def reserved(a: DbAttribute): Byte =
+  private def createTable(MetaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
+    val entity = MetaEntity.ent
+    def reserved(a: MetaAttribute): Byte =
       if (dialect.reservedKeyWords.contains(a.attr.toLowerCase)) b1 else b0
-    val max = DbEntity.attrs.map {
+    val max = MetaEntity.attrs.map {
       case a if a.card == CardSet && a.ref.nonEmpty => 0
       case a if reserved(a) == b1                   => a.attr.length + 1
       case a                                        => a.attr.length
@@ -32,7 +32,7 @@ abstract class Schema_SqlBase(dbModel: DbModel) extends RegexMatching with BaseH
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(entity.toLowerCase)) "_" else ""
 
-    val columns = DbEntity.attrs.flatMap {
+    val columns = MetaEntity.attrs.flatMap {
       case a if a.attr == "id" =>
         reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
@@ -62,8 +62,8 @@ abstract class Schema_SqlBase(dbModel: DbModel) extends RegexMatching with BaseH
          |      |);
          |      |"""
 
-    val joinTables = DbEntity.attrs.collect {
-      case DbAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
+    val joinTables = MetaEntity.attrs.collect {
+      case MetaAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
         val joinTable  = s"${entity}_${refAttr}_$ref"
         val (id1, id2) = if (entity == ref) ("1_id", "2_id") else ("id", "id")
         val (l1, l2)   = (entity.length, ref.length)
@@ -152,9 +152,9 @@ abstract class Schema_SqlBase(dbModel: DbModel) extends RegexMatching with BaseH
        |
        |  // Indexes to lookup if entity/attribute names collides with db keyword
        |
-       |  override val reservedEntities: Array[Byte] = Array(${reservedEntities.mkString(", ")})
+       |  override val reservedEntities: IArray[Byte] = IArray(${reservedEntities.mkString(", ")})
        |
-       |  override val reservedAttributes: Array[Byte] = Array(${reservedEntityAttrs.mkString(",\n    ")}
+       |  override val reservedAttributes: IArray[Byte] = IArray(${reservedEntityAttrs.mkString(",\n    ")}
        |  )""".stripMargin
   } else ""
 }

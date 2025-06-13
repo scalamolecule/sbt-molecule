@@ -1,19 +1,19 @@
 package sbtmolecule.db.schema
 
-import molecule.core.model.*
+import molecule.base.metaModel.*
 import sbtmolecule.db.schema.sqlDialect.{Dialect, SQlite}
 import scala.collection.mutable.ListBuffer
 
 
-case class Schema_SQlite(dbModel: DbModel) extends Schema_SqlBase(dbModel) {
+case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
 
   private val refs2 = ListBuffer.empty[(String, String)] // refAttr, ref
 
-  protected def createTable(dbEntity: DbEntity, dialect: Dialect): Seq[String] = {
-    val ent = dbEntity.ent
-    def reserved(a: DbAttribute): Byte =
+  protected def createTable(metaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
+    val ent = metaEntity.ent
+    def reserved(a: MetaAttribute): Byte =
       if (dialect.reservedKeyWords.contains(a.attr.toLowerCase)) b1 else b0
-    val max = dbEntity.attrs.map {
+    val max = metaEntity.attrs.map {
       case a if a.card == CardSet && a.ref.nonEmpty => 0
       case a if reserved(a) == b1                   => a.attr.length + 1
       case a                                        => a.attr.length
@@ -21,7 +21,7 @@ case class Schema_SQlite(dbModel: DbModel) extends Schema_SqlBase(dbModel) {
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(ent.toLowerCase)) "_" else ""
 
-    val fields = dbEntity.attrs.flatMap {
+    val fields = metaEntity.attrs.flatMap {
       case a if a.attr == "id" =>
         reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
@@ -68,8 +68,8 @@ case class Schema_SQlite(dbModel: DbModel) extends Schema_SqlBase(dbModel) {
          |      |);
          |      |"""
 
-    val joinTables = dbEntity.attrs.collect {
-      case DbAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
+    val joinTables = metaEntity.attrs.collect {
+      case MetaAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
         val (id1, id2)     = if (ent == ref) ("1_id", "2_id") else ("id", "id")
         val (l1, l2)       = (ent.length, ref.length)
         val (p1, p2)       = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
@@ -120,13 +120,14 @@ case class Schema_SQlite(dbModel: DbModel) extends Schema_SqlBase(dbModel) {
     tables.mkString(enforceForeignKeys, "\n|      |", "")
   }
 
-  val domain = dbModel.domain
+  val domain = metaDomain.domain
 
   def get: String =
     s"""|// AUTO-GENERATED Molecule Schema boilerplate code for the `$domain` domain
-        |package ${dbModel.pkg}.schema
+        |package ${metaDomain.pkg}.schema
         |
-        |import molecule.core.model.*
+        |import molecule.base.metaModel.*
+        |import molecule.db.core.api.*
         |
         |
         |object ${domain}Schema_sqlite extends ${domain}Schema with Schema_sqlite {

@@ -1,11 +1,11 @@
 package sbtmolecule.db.dsl
 
-import molecule.core.model.*
-import sbtmolecule.DslFormatting
+import molecule.base.metaModel.*
+import sbtmolecule.db.FormatDb
 
 
-case class DbTable_Validations(dbModel: DbModel, dbEntity: DbEntity)
-  extends DslFormatting(dbModel, dbEntity) {
+case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
+  extends FormatDb(metaDomain, metaEntity) {
 
   def validationMethod(
     attr: String,

@@ -3,7 +3,7 @@ package sbtmolecule.graphql
 import java.io.File
 import caliban.parsing.adt.Document
 import caliban.tools.SchemaLoader
-import molecule.core.util.BaseHelpers
+import molecule.base.util.BaseHelpers
 import zio.*
 import scala.util.Try
 

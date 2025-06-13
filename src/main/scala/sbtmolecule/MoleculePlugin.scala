@@ -60,10 +60,8 @@ object MoleculePlugin extends sbt.AutoPlugin {
     log.success(s"Deleted previous generated sources in src_managed/main/moleculeGen/$base")
 
     val pkgDomains = parseAndGenerate(srcManaged, IO.listFiles(srcDir), Nil)
-    if (pkgDomains.isEmpty)
-      throw new Exception("No Domain definitions found in\n" + srcDir)
 
-    if (isJvm) {
+    if (isJvm && pkgDomains.nonEmpty) {
       // Only render once
       val srcPath = s"${platformPrefix}target/scala-${scalaVersion.value}/src_managed/main/moleculeGen/$base"
       log.success(s"Generated Molecule boilerplate files for domains of '$module' in $srcPath")
@@ -75,7 +73,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     pkgDomains
   }
 
-  // Recursively find and parse all molecule definition files
+  // Recursively find and parse all molecule definition files and generate dsl files
   private def parseAndGenerate(
     srcDir: File,
     files: Seq[File],

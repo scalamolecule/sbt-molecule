@@ -1,46 +1,46 @@
 package sbtmolecule
 
 import java.io.File
-import molecule.core.model.*
+import molecule.base.metaModel.*
 import sbt.*
 import sbtmolecule.db.dsl.DbTable
 import sbtmolecule.db.schema.*
 
 
-case class GenerateSourceFiles_db(dbModel: DbModel) {
+case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
 
-  def getCode(dbEntity: DbEntity): String = {
-    DbTable(dbModel, dbEntity, 0, 0).get
+  def getCode(metaEntity: MetaEntity): String = {
+    DbTable(metaDomain, metaEntity, 0, 0).get
   }
 
   def generate(srcManaged: File): Unit = {
     var entityIndex = 0
     var attrIndex   = 0
-    val pkg         = dbModel.pkg
-    val domain      = dbModel.domain
-    val segments    = dbModel.segments
+    val pkg         = metaDomain.pkg
+    val domain      = metaDomain.domain
+    val segments    = metaDomain.segments
     val base        = pkg.split('.').toList.foldLeft(srcManaged)((dir, pkg) => dir / pkg)
     val domainDir   = base / "dsl" / domain
 
     for {
-      dbSegment <- segments
-      dbEntity <- dbSegment.ents
+      metaSegment <- segments
+      metaEntity <- metaSegment.ents
     } yield {
-      //      val segmentPrefix = if (dbSegment.segment.isEmpty) "" else dbSegment.segment + "_"
-      //      val entityCode    = DbTable(dbModel, segmentPrefix, dbEntity, entityIndex, attrIndex).get
-      val entityCode = DbTable(dbModel, dbEntity, entityIndex, attrIndex).get
+      //      val segmentPrefix = if (metaSegment.segment.isEmpty) "" else metaSegment.segment + "_"
+      //      val entityCode    = DbTable(metaDomain, segmentPrefix, metaEntity, entityIndex, attrIndex).get
+      val entityCode = DbTable(metaDomain, metaEntity, entityIndex, attrIndex).get
       entityIndex += 1
-      attrIndex += dbEntity.attrs.length
-      IO.write(domainDir / s"${dbEntity.ent}.scala", entityCode)
+      attrIndex += metaEntity.attrs.length
+      IO.write(domainDir / s"${metaEntity.ent}.scala", entityCode)
     }
 
     val schema = base / "schema"
-    IO.write(schema / s"${domain}Schema.scala", SchemaBase(dbModel).get)
-    IO.write(schema / s"${domain}Schema_datomic.scala", Schema_Datomic(dbModel).get)
-    IO.write(schema / s"${domain}Schema_h2.scala", Schema_H2(dbModel).get)
-    IO.write(schema / s"${domain}Schema_mariadb.scala", Schema_MariaDB(dbModel).get)
-    IO.write(schema / s"${domain}Schema_mysql.scala", Schema_Mysql(dbModel).get)
-    IO.write(schema / s"${domain}Schema_postgres.scala", Schema_PostgreSQL(dbModel).get)
-    IO.write(schema / s"${domain}Schema_sqlite.scala", Schema_SQlite(dbModel).get)
+    IO.write(schema / s"${domain}Schema.scala", SchemaBase(metaDomain).get)
+    IO.write(schema / s"${domain}Schema_datomic.scala", Schema_Datomic(metaDomain).get)
+    IO.write(schema / s"${domain}Schema_h2.scala", Schema_H2(metaDomain).get)
+    IO.write(schema / s"${domain}Schema_mariadb.scala", Schema_MariaDB(metaDomain).get)
+    IO.write(schema / s"${domain}Schema_mysql.scala", Schema_Mysql(metaDomain).get)
+    IO.write(schema / s"${domain}Schema_postgres.scala", Schema_PostgreSQL(metaDomain).get)
+    IO.write(schema / s"${domain}Schema_sqlite.scala", Schema_SQlite(metaDomain).get)
   }
 }

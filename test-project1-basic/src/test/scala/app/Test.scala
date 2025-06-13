@@ -2,7 +2,7 @@ package app
 
 import java.sql.DriverManager
 import app.domain.schema.*
-import molecule.core.model.Schema
+import molecule.db.core.api.Schema
 import molecule.db.core.marshalling.JdbcProxy
 import molecule.db.sql.core.facade.{JdbcConn_JVM, JdbcHandler_JVM}
 import molecule.db.sql.h2.sync.*

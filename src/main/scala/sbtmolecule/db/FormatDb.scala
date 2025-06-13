@@ -1,17 +1,21 @@
-package sbtmolecule
+package sbtmolecule.db
 
-import molecule.core.model.*
-import molecule.core.util.BaseHelpers
+import molecule.base.metaModel.*
+import molecule.base.util.BaseHelpers
 
 
-class DslFormatting(dbModel: DbModel, dbEntity: DbEntity, arity: Int = 0) extends BaseHelpers {
-  val pkg      = dbModel.pkg + ".dsl"
-  val domain   = dbModel.domain
-  val maxArity = dbModel.maxArity
-  val ent      = dbEntity.ent
-  val attrs    = dbEntity.attrs
+class FormatDb(
+  metaDomain: MetaDomain,
+  metaEntity: MetaEntity,
+  arity: Int = 0
+) extends BaseHelpers {
+  val pkg      = metaDomain.pkg + ".dsl"
+  val domain   = metaDomain.domain
+  val maxArity = metaDomain.maxArity
+  val ent      = metaEntity.ent
+  val attrs    = metaEntity.attrs
   val refs     = attrs.filter(_.ref.nonEmpty)
-  val backRefs = dbEntity.backRefs
+  val backRefs = metaEntity.backRefs
 
   def camel(s: String) = s"${s.head.toUpper}${s.tail}"
 

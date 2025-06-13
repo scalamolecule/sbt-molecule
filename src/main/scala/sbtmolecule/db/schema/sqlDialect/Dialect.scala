@@ -1,9 +1,9 @@
 package sbtmolecule.db.schema.sqlDialect
 
-import molecule.core.model.DbAttribute
-import molecule.core.util.BaseHelpers
+import molecule.base.metaModel.MetaAttribute
+import molecule.base.util.BaseHelpers
 
 trait Dialect extends BaseHelpers {
-  def tpe(a: DbAttribute): String
+  def tpe(a: MetaAttribute): String
   def reservedKeyWords: List[String]
 }

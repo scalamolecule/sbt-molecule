@@ -4,19 +4,13 @@ import java.io.File
 import caliban.parsing.adt.Definition.TypeSystemDefinition.TypeDefinition.*
 import caliban.parsing.adt.Type.{ListType, NamedType}
 import caliban.parsing.adt.{Directive, Document, Type}
-import molecule.core.model.*
+import molecule.base.metaModel.*
 import sbt.*
-import sbtmolecule.graphql.dsl.GraphqlQuery
+import sbtmolecule.graphql.dsl.{GraphqlOutput, GraphqlQuery}
 
-case class GenerateSourceFiles_graphql(
+case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: String, maxArity: Int) {
 
-  doc: Document,
-  pkg: String,
-  domain: String,
-  maxArity: Int
-) {
-
-  private val (queryType, mutationType, subscriptionType) = doc.schemaDefinition.fold(
+  private lazy val (queryType, mutationType, subscriptionType) = doc.schemaDefinition.fold(
     ("Query", "Mutation", "Subscription")
   )(schema =>
     (
@@ -25,21 +19,25 @@ case class GenerateSourceFiles_graphql(
       schema.subscription.getOrElse("Subscription")
     )
   )
-  private val reservedTypes                               = List(queryType, mutationType, subscriptionType)
 
-  private val typeNames   = doc.typeDefinitions.collect {
+  private lazy val reservedTypes = List(queryType, mutationType, subscriptionType)
+
+  private lazy val typeNames: List[String] = doc.typeDefinitions.collect {
     case ObjectTypeDefinition(_, name, _, _, _) if !reservedTypes.contains(name)    => name
     case InterfaceTypeDefinition(_, name, _, _, _) if !reservedTypes.contains(name) => name
     //    case InputObjectTypeDefinition(_, name, _, _) if !reservedTypes.contains(name)  => name
     //    case ScalarTypeDefinition(_, name, _) if !reservedTypes.contains(name)          => name
   }
-  private val enumNames   = doc.typeDefinitions.collect {
+
+  private lazy val enumNames: List[String] = doc.typeDefinitions.collect {
     case EnumTypeDefinition(_, name, _, _) => name
   }
-  private val scalarNames = doc.typeDefinitions.collect {
+
+  private lazy val scalarNames: List[String] = doc.typeDefinitions.collect {
     case ScalarTypeDefinition(_, name, _) => name
   }
-  private val inputNames  = doc.typeDefinitions.collect {
+
+  private lazy val inputNames: List[String] = doc.typeDefinitions.collect {
     case InputObjectTypeDefinition(_, name, _, _) => name
   }
 
@@ -49,108 +47,83 @@ case class GenerateSourceFiles_graphql(
     backRefs = backRefs + (entity -> (curBackRefEntities :+ backRefEntity))
   }
 
+
   def generate(domainDir: File): Unit = {
-
-//    val query = doc.queryDefinitions
-//    val code = GraphqlQuery(pkg, domain, typeNames, descr, fields).get
-//    IO.write(domainDir / "query.scala", code)
-
     doc.typeDefinitions.collect {
-      case ObjectTypeDefinition(descr, name, _, _, fields) =>
+      case ObjectTypeDefinition(descr, name, _, _, fields)            =>
         name match {
           case `queryType` =>
-            val code = GraphqlQuery(pkg, domain, typeNames, descr, fields).get
+            val code = GraphqlQuery(pkg, domain, typeNames, enumNames, descr, fields).get
             IO.write(domainDir / "query.scala", code)
 
-          //          case `mutationType` =>
-          //            mutationMethods = mkRootMethods(description, directives, fields)
-          //
-          //          case `subscriptionType` =>
-          //            subscriptionMethods = mkRootMethods(description, directives, fields)
-          //
-          //          case _ if name.endsWith("Input") =>
-          //            paginations = paginations :+ mkOutput(description, name, directives, fields)
-          //
-          //          case _ if name.endsWith("Payload") =>
-          //            payloads = payloads :+ mkOutput(description, name, directives, fields)
-          //
-          //          case _ =>
-          //            outputs = outputs :+ mkOutput(description, name, directives, fields)
+          case `mutationType`                => ""
+          case `subscriptionType`            => ""
+          case _ if name.endsWith("Input")   => ""
+          case _ if name.endsWith("Payload") => ""
+          case _                             => ""
         }
+      case InputObjectTypeDefinition(descr, name, directives, fields) => ""
 
-      //      case InputObjectTypeDefinition(description, name, directives, fields) =>
-      //        inputs = inputs :+ mkInput(description, name, directives, fields)
-      //
-      //      case EnumTypeDefinition(description, name, directives, enumValuesDefinition) =>
-      //        enums = enums :+ mkEnum(description, name, directives, enumValuesDefinition)
-      //
-      //      case ScalarTypeDefinition(description, name, directives) =>
-      //        scalars = scalars :+ mkScalar(description, name, directives)
-      //
-      //      case InterfaceTypeDefinition(description, name, _, directives, fields) =>
-      //        outputs = outputs :+ mkOutput(description, name, directives, fields)
+      case EnumTypeDefinition(descr, name, directives, enumValuesDefinition) =>
+        ""
+
+      case ScalarTypeDefinition(descr, name, directives) =>
+        ""
+
+      case InterfaceTypeDefinition(descr, name, _, directives, fields) =>
+        ""
     }
   }
 
-  def getCode(target: String): List[String] = {
-
+  def getCode(name: String): List[String] = {
     doc.typeDefinitions.collect {
-      case ObjectTypeDefinition(descr, `target`, _, _, fields) =>
-        target match {
-          case `queryType`  =>
-            GraphqlQuery(pkg, domain, typeNames, descr, fields).get
-
-          //          case `mutationType` =>
-          //            mutationMethods = mkRootMethods(description, directives, fields)
-          //
-          //          case `subscriptionType` =>
-          //            subscriptionMethods = mkRootMethods(description, directives, fields)
-          //
-          //          case _ if name.endsWith("Input") =>
-          //            paginations = paginations :+ mkOutput(description, name, directives, fields)
-          //
-          //          case _ if name.endsWith("Payload") =>
-          //            payloads = payloads :+ mkOutput(description, name, directives, fields)
-          //
-          case _ =>
-            //                      outputs = outputs :+ mkOutput(description, name, directives, fields)
-            "not found..."
+      case ObjectTypeDefinition(descr, `name`, _, _, fields) =>
+        name match {
+          case `queryType`                   => GraphqlQuery(pkg, domain, typeNames, enumNames, descr, fields).get
+          case `mutationType`                => ""
+          case `subscriptionType`            => ""
+          case _ if name.endsWith("Input")   => ""
+          case _ if name.endsWith("Payload") => ""
+          case _                             => name
         }
 
-      //      case InputObjectTypeDefinition(description, name, directives, fields) =>
-      //        inputs = inputs :+ mkInput(description, name, directives, fields)
-      //
-      //      case EnumTypeDefinition(description, name, directives, enumValuesDefinition) =>
-      //        enums = enums :+ mkEnum(description, name, directives, enumValuesDefinition)
-      //
-      //      case ScalarTypeDefinition(description, name, directives) =>
-      //        scalars = scalars :+ mkScalar(description, name, directives)
-      //
-      //      case InterfaceTypeDefinition(description, name, _, directives, fields) =>
-      //        outputs = outputs :+ mkOutput(description, name, directives, fields)
+      case InputObjectTypeDefinition(descr, `name`, _, fields) =>
+        ""
+
+      case EnumTypeDefinition(descr, `name`, _, enumValuesDefinition) =>
+        s"""enum $name:
+           |  ${enumValuesDefinition.map(_.enumValue).mkString(", ")}
+           |""".stripMargin
+
+      case ScalarTypeDefinition(descr, `name`, _) =>
+        ""
+
+      case InterfaceTypeDefinition(descr, `name`, _, _, fields) =>
+        GraphqlOutput(pkg, domain, maxArity, typeNames, enumNames, name, descr, fields).get
     }
   }
 
+  def printCode(name: String): Unit = {
+    println(getCode(name).filterNot(_.isEmpty).mkString("\n===================\n\n"))
+  }
 
+  // Collect MetaDomain elements ---------------------------------
 
-
-  // Collect DbModel elements ---------------------------------
-
-  private var inputs  = List.empty[DbEntity]
-  private var outputs = List.empty[DbEntity]
+  private var inputs  = List.empty[MetaEntity]
+  private var outputs = List.empty[MetaEntity]
 
   // Leaf
-  private var enums   = List.empty[DbEntity]
-  private var scalars = List.empty[DbEntity]
+  private var enums   = List.empty[MetaEntity]
+  private var scalars = List.empty[MetaEntity]
 
   // Root types
-  private var queryMethods        = List.empty[DbEntity]
-  private var mutationMethods     = List.empty[DbEntity]
-  private var subscriptionMethods = List.empty[DbEntity]
+  private var queryMethods        = List.empty[MetaEntity]
+  private var mutationMethods     = List.empty[MetaEntity]
+  private var subscriptionMethods = List.empty[MetaEntity]
 
   // Relay types by convention
-  private var paginations = List.empty[DbEntity] // Connection, Edge
-  private var payloads    = List.empty[DbEntity]
+  private var paginations = List.empty[MetaEntity] // Connection, Edge
+  private var payloads    = List.empty[MetaEntity]
 
 
   //  println(s"types  : $types")
@@ -159,42 +132,42 @@ case class GenerateSourceFiles_graphql(
   //  println(s"inputs : $inputs")
 
 
-  // Build DbModel -----------------------------------------------------------------------
+  // Build MetaDomain -----------------------------------------------------------------------
 
-  def getDbModel: DbModel = {
-    handleTypeDefinitions(doc)
-    val input  = if (inputs.nonEmpty) Some(DbSegment("input", inputs)) else None
-    val output = if (outputs.nonEmpty) Some(DbSegment("output", withBackRefs(outputs))) else None
-    val enum   = if (enums.nonEmpty) Some(DbSegment("enum", enums)) else None
-    val scalar = if (scalars.nonEmpty) Some(DbSegment("scalar", scalars)) else None
+  def getMetaDomain: MetaDomain = {
+    mkMetaModel(doc)
+    val input  = if (inputs.nonEmpty) Some(MetaSegment("input", inputs)) else None
+    val output = if (outputs.nonEmpty) Some(MetaSegment("output", withBackRefs(outputs))) else None
+    val enum   = if (enums.nonEmpty) Some(MetaSegment("enum", enums)) else None
+    val scalar = if (scalars.nonEmpty) Some(MetaSegment("scalar", scalars)) else None
 
-    val query = Some(DbSegment(s"query $queryType", queryMethods))
+    val query = Some(MetaSegment(s"query $queryType", queryMethods))
 
     val mutation = if (mutationMethods.nonEmpty) {
-      Some(DbSegment(s"mutation $mutationType", mutationMethods))
+      Some(MetaSegment(s"mutation $mutationType", mutationMethods))
     } else None
 
     val subscription = if (subscriptionMethods.nonEmpty) {
-      Some(DbSegment(s"subscription $subscriptionType", subscriptionMethods))
+      Some(MetaSegment(s"subscription $subscriptionType", subscriptionMethods))
     } else None
 
-    val pagination = if (paginations.nonEmpty) Some(DbSegment("pagination", paginations)) else None
-    val payload    = if (payloads.nonEmpty) Some(DbSegment("payload", payloads)) else None
+    val pagination = if (paginations.nonEmpty) Some(MetaSegment("pagination", paginations)) else None
+    val payload    = if (payloads.nonEmpty) Some(MetaSegment("payload", payloads)) else None
 
     val segments = List(input, output, enum, scalar, query, mutation, subscription, pagination, payload).flatten
-    val md       = DbModel(pkg, domain, maxArity, segments)
+    val md       = MetaDomain(pkg, domain, maxArity, segments)
     println(md)
     md
   }
 
-  private def withBackRefs(entities: List[DbEntity]): List[DbEntity] = {
+  private def withBackRefs(entities: List[MetaEntity]): List[MetaEntity] = {
     // Add BackRefs once all entities are known
     entities.map { entity =>
       entity.copy(backRefs = backRefs.getOrElse(entity.ent, Nil).distinct.sorted)
     }
   }
 
-  private def handleTypeDefinitions(doc: Document): Unit = {
+  private def mkMetaModel(doc: Document): Unit = {
     doc.typeDefinitions.collect {
       case ObjectTypeDefinition(description, name, _, directives, fields) =>
         name match {
@@ -240,7 +213,7 @@ case class GenerateSourceFiles_graphql(
     name: String,
     directives: List[Directive],
     fields: List[FieldDefinition]
-  ): DbEntity = {
+  ): MetaEntity = {
     val attributes     = fields.map(f =>
       mkAttr(name, f.description, f.name, f.args, f.ofType, f.directives)
     )
@@ -248,7 +221,7 @@ case class GenerateSourceFiles_graphql(
       case NamedType(name, true)             => name
       case ListType(NamedType(ref, _), true) => name
     }
-    DbEntity(name, attributes, Nil, mandatoryAttrs, Nil, description)
+    MetaEntity(name, attributes, Nil, mandatoryAttrs, Nil, description)
   }
 
   private def mkRootMethods(
@@ -256,7 +229,7 @@ case class GenerateSourceFiles_graphql(
     //    queryType: String,
     directives: List[Directive],
     fields: List[FieldDefinition]
-  ): List[DbEntity] = {
+  ): List[MetaEntity] = {
     fields.map {
       case FieldDefinition(description, name, args, ofType, directives) =>
         val attrs = args.map {
@@ -265,21 +238,21 @@ case class GenerateSourceFiles_graphql(
               case NamedType(tpe, mandatory) =>
                 val ref  = Some(tpe).filter(typeNames.contains)
                 val opts = if (mandatory) List("mandatory") else Nil
-                DbAttribute(attr, CardOne, getTpe(tpe), ref, opts)
+                MetaAttribute(attr, CardOne, getTpe(tpe), ref, opts)
 
               case ListType(NamedType(tpe, _), mandatory) =>
                 val ref  = Some(tpe).filter(typeNames.contains)
                 val opts = if (mandatory) List("mandatory") else Nil
                 val card = if (isRef(tpe)) CardSet else CardSeq
-                DbAttribute(attr, card, getTpe(tpe), ref, opts)
+                MetaAttribute(attr, card, getTpe(tpe), ref, opts)
 
               case _ => throw new Exception(s"Unsupported type: $ofType")
             }
 
 
-          //            DbAttribute(name, CardOne, ofType.toString, description = description)
+          //            MetaAttribute(name, CardOne, ofType.toString, description = description)
         }
-        DbEntity(name, attrs, List(), Nil, Nil, description)
+        MetaEntity(name, attrs, List(), Nil, Nil, description)
     }
   }
 
@@ -289,12 +262,12 @@ case class GenerateSourceFiles_graphql(
     name: String,
     directives: List[Directive],
     fields: List[InputValueDefinition]
-  ): DbEntity = {
+  ): MetaEntity = {
     val args = fields.map {
       case InputValueDefinition(description, name, ofType, defaultValue, directives) =>
-        DbAttribute(name, CardOne, ofType.toString, description = description)
+        MetaAttribute(name, CardOne, ofType.toString, description = description)
     }
-    DbEntity(name, args, Nil, Nil, Nil, description)
+    MetaEntity(name, args, Nil, Nil, Nil, description)
   }
 
   private def mkEnum(
@@ -302,16 +275,16 @@ case class GenerateSourceFiles_graphql(
     name: String,
     directives: List[Directive],
     enumValuesDefinition: List[EnumValueDefinition]
-  ): DbEntity = {
-    val enumValues = enumValuesDefinition.map(e => DbAttribute(e.enumValue, CardOne, "String"))
-    DbEntity(name, enumValues, Nil, Nil, Nil, description)
+  ): MetaEntity = {
+    val enumValues = enumValuesDefinition.map(e => MetaAttribute(e.enumValue, CardOne, "String"))
+    MetaEntity(name, enumValues, Nil, Nil, Nil, description)
   }
 
   private def mkScalar(
     description: Option[String],
     tpe: String,
     directives: List[Directive]
-  ): DbEntity = {
+  ): MetaEntity = {
     val guessedType = tpe match {
       case "Date"                              => "java.util.Date"
       case "UUID"                              => "java.util.UUID"
@@ -320,8 +293,8 @@ case class GenerateSourceFiles_graphql(
       case _ if tpe.toLowerCase.endsWith("id") => "String"
       case unresolved                          => unresolved
     }
-    val attr        = DbAttribute("", CardOne, guessedType)
-    DbEntity(tpe, List(attr), description = description)
+    val attr        = MetaAttribute("", CardOne, guessedType)
+    MetaEntity(tpe, List(attr), description = description)
   }
 
   private def mkAttr(
@@ -331,7 +304,7 @@ case class GenerateSourceFiles_graphql(
     args: List[InputValueDefinition],
     ofType: Type,
     directives: List[Directive]
-  ): DbAttribute = {
+  ): MetaAttribute = {
     // todo: args...?
 
     ofType match {
@@ -339,14 +312,14 @@ case class GenerateSourceFiles_graphql(
         if (isRef(tpe)) addBackRef(entity, tpe)
         val ref  = Some(tpe).filter(typeNames.contains)
         val opts = if (mandatory) List("mandatory") else Nil
-        DbAttribute(attr, CardOne, getTpe(tpe), ref, opts)
+        MetaAttribute(attr, CardOne, getTpe(tpe), ref, opts)
 
       case ListType(NamedType(tpe, _), mandatory) =>
         if (isRef(tpe)) addBackRef(entity, tpe)
         val ref  = Some(tpe).filter(typeNames.contains)
         val opts = if (mandatory) List("mandatory") else Nil
         val card = if (isRef(tpe)) CardSet else CardSeq
-        DbAttribute(attr, card, getTpe(tpe), ref, opts)
+        MetaAttribute(attr, card, getTpe(tpe), ref, opts)
 
       case _ => throw new Exception(s"Unsupported type: $ofType")
     }

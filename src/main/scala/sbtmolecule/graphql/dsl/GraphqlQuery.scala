@@ -2,20 +2,20 @@ package sbtmolecule.graphql.dsl
 
 import caliban.parsing.adt.Definition.TypeSystemDefinition.TypeDefinition.{FieldDefinition, InputValueDefinition}
 import caliban.parsing.adt.Type.{ListType, NamedType}
-import sbtmolecule.FormatGraphql
+import sbtmolecule.graphql.FormatGraphql
 
 
 case class GraphqlQuery(
-//  doc: Document,
   pkg: String,
   domain: String,
   typeNames: List[String],
+  enumNames: List[String],
   description: Option[String],
   fields: List[FieldDefinition]
-) extends FormatGraphql(domain) {
+) extends FormatGraphql(typeNames, enumNames,domain, fields) {
 
   val queries = fields.map {
-    case FieldDefinition(description, name, args, entity, _) =>
+    case FieldDefinition(description, name, args, ofType, _) =>
       val (inputs, attrs) = if (args.isEmpty) {
         (Seq.empty[String], Seq.empty[String])
       } else {
@@ -38,8 +38,8 @@ case class GraphqlQuery(
       val inputs1 = if (inputs.nonEmpty) inputs.mkString("(", ", ", ")") else ""
       val attrs1  = if (inputs.nonEmpty) attrs.mkString("List(\n      ", ",\n      ", "\n    )") else "Nil"
 
-      s"""def $name$inputs1: ${entity}_0[Nothing] = {
-         |    new ${entity}_0[Nothing](DataModel($attrs1))
+      s"""def $name$inputs1: ${ofType}_0[Nothing] = {
+         |    new ${ofType}_0[Nothing](DataModel($attrs1))
          |  }""".stripMargin
 
   }.mkString("\n\n  ")
@@ -49,7 +49,7 @@ case class GraphqlQuery(
     s"""// AUTO-GENERATED Molecule boilerplate code for query
        |package $pkg.$domain
        |
-       |import molecule.core.model.*
+       |import molecule.base.metaModel.*
        |
        |object query extends query
        |

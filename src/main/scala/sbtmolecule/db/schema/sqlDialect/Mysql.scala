@@ -1,14 +1,14 @@
 package sbtmolecule.db.schema.sqlDialect
 
-import molecule.core.model.{CardOne, CardSeq, DbAttribute}
+import molecule.base.metaModel.{CardOne, CardSeq, MetaAttribute}
 
 object Mysql extends Dialect {
 
-  override def tpe(dbAttribute: DbAttribute): String = {
-    if (dbAttribute.attr == "id")
+  override def tpe(metaAttribute: MetaAttribute): String = {
+    if (metaAttribute.attr == "id")
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else dbAttribute.card match {
-      case _: CardOne => dbAttribute.baseTpe match {
+    else metaAttribute.card match {
+      case _: CardOne => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "LONGTEXT COLLATE utf8mb4_0900_as_cs"
         case "Int"            => "INT"
@@ -34,7 +34,7 @@ object Mysql extends Dialect {
         case "Char"           => "CHAR"
       }
 
-      case _: CardSeq => dbAttribute.baseTpe match {
+      case _: CardSeq => metaAttribute.baseTpe match {
         case "Byte" => "LONGBLOB" // special for byte arrays
         case _      => "JSON"
       }
