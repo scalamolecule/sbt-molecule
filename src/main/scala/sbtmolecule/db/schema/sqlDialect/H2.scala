@@ -5,9 +5,9 @@ import molecule.base.metaModel.*
 object H2 extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attr == "id")
+    if (metaAttribute.attribute == "id")
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else metaAttribute.card match {
+    else metaAttribute.cardinality match {
       case _: CardOne => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "LONGVARCHAR"

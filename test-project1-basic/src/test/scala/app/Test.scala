@@ -35,6 +35,9 @@ object Test extends TestSuite {
 
       Person.name("Liz").age(38).save.transact
       Person.name.age.query.get ==> List(("Liz", 38))
+
+      Person.color.apply(Color.BLUE).save.transact
+      Person.color.query.get ==> List("BLUE")
     }
   }
 }

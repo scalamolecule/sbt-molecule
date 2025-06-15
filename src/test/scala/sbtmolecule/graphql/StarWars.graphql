@@ -3,11 +3,6 @@ enum Episode {
     EMPIRE
     JEDI
 }
-enum Gender{
-    MAN
-    WOMAN
-    OTHER
-}
 
 interface Character {
     #    a1: Int
@@ -48,18 +43,15 @@ type Human implements Character {
     homePlanet: String
 }
 
-#schema {
-#    query: QueryX
-#}
+schema {
+    query: QueryX
+}
 
-#type QueryX {
-type Query {
-    #    hero(episode: Episode!): Character
-    hero: Character
-    #    character(id: ID!): Character
+type QueryX {
+    hero(episode: Episode!): Character
+    character(id: ID!): Character
     human(id: ID!): Human
-    #    droid(id: ID!, date: Date): Droid
-    #    naked: Droid
+    droid(id: ID!): Droid
 }
 
 

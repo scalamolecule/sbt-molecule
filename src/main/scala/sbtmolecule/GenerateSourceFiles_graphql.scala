@@ -6,7 +6,7 @@ import caliban.parsing.adt.Type.{ListType, NamedType}
 import caliban.parsing.adt.{Directive, Document, Type}
 import molecule.base.metaModel.*
 import sbt.*
-import sbtmolecule.graphql.dsl.{GraphqlOutput, GraphqlQuery}
+import sbtmolecule.graphql.dsl.GraphqlQuery
 
 case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: String, maxArity: Int) {
 
@@ -79,7 +79,11 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     doc.typeDefinitions.collect {
       case ObjectTypeDefinition(descr, `name`, _, _, fields) =>
         name match {
-          case `queryType`                   => GraphqlQuery(pkg, domain, typeNames, enumNames, descr, fields).get
+          case `queryType`                   =>
+
+            GraphqlQuery(pkg, domain, typeNames, enumNames, descr, fields).get
+
+
           case `mutationType`                => ""
           case `subscriptionType`            => ""
           case _ if name.endsWith("Input")   => ""
@@ -99,7 +103,9 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
         ""
 
       case InterfaceTypeDefinition(descr, `name`, _, _, fields) =>
-        GraphqlOutput(pkg, domain, maxArity, typeNames, enumNames, name, descr, fields).get
+//        GraphqlOutput(pkg, domain, maxArity, typeNames, enumNames, name, descr, fields).get
+//        GraphqlOutput(metaDomain, metaEntity)
+        ???
     }
   }
 
@@ -143,13 +149,13 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
 
     val query = Some(MetaSegment(s"query $queryType", queryMethods))
 
-    val mutation = if (mutationMethods.nonEmpty) {
+    val mutation = if (mutationMethods.nonEmpty)
       Some(MetaSegment(s"mutation $mutationType", mutationMethods))
-    } else None
+    else None
 
-    val subscription = if (subscriptionMethods.nonEmpty) {
+    val subscription = if (subscriptionMethods.nonEmpty)
       Some(MetaSegment(s"subscription $subscriptionType", subscriptionMethods))
-    } else None
+    else None
 
     val pagination = if (paginations.nonEmpty) Some(MetaSegment("pagination", paginations)) else None
     val payload    = if (payloads.nonEmpty) Some(MetaSegment("payload", payloads)) else None
@@ -163,7 +169,7 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
   private def withBackRefs(entities: List[MetaEntity]): List[MetaEntity] = {
     // Add BackRefs once all entities are known
     entities.map { entity =>
-      entity.copy(backRefs = backRefs.getOrElse(entity.ent, Nil).distinct.sorted)
+      entity.copy(backRefs = backRefs.getOrElse(entity.entity, Nil).distinct.sorted)
     }
   }
 
@@ -238,13 +244,13 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
               case NamedType(tpe, mandatory) =>
                 val ref  = Some(tpe).filter(typeNames.contains)
                 val opts = if (mandatory) List("mandatory") else Nil
-                MetaAttribute(attr, CardOne, getTpe(tpe), ref, opts)
+                MetaAttribute(attr, CardOne, getTpe(tpe), Nil, ref, options = opts)
 
               case ListType(NamedType(tpe, _), mandatory) =>
                 val ref  = Some(tpe).filter(typeNames.contains)
                 val opts = if (mandatory) List("mandatory") else Nil
                 val card = if (isRef(tpe)) CardSet else CardSeq
-                MetaAttribute(attr, card, getTpe(tpe), ref, opts)
+                MetaAttribute(attr, card, getTpe(tpe), Nil, ref, options = opts)
 
               case _ => throw new Exception(s"Unsupported type: $ofType")
             }
@@ -305,21 +311,22 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     ofType: Type,
     directives: List[Directive]
   ): MetaAttribute = {
-    // todo: args...?
+    // todo: enum
+    // todo: args
 
     ofType match {
       case NamedType(tpe, mandatory) =>
         if (isRef(tpe)) addBackRef(entity, tpe)
-        val ref  = Some(tpe).filter(typeNames.contains)
+        val optRef  = Some(tpe).filter(typeNames.contains)
         val opts = if (mandatory) List("mandatory") else Nil
-        MetaAttribute(attr, CardOne, getTpe(tpe), ref, opts)
+        MetaAttribute(attr, CardOne, getTpe(tpe), Nil, optRef, options = opts)
 
       case ListType(NamedType(tpe, _), mandatory) =>
         if (isRef(tpe)) addBackRef(entity, tpe)
-        val ref  = Some(tpe).filter(typeNames.contains)
+        val optRef  = Some(tpe).filter(typeNames.contains)
         val opts = if (mandatory) List("mandatory") else Nil
         val card = if (isRef(tpe)) CardSet else CardSeq
-        MetaAttribute(attr, card, getTpe(tpe), ref, opts)
+        MetaAttribute(attr, card, getTpe(tpe), Nil, optRef, options = opts)
 
       case _ => throw new Exception(s"Unsupported type: $ofType")
     }

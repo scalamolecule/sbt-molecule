@@ -13,14 +13,14 @@ object RenderGraphql extends TestSuite {
   override def tests: Tests = Tests {
 
     "DSL" - {
-//      starWars.printCode("Episode")
+      //      starWars.printCode("Episode")
       starWars.printCode("Character")
-//      starWars.printCode("Droid")
-//      starWars.printCode("Query")
-//      starWars.printCode("ReviewInput")
-//      starWars.printCode("Date")
-//      starWars.printCode("Mutation")
-//      starWars.printCode("Subscription")
+      //      starWars.printCode("Droid")
+      //      starWars.printCode("Query")
+      //      starWars.printCode("ReviewInput")
+      //      starWars.printCode("Date")
+      //      starWars.printCode("Mutation")
+      //      starWars.printCode("Subscription")
     }
   }
 }

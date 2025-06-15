@@ -1,21 +1,21 @@
-package sbtmolecule.db
+package sbtmolecule
 
 import molecule.base.metaModel.*
 import molecule.base.util.BaseHelpers
 
 
-class FormatDb(
+class Formatting(
   metaDomain: MetaDomain,
   metaEntity: MetaEntity,
   arity: Int = 0
 ) extends BaseHelpers {
-  val pkg      = metaDomain.pkg + ".dsl"
-  val domain   = metaDomain.domain
-  val maxArity = metaDomain.maxArity
-  val ent      = metaEntity.ent
-  val attrs    = metaEntity.attrs
-  val refs     = attrs.filter(_.ref.nonEmpty)
-  val backRefs = metaEntity.backRefs
+  val pkg        = metaDomain.pkg + ".dsl"
+  val domain     = metaDomain.domain
+  val maxArity   = metaDomain.maxArity
+  val entity     = metaEntity.entity
+  val attributes = metaEntity.attributes
+  val refs       = attributes.filter(_.ref.nonEmpty)
+  val backRefs   = metaEntity.backRefs
 
   def camel(s: String) = s"${s.head.toUpper}${s.tail}"
 
@@ -24,13 +24,15 @@ class FormatDb(
     case t    => t
   }
 
-  lazy val maxAttr      = attrs.map(_.attr.length).max
-  lazy val maxBaseTpe   = attrs.map(a => getTpe(a.baseTpe).length).max
-  lazy val maxRefAttr   = attrs.filter(_.ref.isDefined).map(entity => entity.attr.length).max
-  lazy val maxRefEntity = attrs.flatMap(_.ref.map(_.length)).max
+  lazy val maxAttr      = attributes.map(_.attribute.length).max
+  lazy val maxBaseTpe   = attributes.map(a => getTpe(a.baseTpe).length).max
+  lazy val maxBaseTpe1  = attributes.map(a => a.enumTpe.getOrElse(a.baseTpe).length).max
+  lazy val maxRefAttr   = attributes.filter(_.ref.isDefined).map(entity => entity.attribute.length).max
+  lazy val maxRefEntity = attributes.flatMap(_.ref.map(_.length)).max
 
   lazy val padAttr      = (s: String) => padS(maxAttr, s)
   lazy val padType      = (s: String) => padS(maxBaseTpe, s)
+  lazy val padType1     = (s: String) => padS(maxBaseTpe1, s)
   lazy val padRefAttr   = (s: String) => padS(maxRefAttr, s)
   lazy val padRefEntity = (s: String) => padS(maxRefEntity, s)
 
@@ -39,9 +41,9 @@ class FormatDb(
   lazy val _0       = "_" + arity
   lazy val _1       = "_" + (arity + 1)
   lazy val _2       = "_" + (arity + 2)
-  lazy val ent_0    = ent + _0
-  lazy val ent_1    = ent + _1
-  lazy val ent_2    = ent + _2
+  lazy val ent_0    = entity + _0
+  lazy val ent_1    = entity + _1
+  lazy val ent_2    = entity + _2
   lazy val `, A`    = if (arity == 0) "" else ", " + tpes.mkString(", ")
   lazy val `A..U`   = if (arity <= 1) "" else tpes.init.mkString("", ", ", ", ")
   lazy val `A..V`   = if (arity == 0) "" else tpes.mkString(", ")

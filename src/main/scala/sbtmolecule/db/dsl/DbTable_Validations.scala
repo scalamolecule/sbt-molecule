@@ -1,11 +1,11 @@
 package sbtmolecule.db.dsl
 
 import molecule.base.metaModel.*
-import sbtmolecule.db.FormatDb
+import sbtmolecule.Formatting
 
 
 case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
-  extends FormatDb(metaDomain, metaEntity) {
+  extends Formatting(metaDomain, metaEntity) {
 
   def validationMethod(
     attr: String,
@@ -124,7 +124,7 @@ case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
       } else if (error.isEmpty) {
         val indentedTest = test.split('\n').toList.mkString(s"|$pad           |", s"\n||$pad           |  ", "")
         s"""Seq(
-           |$pad        s\"\"\"$ent.$attr with value `$$v` doesn't satisfy validation:
+           |$pad        s\"\"\"$entity.$attr with value `$$v` doesn't satisfy validation:
            |$pad         $indentedTest
            |$pad|$pad           |\"\"\".stripMargin
            |$pad      )""".stripMargin('#')

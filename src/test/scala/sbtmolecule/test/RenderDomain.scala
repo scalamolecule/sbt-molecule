@@ -20,7 +20,7 @@ object RenderDomain extends TestSuite {
   override def tests: Tests = Tests {
 
     "DSL" - {
-      types.getCode(types.metaDomain.segments.head.ents(0)) ==> "check" // Types
+      types.printCode(types.metaDomain.segments.head.entities(0)) ==> "check" // Types
       //            Dsl(types, "", types.segments.head.ents(1)).get ==> "check" // Refs
       //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check" // Other
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"

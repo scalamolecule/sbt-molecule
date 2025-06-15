@@ -1,7 +1,7 @@
 package sbtmolecule.db.dsl
 
 import molecule.base.metaModel.*
-import sbtmolecule.db.FormatDb
+import sbtmolecule.Formatting
 
 
 case class DbTable_Arities(
@@ -10,7 +10,7 @@ case class DbTable_Arities(
   attrList: Seq[String],
   metaEntity: MetaEntity,
   arity: Int
-) extends FormatDb(metaDomain, metaEntity, arity) {
+) extends Formatting(metaDomain, metaEntity, arity) {
 
   private val man = List.newBuilder[String]
   private val opt = List.newBuilder[String]
@@ -30,7 +30,7 @@ case class DbTable_Arities(
   private var seqCount     = 0
 
   private val ptMax = {
-    attrs.map(a => a.card match {
+    attributes.map(a => a.cardinality match {
       case _: CardOne =>
         hasOne = true
         getTpe(a.baseTpe).length // Account for "ID" type being String
@@ -58,32 +58,34 @@ case class DbTable_Arities(
   private val ptMap       = (t: String) => " " * (ptMax - 13 - t.length)
   private val ptByteArray = " " * (ptMax - 7 - 4)
 
-  attrs.foreach {
-    case MetaAttribute(attr, card, baseType, ref, _, _, _, _, _, _) =>
-      val isByteArray = card == CardSeq && baseType == "Byte"
+  attributes.foreach {
+    case MetaAttribute(attr, card, baseType0, _, optRef, optEnum, _, _, _, _, _, _) =>
+      val isByteArray = card == CardSeq && baseType0 == "Byte"
       val c           = if (isByteArray) "BAr" else card._marker
-      val tpe         = getTpe(baseType)
+      val baseType    = getTpe(baseType0)
+      val baseType1   = optEnum.getOrElse(baseType)
+      val isEnum      = optEnum.isDefined
 
       val padA = padAttr(attr)
-      val pad1 = padType(tpe)
+      val pad1 = padType1(baseType1)
       val pad2 = " " * ("Option[]".length + ptMax)
 
       val (tM, tO) = card match {
-        case _: CardOne                       => (tpe + ptOne(tpe), s"Option[$tpe]" + ptOne(tpe))
-        case _: CardSet                       => (s"Set[$tpe]" + ptSet(tpe), s"Option[Set[$tpe]]" + ptSet(tpe))
-        case _: CardSeq if baseType == "Byte" => (s"Array[$tpe]" + ptByteArray, s"Option[Array[$tpe]]" + ptByteArray)
-        case _: CardSeq                       => (s"Seq[$tpe]" + ptSeq(tpe), s"Option[Seq[$tpe]]" + ptSeq(tpe))
-        case _: CardMap                       => (s"Map[String, $tpe]" + ptMap(tpe), s"Option[Map[String, $tpe]]" + ptMap(tpe))
+        case _: CardOne                       => (baseType + ptOne(baseType), s"Option[$baseType]" + ptOne(baseType))
+        case _: CardSet                       => (s"Set[$baseType]" + ptSet(baseType), s"Option[Set[$baseType]]" + ptSet(baseType))
+        case _: CardSeq if baseType == "Byte" => (s"Array[$baseType]" + ptByteArray, s"Option[Array[$baseType]]" + ptByteArray)
+        case _: CardSeq                       => (s"Seq[$baseType]" + ptSeq(baseType), s"Option[Seq[$baseType]]" + ptSeq(baseType))
+        case _: CardMap                       => (s"Map[String, $baseType]" + ptMap(baseType), s"Option[Map[String, $baseType]]" + ptMap(baseType))
       }
 
-      lazy val tpesM = s"${`A..V, `}$tM        , $tpe$pad1"
-      lazy val tpesO = s"${`A..V, `}$tO, $tpe$pad1"
+      lazy val tpesM = s"${`A..V, `}$tM        , $baseType1$pad1"
+      lazy val tpesO = s"${`A..V, `}$tO, $baseType1$pad1"
       lazy val tpesT = if (arity == 0)
-        s"${`A..V`} $pad2 $tpe$pad1"
+        s"${`A..V`} $pad2 $baseType1$pad1"
       else if (arity == metaDomain.maxArity)
-        s"${`A..V`}, $tpe$pad1"
+        s"${`A..V`}, $baseType1$pad1"
       else
-        s"${`A..V`}  $pad2, $tpe$pad1"
+        s"${`A..V`}  $pad2, $baseType1$pad1"
 
       lazy val elemsM = s"dataModel.add(${attr}_man$padA)"
       lazy val elemsO = s"dataModel.add(${attr}_opt$padA)"
@@ -92,20 +94,28 @@ case class DbTable_Arities(
       val nextNextEntity = if (secondLast) s"X${arity + 3}" else ent_2
       val nextEntity     = if (last) s"X${arity + 2}" else ent_1
 
-      val filtersMan = if (card == CardOne && attr != "id" && ref.isEmpty) baseType match {
+      val filtersMan = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
+        case _ if isEnum                                  => "_Enum    "
         case "String"                                     => "_String  "
         case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer "
         case "Double" | "BigDecimal" | "Float"            => "_Decimal "
         case "Boolean"                                    => "_Boolean "
         case _                                            => "         "
-      } else "         "
+      } else if (isEnum)
+        "_Enum    "
+      else
+        "         "
 
-      val filtersOpt = "         "
-      val filtersTac = if (card == CardOne && attr != "id" && ref.isEmpty) baseType match {
+      val filtersOpt = if (isEnum) "_Enum    " else "         "
+      val filtersTac = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
+        case _ if isEnum                                  => "_Enum    "
         case "String"                                     => "_String  "
         case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer "
         case _                                            => "         "
-      } else "         "
+      } else if (isEnum)
+        "_Enum    "
+      else
+        "         "
 
       lazy val exprM = s"Expr${c}Man${_1}$filtersMan[$tpesM, $ent_1, $nextNextEntity]"
       lazy val exprO = s"Expr${c}Opt${_1}$filtersOpt[$tpesO, $ent_1, $nextNextEntity]"
@@ -220,20 +230,20 @@ case class DbTable_Arities(
     }
   }
 
-  private val hasRefOne  = refs.exists(_.card == CardOne)
-  private val hasRefMany = refs.exists(_.card == CardSet)
+  private val hasRefOne  = refs.exists(_.cardinality == CardOne)
+  private val hasRefMany = refs.exists(_.cardinality == CardSet)
   refs.collect {
-    case MetaAttribute(attr, card, _, Some(ref0), options, _, _, _, _, _) =>
+    case MetaAttribute(attr, card, _, _, Some(ref0), _, options, _, _, _, _, _) =>
       val refName        = camel(attr)
       val pRefAttr       = padRefAttr(attr)
       val pRef           = padRefEntity(ref0)
-      val nsIndex        = entityList.indexOf(ent)
-      val refAttrIndex   = attrList.indexOf(ent + "." + attr)
+      val nsIndex        = entityList.indexOf(entity)
+      val refAttrIndex   = attrList.indexOf(entity + "." + attr)
       val refEntityIndex = entityList.indexOf(ref0)
       val isOwner        = options.contains("owner")
       val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord          = s"List($nsIndex, $refAttrIndex, $refEntityIndex)"
-      val refObj         = s"""_dm.Ref("$ent", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
+      val refObj         = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
       if (arity == maxArity) {
         ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj))"""
       } else if (card == CardOne) {
@@ -312,12 +322,12 @@ case class DbTable_Arities(
   private val backRefDefs = if (backRefs.isEmpty) "" else {
     val max = backRefs.map(_.length).max
     backRefs.flatMap { backRef =>
-      if (ent == backRef) None else {
+      if (entity == backRef) None else {
         val pad             = padS(max, backRef)
         val prevEntityIndex = entityList.indexOf(backRef)
-        val curEntityIndex  = entityList.indexOf(ent)
+        val curEntityIndex  = entityList.indexOf(entity)
         val coord           = s"List($prevEntityIndex, $curEntityIndex)"
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(_dm.BackRef("$backRef", "$ent", $coord)))""")
+        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(_dm.BackRef("$backRef", "$entity", $coord)))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }
@@ -335,7 +345,7 @@ case class DbTable_Arities(
   }
 
   def get: String =
-    s"""class $ent_0[${`A..V, `}t]($dataModel) extends $refClass${ent}_base with $modelOps {
+    s"""class $ent_0[${`A..V, `}t]($dataModel) extends $refClass${entity}_base with $modelOps {
        |  $manAttrs$optAttrs$tacAttrs
        |
        |  $resolvers$filterAttrs

@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHelpers {
 
-  protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
+  protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.entities)
 
   protected var hasReserved         = false
   protected var reservedEntities    = Array.empty[Byte]
@@ -20,24 +20,24 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
   val b0 = 0.toByte
   val b1 = 1.toByte
 
-  private def createTable(MetaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
-    val entity = MetaEntity.ent
+  private def createTable(metaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
+    val entity = metaEntity.entity
     def reserved(a: MetaAttribute): Byte =
-      if (dialect.reservedKeyWords.contains(a.attr.toLowerCase)) b1 else b0
-    val max = MetaEntity.attrs.map {
-      case a if a.card == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a) == b1                   => a.attr.length + 1
-      case a                                        => a.attr.length
+      if (dialect.reservedKeyWords.contains(a.attribute.toLowerCase)) b1 else b0
+    val max = metaEntity.attributes.map {
+      case a if a.cardinality == CardSet && a.ref.nonEmpty => 0
+      case a if reserved(a) == b1                          => a.attribute.length + 1
+      case a                                               => a.attribute.length
     }.max.max(2)
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(entity.toLowerCase)) "_" else ""
 
-    val columns = MetaEntity.attrs.flatMap {
-      case a if a.attr == "id" =>
+    val columns = metaEntity.attributes.flatMap {
+      case a if a.attribute == "id" =>
         reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
-      case a if a.card == CardSet && a.ref.nonEmpty =>
+      case a if a.cardinality == CardSet && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
         None
 
@@ -45,13 +45,13 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
         val column = if (reserved(a) == b1) {
           hasReserved = true
           reservedAttrs = reservedAttrs :+ b1
-          a.attr + "_"
+          a.attribute + "_"
         } else {
           reservedAttrs = reservedAttrs :+ b0
-          a.attr
+          a.attribute
         }
         // Add foreign key references
-        a.ref.foreach(refEntity => refs += ((entity, a.attr, refEntity)))
+        a.ref.foreach(refEntity => refs += ((entity, a.attribute, refEntity)))
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }.mkString(s",\n|      |  ")
@@ -62,8 +62,8 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
          |      |);
          |      |"""
 
-    val joinTables = MetaEntity.attrs.collect {
-      case MetaAttribute(refAttr, CardSet, _, Some(ref), _, _, _, _, _, _) =>
+    val joinTables = metaEntity.attributes.collect {
+      case MetaAttribute(refAttr, CardSet, _, _, Some(ref), _, _, _, _, _, _, _) =>
         val joinTable  = s"${entity}_${refAttr}_$ref"
         val (id1, id2) = if (entity == ref) ("1_id", "2_id") else ("id", "id")
         val (l1, l2)   = (entity.length, ref.length)
@@ -96,11 +96,11 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
 
     val tableDefinitions = entities.flatMap { entity =>
       val reservedEntity: Byte =
-        if (dialect.reservedKeyWords.contains(entity.ent.toLowerCase)) b1 else b0
+        if (dialect.reservedKeyWords.contains(entity.entity.toLowerCase)) b1 else b0
       reservedEntities = reservedEntities :+ reservedEntity
       val result = createTable(entity, dialect)
       reservedEntityAttrs = reservedEntityAttrs :+
-        reservedAttrs.mkString(s"\n    // ${entity.ent}\n    ", ", ", "")
+        reservedAttrs.mkString(s"\n    // ${entity.entity}\n    ", ", ", "")
       reservedAttrs = Array.empty[Byte]
       result
     }

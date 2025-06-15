@@ -18,7 +18,7 @@ case class SchemaBase(metaDomain: MetaDomain) {
         |  override val entityMap: Map[String, MetaEntity] = ${metaDomain.entityMap(1)}
         |
         |
-        |  override val attrMap: Map[String, (Card, String, Seq[String])] = ${metaDomain.attrMap(1)}
+        |  override val attrMap: Map[String, (Cardinality, String, Seq[String])] = ${metaDomain.attrMap(1)}
         |
         |
         |  override val uniqueAttrs: List[String] = ${metaDomain.uniqueAttrs}

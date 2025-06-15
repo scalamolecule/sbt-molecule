@@ -7,7 +7,7 @@ object Person extends DomainStructure(5) {
   object male {
     trait Character {
       val name   = oneString
-      val mood   = oneString.enums("good", "bad")
+      val mood   = oneString.allowedValues("good", "bad")
       val answer = one[story.Conversation]
     }
   }

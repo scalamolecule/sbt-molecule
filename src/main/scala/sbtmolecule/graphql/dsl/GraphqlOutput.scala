@@ -1,50 +1,55 @@
 package sbtmolecule.graphql.dsl
 
 import caliban.parsing.adt.Definition.TypeSystemDefinition.TypeDefinition.FieldDefinition
-import sbtmolecule.graphql.FormatGraphql
+import molecule.base.metaModel.*
+import sbtmolecule.Formatting
 
 
 case class GraphqlOutput(
-  pkg: String,
-  domain: String,
-  maxArity: Int,
-  typeNames: List[String],
-  enumNames: List[String],
-  entity: String,
-  description: Option[String],
-  fields: List[FieldDefinition]
-) extends FormatGraphql(typeNames, enumNames, entity, fields) {
+    metaDomain: MetaDomain,
+    metaEntity: MetaEntity,
+    attrIndexPrev: Int = 0
+) extends Formatting(metaDomain, metaEntity){
 
-  println(typeNames)
-  println(enumNames)
+  private val entityList: Seq[String] = metaDomain.segments.flatMap(_.entities.map(_.entity))
+  private val attrList  : Seq[String] = {
+    for {
+      segment <- metaDomain.segments
+      entity <- segment.entities
+      a <- entity.attributes
+    } yield entity.entity + "." + a.attribute
+  }
+
+  var attrIndex = attrIndexPrev
 
   private val imports: String = {
     val baseImports = Seq(
       "molecule.core.dataModel.*",
       "molecule.graphql.client.api.*",
     )
-    baseImports.sorted.mkString("import ", "\nimport ", "")
+    val typeImports = attributes.collect {
+      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _) => "java.util.Date"
+      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _) => "java.util.UUID"
+      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _)  => "java.net.URI"
+    }.distinct
+    (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
   }
-
-  val descr = formatDescription(description)
 
   private val baseEntity: String = {
     val man = List.newBuilder[String]
     val opt = List.newBuilder[String]
 
-    attrs.collect {
-      case Attr(description, attr, args, card, rawType, baseType, mandatory, ref) =>
+    attributes.collect {
+      case MetaAttribute(attr, card, tpe, _, _, _, _, _, _, _, _, _) if tpe.nonEmpty =>
+        val padA    = padAttr(attr)
+        val padT0   = padType(tpe)
+        val attrMan = "Attr" + card._marker + "Man" + tpe
+        val attrOpt = "Attr" + card._marker + "Opt" + tpe
+        attrIndex += 1
 
-        if (!typeNames.contains(rawType)) {
-          val padA    = padAttr(attr)
-          val padT0   = padType(baseType)
-          val attrMan = "Attr" + card + "Man" + baseType
-          val attrOpt = "Attr" + card + "Opt" + baseType
-
-          man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$entity", "$attr")"""
-          if (attr != "id") {
-            opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$entity", "$attr")"""
-          }
+        man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$entity", "$attr")"""
+        if (attr != "id") {
+          opt += s"""protected lazy val ${attr}_opt$padA: $attrOpt$padT0 = $attrOpt$padT0("$entity", "$attr")"""
         }
     }
     val attrDefs = (man.result() ++ Seq("") ++ opt.result()).mkString("\n  ")
@@ -54,11 +59,8 @@ case class GraphqlOutput(
        |}""".stripMargin
   }
 
-  private val entities: String = (0 to maxArity)
-    .map(
-      //      GraphqlOutput_Arities(metaDomain, entityList, attrList, metaEntity, _).get
-      i => s"arity $i ..."
-    ).mkString("\n\n")
+  private val entities: String = (0 to metaDomain.maxArity)
+    .map(GraphqlOutput_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
   def get: String = {
     s"""// AUTO-GENERATED Molecule DSL boilerplate code for entity `$entity`
@@ -67,7 +69,7 @@ case class GraphqlOutput(
        |$imports
        |
        |
-       |$descr$baseEntity
+       |$baseEntity
        |
        |
        |$entities

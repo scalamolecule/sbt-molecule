@@ -6,7 +6,7 @@ import molecule.base.util.RegexMatching
 
 case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
 
-  private val flatEntities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.ents)
+  private val flatEntities: Seq[MetaEntity] = metaDomain.segments.filterNot(_.segment == "_enum").flatMap(_.entities)
 
   private val datomicPartitions: String = {
     val parts = metaDomain.segments.filterNot(_.segment.isEmpty).map(_.segment)
@@ -20,17 +20,17 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
   }
 
   private val datomicAliases: String = {
-    val attrsWithAlias = flatEntities.flatMap(_.attrs.tail).filter(_.alias.nonEmpty)
+    val attrsWithAlias = flatEntities.flatMap(_.attributes.tail).filter(_.alias.nonEmpty)
     if (attrsWithAlias.isEmpty) "\"\"" else {
       edn(attrsWithAlias.map { a =>
-        val (attr, alias) = (a.attr, a.alias.get)
+        val (attr, alias) = (a.attribute, a.alias.get)
         s"""|        {:db/id      "$alias"
             |         :db/ident   :$attr}""".stripMargin
       }.mkString("\n\n"))
     }
   }
 
-  private def datomicCardinality(metaAttribute: MetaAttribute): String = metaAttribute.card match {
+  private def datomicCardinality(metaAttribute: MetaAttribute): String = metaAttribute.cardinality match {
     case CardOne => "one"
     case CardSet => "many"
     case CardSeq => "one" // Array values encoded in one byte Array
@@ -39,39 +39,40 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
   }
 
   private def datomicType(a: MetaAttribute): String = {
-    if (a.card == CardSeq && a.baseTpe == "Byte") {
+    if (a.cardinality == CardSeq && a.baseTpe == "Byte") {
       "bytes"
     } else a.baseTpe match {
-      case "ID" if a.ref.nonEmpty => "ref"
-      case "ID"                   => "ref"
-      case "String"               => "string"
-      case "Int"                  => "long"
-      case "Long"                 => "long"
-      case "Float"                => "float"
-      case "Double"               => "double"
-      case "Boolean"              => "boolean"
-      case "BigInt"               => "bigint"
-      case "BigDecimal"           => "bigdec"
-      case "Date"                 => "instant"
-      case "Duration"             => "string"
-      case "Instant"              => "string"
-      case "LocalDate"            => "string"
-      case "LocalTime"            => "string"
-      case "LocalDateTime"        => "string"
-      case "OffsetTime"           => "string"
-      case "OffsetDateTime"       => "string"
-      case "ZonedDateTime"        => "string"
-      case "UUID"                 => "uuid"
-      case "URI"                  => "uri"
-      case "Byte"                 => "long"
-      case "Short"                => "long"
-      case "Char"                 => "string"
+      case "ID"             => "ref"
+      case "String"         => "string"
+      case "Int"            => "long"
+      case "Long"           => "long"
+      case "Float"          => "float"
+      case "Double"         => "double"
+      case "Boolean"        => "boolean"
+      case "BigInt"         => "bigint"
+      case "BigDecimal"     => "bigdec"
+      case "Date"           => "instant"
+      case "Duration"       => "string"
+      case "Instant"        => "string"
+      case "LocalDate"      => "string"
+      case "LocalTime"      => "string"
+      case "LocalDateTime"  => "string"
+      case "OffsetTime"     => "string"
+      case "OffsetDateTime" => "string"
+      case "ZonedDateTime"  => "string"
+      case "UUID"           => "uuid"
+      case "URI"            => "uri"
+      case "Byte"           => "long"
+      case "Short"          => "long"
+      case "Char"           => "string"
+      case unexpected       =>
+        throw new Exception(s"Unexpected base type: '$unexpected'")
     }
   }
 
   private def attrStmts(ns: String, a: MetaAttribute): String = {
     val mandatory = Seq(
-      s""":db/ident         :$ns/${a.attr}""",
+      s""":db/ident         :$ns/${a.attribute}""",
       s""":db/valueType     :db.type/${datomicType(a)}""",
       s""":db/cardinality   :db.cardinality/${datomicCardinality(a)}""",
       s""":db/index         true"""
@@ -87,33 +88,33 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     }
     val descr     = a.description.fold(Seq.empty[String])(txt => Seq(s""":db/doc           "$txt""""))
 
-    if (a.card == CardSeq && a.baseTpe != "Byte") {
-      s""":db/ident         :$ns/${a.attr}
+    if (a.cardinality == CardSeq && a.baseTpe != "Byte") {
+      s""":db/ident         :$ns/${a.attribute}
          |         :db/valueType     :db.type/ref
          |         :db/cardinality   :db.cardinality/many
          |         :db/index         true}
          |
-         |        {:db/ident         :$ns.${a.attr}/i_
+         |        {:db/ident         :$ns.${a.attribute}/i_
          |         :db/valueType     :db.type/long
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true}
          |
-         |        {:db/ident         :$ns.${a.attr}/v_
+         |        {:db/ident         :$ns.${a.attribute}/v_
          |         :db/valueType     :db.type/${datomicType(a)}
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true""".stripMargin
-    } else if (a.card == CardMap) {
-      s""":db/ident         :$ns/${a.attr}
+    } else if (a.cardinality == CardMap) {
+      s""":db/ident         :$ns/${a.attribute}
          |         :db/valueType     :db.type/ref
          |         :db/cardinality   :db.cardinality/many
          |         :db/index         true}
          |
-         |        {:db/ident         :$ns.${a.attr}/k_
+         |        {:db/ident         :$ns.${a.attribute}/k_
          |         :db/valueType     :db.type/string
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true}
          |
-         |        {:db/ident         :$ns.${a.attr}/v_
+         |        {:db/ident         :$ns.${a.attribute}/v_
          |         :db/valueType     :db.type/${datomicType(a)}
          |         :db/cardinality   :db.cardinality/one
          |         :db/index         true""".stripMargin
@@ -122,13 +123,13 @@ case class Schema_Datomic(metaDomain: MetaDomain) extends RegexMatching {
     }
   }
 
-  private def attrDefs(metaEntity: MetaEntity): String = metaEntity.attrs.tail // no id attribute in Datomic
-    .map(attrStmts(metaEntity.ent, _))
+  private def attrDefs(metaEntity: MetaEntity): String = metaEntity.attributes.tail // no id attribute in Datomic
+    .map(attrStmts(metaEntity.entity, _))
     .mkString("{", "}\n\n        {", "}")
 
   private val datomicSchema: String = edn(flatEntities.map { ns =>
-    val delimiter = "-" * (50 - ns.ent.length)
-    s"""|        ;; ${ns.ent} $delimiter
+    val delimiter = "-" * (50 - ns.entity.length)
+    s"""|        ;; ${ns.entity} $delimiter
         |
         |        ${attrDefs(ns)}""".stripMargin
   }.mkString("\n\n\n"))

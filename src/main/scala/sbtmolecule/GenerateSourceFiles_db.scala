@@ -13,6 +13,8 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     DbTable(metaDomain, metaEntity, 0, 0).get
   }
 
+  def printCode(metaEntity: MetaEntity): Unit = println(getCode(metaEntity))
+
   def generate(srcManaged: File): Unit = {
     var entityIndex = 0
     var attrIndex   = 0
@@ -22,16 +24,35 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     val base        = pkg.split('.').toList.foldLeft(srcManaged)((dir, pkg) => dir / pkg)
     val domainDir   = base / "dsl" / domain
 
+
+    val segmentsWithoutEnums = segments.filter {
+      case MetaSegment("_enums", entities) =>
+        entities.foreach {
+          case MetaEntity(enumTpe, attributes, _, _, _, _) =>
+            val enumCode =
+              s"""// AUTO-GENERATED Molecule DSL boilerplate code for enum `$enumTpe`
+                 |package $pkg.dsl.$domain
+                 |
+                 |enum $enumTpe:
+                 |  case ${attributes.map(_.attribute).mkString(", ")}
+                 |""".stripMargin
+
+            IO.write(domainDir / s"$enumTpe.scala", enumCode)
+        }
+        false
+
+      case _ => true
+    }
+
     for {
-      metaSegment <- segments
-      metaEntity <- metaSegment.ents
+      metaSegment <- segmentsWithoutEnums
+      metaEntity <- metaSegment.entities
     } yield {
-      //      val segmentPrefix = if (metaSegment.segment.isEmpty) "" else metaSegment.segment + "_"
-      //      val entityCode    = DbTable(metaDomain, segmentPrefix, metaEntity, entityIndex, attrIndex).get
       val entityCode = DbTable(metaDomain, metaEntity, entityIndex, attrIndex).get
+      // Increment of entityIndex has to come after calling DbTable.get
       entityIndex += 1
-      attrIndex += metaEntity.attrs.length
-      IO.write(domainDir / s"${metaEntity.ent}.scala", entityCode)
+      attrIndex += metaEntity.attributes.length
+      IO.write(domainDir / s"${metaEntity.entity}.scala", entityCode)
     }
 
     val schema = base / "schema"

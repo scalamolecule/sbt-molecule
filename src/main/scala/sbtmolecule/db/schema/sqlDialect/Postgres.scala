@@ -5,9 +5,9 @@ import molecule.base.metaModel.*
 object Postgres extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attr == "id")
+    if (metaAttribute.attribute == "id")
       "BIGSERIAL PRIMARY KEY"
-    else metaAttribute.card match {
+    else metaAttribute.cardinality match {
       case _: CardOne => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "TEXT COLLATE ucs_basic"
