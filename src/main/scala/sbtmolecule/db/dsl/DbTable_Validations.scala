@@ -36,7 +36,7 @@ case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
     baseTpe0: String,
   ): String = {
     val baseTpe = if (baseTpe0 == "ID") "Long" else baseTpe0
-    s"""private lazy val validation_$attr = new Validate$baseTpe0 {
+    s"""private lazy val validation_$attr = new _dm.Validate$baseTpe0 {
        |$pad    override def validate(v: $baseTpe): Seq[String] = {
        |$pad      $body
        |$pad    }
@@ -51,7 +51,7 @@ case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
     valueAttrs: List[(String, Boolean, String, String, String)]
   ): String = {
     val baseTpe        = if (baseTpe0 == "ID") "Long" else baseTpe0
-    val validator      = "Validate" + baseTpe0
+    val validator      = "_dm.Validate" + baseTpe0
     val maxAttr        = valueAttrs.map(_._1.length).max.max(9) // align with _validate too
     val maxMetaAttr    = valueAttrs.map(_._4.length).max
     val maxValue       = valueAttrs.map(_._5.length).max
@@ -66,8 +66,8 @@ case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
         val pad3 = padS(maxValue, value)
         val head = if (isCardOne) ".head" else ""
         (
-          s"val $attr$pad1 = _attrs($i).asInstanceOf[$metaAttr$pad2].vs$head",
-          s"val $attr$pad1 = _values($i).asInstanceOf[$value$pad3].v"
+          s"val $attr$pad1 = _attrs($i).asInstanceOf[_dm.$metaAttr$pad2].vs$head",
+          s"val $attr$pad1 = _values($i).asInstanceOf[_dm.$value$pad3].v"
         )
       }.unzip
 
@@ -82,12 +82,12 @@ case class DbTable_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
        |          $body
        |        }
        |    }
-       |    override def withAttrs(attrs: Seq[Attr]): $validator = new $validator(attrs) {
+       |    override def withAttrs(attrs: Seq[_dm.Attr]): $validator = new $validator(attrs) {
        |      $variablesFromMetaAttr
        |      val _validate = _withVariables($variables)
        |      override def validate(v: $baseTpe): Seq[String] = _validate(v)
        |    }
-       |    override def withValues(values: Seq[Value]): $validator = new $validator(_values = values) {
+       |    override def withValues(values: Seq[_dm.Value]): $validator = new $validator(_values = values) {
        |      $variablesFromValue
        |      val _validate = _withVariables($variables)
        |      override def validate(v: $baseTpe): Seq[String] = _validate(v)

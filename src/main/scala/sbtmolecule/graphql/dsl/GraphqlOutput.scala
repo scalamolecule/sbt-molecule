@@ -59,8 +59,9 @@ case class GraphqlOutput(
        |}""".stripMargin
   }
 
-  private val entities: String = (0 to metaDomain.maxArity)
-    .map(GraphqlOutput_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
+  private val entities: String = "???"
+//  private val entities: String = (0 to metaDomain.maxArity)
+//    .map(GraphqlOutput_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
   def get: String = {
     s"""// AUTO-GENERATED Molecule DSL boilerplate code for entity `$entity`

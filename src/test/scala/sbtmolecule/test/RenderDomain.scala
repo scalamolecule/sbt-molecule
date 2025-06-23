@@ -6,13 +6,13 @@ import utest.*
 
 object RenderDomain extends TestSuite {
   val projectRoot = System.getProperty("user.dir")
-  lazy val basePath          = projectRoot + "/src/test/scala/sbtmolecule/db/"
+  lazy val basePath   = projectRoot + "/src/test/scala/sbtmolecule/db/"
   //  lazy val cardinalities = ParseAndGenerate(basePath + "Cardinalities.scala").generate.get
   //  lazy val starwars      = ParseAndGenerate(basePath + "Starwars.scala").generate.get
-  lazy val types = ParseAndGenerate(basePath + "Types.scala").metaDomain
+  lazy val types      = ParseAndGenerate(basePath + "Types.scala").metaDomain
   //  lazy val refs          = ParseAndGenerate(basePath + "Refs.scala").generate.get
   //  lazy val unique        = ParseAndGenerate(basePath + "Uniques.scala").generate.get
-  //  lazy val validation    = ParseAndGenerate(basePath + "Validation.scala").generate.get
+  lazy val validation = ParseAndGenerate(basePath + "Validation.scala").metaDomain
   //  lazy val scopes        = ParseAndGenerate(basePath + "Scopes.scala").generate.get
   //  lazy val segments      = ParseAndGenerate(basePath + "Segments.scala").generate.get
 
@@ -21,6 +21,8 @@ object RenderDomain extends TestSuite {
 
     "DSL" - {
       types.printCode(types.metaDomain.segments.head.entities(0)) ==> "check" // Types
+
+      //      validation.printCode(validation.metaDomain.segments.head.entities(0)) ==> "check" // Types
       //            Dsl(types, "", types.segments.head.ents(1)).get ==> "check" // Refs
       //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check" // Other
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"

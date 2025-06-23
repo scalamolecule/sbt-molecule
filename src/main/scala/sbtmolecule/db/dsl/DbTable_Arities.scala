@@ -15,12 +15,7 @@ case class DbTable_Arities(
   private val man = List.newBuilder[String]
   private val opt = List.newBuilder[String]
   private val tac = List.newBuilder[String]
-  private val res = List.newBuilder[String]
   private val ref = List.newBuilder[String]
-
-  private val first      = arity == 0
-  private val last       = arity == metaDomain.maxArity
-  private val secondLast = arity == metaDomain.maxArity - 1
 
   private var hasOne       = false
   private var hasSet       = false
@@ -52,6 +47,11 @@ case class DbTable_Arities(
     }).max
   }
 
+  private val hasEnum = attributes.exists {
+    case a if a.enumTpe.isDefined => true
+    case _                        => false
+  }
+
   private val ptOne       = (t: String) => " " * (ptMax - t.length)
   private val ptSet       = (t: String) => " " * (ptMax - 5 - t.length)
   private val ptSeq       = (t: String) => " " * (ptMax - 5 - t.length)
@@ -65,34 +65,39 @@ case class DbTable_Arities(
       val baseType    = getTpe(baseType0)
       val baseType1   = optEnum.getOrElse(baseType)
       val isEnum      = optEnum.isDefined
-
-      val padA = padAttr(attr)
-      val pad1 = padType1(baseType1)
-      val pad2 = " " * ("Option[]".length + ptMax)
+      val padA        = padAttr(attr)
+      val pad1        = padType1(baseType1)
 
       val (tM, tO) = card match {
-        case _: CardOne                       => (baseType + ptOne(baseType), s"Option[$baseType]" + ptOne(baseType))
-        case _: CardSet                       => (s"Set[$baseType]" + ptSet(baseType), s"Option[Set[$baseType]]" + ptSet(baseType))
-        case _: CardSeq if baseType == "Byte" => (s"Array[$baseType]" + ptByteArray, s"Option[Array[$baseType]]" + ptByteArray)
-        case _: CardSeq                       => (s"Seq[$baseType]" + ptSeq(baseType), s"Option[Seq[$baseType]]" + ptSeq(baseType))
-        case _: CardMap                       => (s"Map[String, $baseType]" + ptMap(baseType), s"Option[Map[String, $baseType]]" + ptMap(baseType))
+//        case _: CardOne                       => (baseType + ptOne(baseType), s"Option[$baseType]" + ptOne(baseType))
+//        case _: CardSet                       => (s"Set[$baseType]" + ptSet(baseType), s"Option[Set[$baseType]]" + ptSet(baseType))
+//        case _: CardSeq if baseType == "Byte" => (s"Array[$baseType]" + ptByteArray, s"Option[Array[$baseType]]" + ptByteArray)
+//        case _: CardSeq                       => (s"Seq[$baseType]" + ptSeq(baseType), s"Option[Seq[$baseType]]" + ptSeq(baseType))
+//        case _: CardMap                       => (s"Map[String, $baseType]" + ptMap(baseType), s"Option[Map[String, $baseType]]" + ptMap(baseType))
+
+        case _: CardOne                       => (baseType + ptOne(baseType), s"Option[$baseType" + ptOne(baseType) + "]")
+        case _: CardSet                       => (s"Set[$baseType]" + ptSet(baseType), s"Option[Set[$baseType]" + ptSet(baseType) + "]")
+        case _: CardSeq if baseType == "Byte" => (s"Array[$baseType]" + ptByteArray, s"Option[Array[$baseType]" + ptByteArray + "]")
+        case _: CardSeq                       => (s"Seq[$baseType]" + ptSeq(baseType), s"Option[Seq[$baseType]" + ptSeq(baseType) + "]")
+        case _: CardMap                       => (s"Map[String, $baseType]" + ptMap(baseType), s"Option[Map[String, $baseType]" + ptMap(baseType) + "]")
       }
 
-      lazy val tpesM = s"${`A..V, `}$tM        , $baseType1$pad1"
-      lazy val tpesO = s"${`A..V, `}$tO, $baseType1$pad1"
-      lazy val tpesT = if (arity == 0)
-        s"${`A..V`} $pad2 $baseType1$pad1"
-      else if (arity == metaDomain.maxArity)
-        s"${`A..V`}, $baseType1$pad1"
+      val (tpesM, tpesO, tpesT) = if (first)
+        (
+          s"Tuple1[$tM], $baseType1$pad1",
+          s"Tuple1[$tO], $baseType1$pad1",
+          s"Tpl, $baseType1$pad1"
+        )
       else
-        s"${`A..V`}  $pad2, $baseType1$pad1"
+        (
+          s"$tM *: Tpl, $baseType1$pad1",
+          s"$tO *: Tpl, $baseType1$pad1",
+          s"Tpl, $baseType1$pad1"
+        )
 
       lazy val elemsM = s"dataModel.add(${attr}_man$padA)"
       lazy val elemsO = s"dataModel.add(${attr}_opt$padA)"
       lazy val elemsT = s"dataModel.add(${attr}_tac$padA)"
-
-      val nextNextEntity = if (secondLast) s"X${arity + 3}" else ent_2
-      val nextEntity     = if (last) s"X${arity + 2}" else ent_1
 
       val filtersMan = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
         case _ if isEnum                                  => "_Enum    "
@@ -106,7 +111,7 @@ case class DbTable_Arities(
       else
         "         "
 
-      val filtersOpt = if (isEnum) "_Enum    " else "         "
+      val filtersOpt = if (isEnum) "_Enum " else if (hasEnum) "      " else ""
       val filtersTac = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
         case _ if isEnum                                  => "_Enum    "
         case "String"                                     => "_String  "
@@ -117,118 +122,82 @@ case class DbTable_Arities(
       else
         "         "
 
-      lazy val exprM = s"Expr${c}Man${_1}$filtersMan[$tpesM, $ent_1, $nextNextEntity]"
-      lazy val exprO = s"Expr${c}Opt${_1}$filtersOpt[$tpesO, $ent_1, $nextNextEntity]"
-      lazy val exprT = s"Expr${c}Tac${_0}$filtersTac[$tpesT, $ent_0, $nextEntity]"
+      lazy val exprM = s"Expr${c}Man$filtersMan[$tpesM, $entB, $entC]"
+      lazy val exprO = s"Expr${c}Opt$filtersOpt[$tpesO, $entB, $entC]"
+      lazy val exprT = s"Expr${c}Tac$filtersTac[$tpesT, $entA, $entB]"
 
-      if (!last) {
-        man += s"""lazy val $attr  $padA = new $ent_1[$tpesM]($elemsM) with $exprM with $card"""
-        if (attr != "id")
-          opt += s"""lazy val ${attr}_?$padA = new $ent_1[$tpesO]($elemsO) with $exprO with $card"""
-      }
-      tac += s"""lazy val ${attr}_ $padA = new $ent_0[$tpesT]($elemsT) with $exprT with $card"""
+      man += s"""def $attr  $padA = new $entB[$tpesM]($elemsM) with $exprM with $card"""
+      if (attr != "id")
+        opt += s"""def ${attr}_?$padA = new $entB[$tpesO]($elemsO) with $exprO with $card"""
+      tac += s"""def ${attr}_ $padA = new $entA[$tpesT]($elemsT) with $exprT with $card"""
   }
 
-  if (first) {
-    val pArg = if (hasMap) "  " else ""
-    if (hasOne) {
-      res += s"""override protected def _exprOneTac(op: Op, vs$pArg: Seq[t], binding: Boolean) = new $ent_0[t](addOne  (dataModel, op, vs, binding)) with CardOne"""
-    }
-    if (hasSet) {
-      res += s"""override protected def _exprSet   (op: Op, vs$pArg: Set[t]                  ) = new $ent_0[t](addSet  (dataModel, op, vs         )) with CardSet"""
-    }
-    if (hasSeq && seqCount > 0) {
-      res += s"""override protected def _exprSeq   (op: Op, vs$pArg: Seq[t]                  ) = new $ent_0[t](addSeq  (dataModel, op, vs         )) with CardSet"""
-    }
-    if (hasByteArray) {
-      res += s"""override protected def _exprBAr   (op: Op, ba$pArg: Array[t]                ) = new $ent_0[t](addBAr  (dataModel, op, ba         )) with CardSet"""
-    }
-    if (hasMap) {
-      res += s"""override protected def _exprMap   (op: Op, map : Map[String, t]          ) = new $ent_0[t](addMap  (dataModel, op, map        )) with CardMap"""
-      res += s"""override protected def _exprMapK  (op: Op, keys: Seq[String]             ) = new $ent_0[t](addMapKs(dataModel, op, keys       )) with CardMap"""
-      res += s"""override protected def _exprMapV  (op: Op, vs  : Seq[t]                  ) = new $ent_0[t](addMapVs(dataModel, op, vs         )) with CardMap"""
-    }
 
+  private val resolvers = if (first) {
+    val (p1, p2)  = if (hasMap) ("           ", "  ") else ("", "")
+    (if (hasOne) {
+      s"""
+         |  override protected def _exprOneTac(op: _op, vs: Seq[T], binding: Boolean) = new $entA[Tpl$p1, T](addOne$p2(dataModel, op, vs, binding)) with CardOne""".stripMargin
+    } else "") +
+      // Presuming that there's always cardinality-one attributes...
+      (if (hasSet) {
+        s"""
+           |  override protected def _exprSet   (op: _op, vs: Set[T]                  ) = new $entA[Tpl$p1, T](addSet$p2(dataModel, op, vs         )) with CardSet""".stripMargin
+      } else "") +
+      (if (hasSeq && seqCount > 0) { // could be Array[Byte] only
+        s"""
+           |  override protected def _exprSeq   (op: _op, vs: Seq[T]                  ) = new $entA[Tpl$p1, T](addSeq$p2(dataModel, op, vs         )) with CardSeq""".stripMargin
+      } else "") +
+      (if (hasByteArray) {
+        s"""
+           |  override protected def _exprBAr   (op: _op, ba: Array[T]                ) = new $entA[Tpl$p1, T](addBAr$p2(dataModel, op, ba         )) with CardSeq""".stripMargin
+      } else "") +
+      (if (hasMap) {
+        s"""
+           |  override protected def _exprMap   (op: _op, map : Map[String, T]        ) = new $entA[Tpl           , T](addMap  (dataModel, op, map        )) with CardMap
+           |  override protected def _exprMapK  (op: _op, keys: Seq[String]           ) = new $entA[T *: Tail[Tpl], T](addMapKs(dataModel, op, keys       )) with CardMap
+           |  override protected def _exprMapV  (op: _op, vs  : Seq[T]                ) = new $entA[Tpl           , T](addMapVs(dataModel, op, vs         )) with CardMap""".stripMargin
+      } else "")
   } else {
-    val tMap = if (hasMap) "   " else ""
-
-    val ttInt_ = s"${`A..U`}Int   , Int   "
-    val ttT___ = s"${`A..U`}t     , t     "
-    val ttDoub = s"${`A..U`}Double, Double"
-    val ttA___ = s"${`A..V`}     , t     "
-
-    val tInt_ = s"${`A..U`}Int   $tMap, Int   "
-    val tDoub = s"${`A..U`}Double$tMap, Double"
-    val tDist = s"${`A..U`}Set[$V]$tMap, t     "
-    val tSet_ = s"${`A..U`}Set[t]$tMap, t     "
-    val tT___ = s"${`A..U`}t     $tMap, t     "
-    val tA___ = s"${`A..V`}     $tMap, t     "
-    val uA___ = s"${`A..V`}     $tMap, t     "
-    val tO___ = s"${`A..U`}Option[t], t     "
-
-    def agg1 = s"override protected def _aggrInt   (kw: Kw                              ) = new $ent_0"
-    def agg2 = s"override protected def _aggrT     (kw: Kw                              ) = new $ent_0"
-    def agg3 = s"override protected def _aggrDouble(kw: Kw                              ) = new $ent_0"
-    def agg4 = s"override protected def _aggrSet   (kw: Kw, n: Option[Int]              ) = new $ent_0"
-    def agg5 = s"override protected def _aggrDist  (kw: Kw                              ) = new $ent_0"
-
-    def one1 = s"override protected def _exprOneMan(op: Op, vs: Seq[t], binding: Boolean) = new $ent_0"
-    def one2 = s"override protected def _exprOneOpt(op: Op, v : Option[t]               ) = new $ent_0"
-    def one3 = s"override protected def _exprOneTac(op: Op, vs: Seq[t], binding: Boolean) = new $ent_0"
-
-    def set1 = s"override protected def _exprSet   (op: Op, vs: Set[t]                  ) = new $ent_0"
-    def set2 = s"override protected def _exprSetOpt(op: Op, vs: Option[Set[t]]          ) = new $ent_0"
-
-    def seq1 = s"override protected def _exprSeq   (op: Op, vs: Seq[t]                  ) = new $ent_0"
-    def seq2 = s"override protected def _exprSeqOpt(op: Op, vs: Option[Seq[t]]          ) = new $ent_0"
-
-    def bar1 = s"override protected def _exprBAr   (op: Op, ba: Array[t]                ) = new $ent_0"
-    def bar2 = s"override protected def _exprBArOpt(op: Op, ba: Option[Array[t]]        ) = new $ent_0"
-
-    def map1 = s"override protected def _exprMap   (op: Op, map : Map[String, t]        ) = new $ent_0"
-    def map2 = s"override protected def _exprMapK  (op: Op, keys: Seq[String]           ) = new $ent_0"
-    def map3 = s"override protected def _exprMapV  (op: Op, vs  : Seq[t]                ) = new $ent_0"
-    def map4 = s"override protected def _exprMapOpt(op: Op, map : Option[Map[String, t]]) = new $ent_0"
-    def map5 = s"override protected def _exprMapOpK(op: Op, key : String                ) = new $ent_0"
-
-    def sort = s"override protected def _sort      (sort: String                        ) = new $ent_0"
-
-
-    if (hasOne || hasSet) {
-      res += s"$agg1[$tInt_](toInt    (dataModel, kw             )) with SortAttrs_$arity[$ttInt_, $ent_0]"
-      res += s"$agg2[$tT___](asIs     (dataModel, kw             )) with SortAttrs_$arity[$ttT___, $ent_0]"
-      res += s"$agg3[$tDoub](toDouble (dataModel, kw             )) with SortAttrs_$arity[$ttDoub, $ent_0]"
-      res += s"$agg4[$tSet_](asIs     (dataModel, kw, n          ))"
-      res += s"$agg5[$tDist](asIs     (dataModel, kw             ))"
-    }
-    if (hasOne) {
-      res += s"$one1[$tA___](addOne   (dataModel, op, vs, binding)) with SortAttrs_$arity[$ttA___, $ent_0] with CardOne"
-      res += s"$one2[$tA___](addOneOpt(dataModel, op, v          )) with SortAttrs_$arity[$ttA___, $ent_0]"
-      res += s"$one3[$tA___](addOne   (dataModel, op, vs, binding)) with CardOne"
-    }
-    if (hasSet) {
-      res += s"$set1[$tA___](addSet   (dataModel, op, vs         )) with CardSet"
-      res += s"$set2[$tA___](addSetOpt(dataModel, op, vs         ))"
-    }
-    if (hasSeq && seqCount > 0) {
-      res += s"$seq1[$uA___](addSeq   (dataModel, op, vs         )) with CardSeq"
-      res += s"$seq2[$uA___](addSeqOpt(dataModel, op, vs         ))"
-    }
-    if (hasByteArray) {
-      res += s"$bar1[$uA___](addBAr   (dataModel, op, ba         )) with CardSeq"
-      res += s"$bar2[$uA___](addBArOpt(dataModel, op, ba         ))"
-    }
-    if (hasMap) {
-      res += s"""$map1[$tA___](addMap   (dataModel, op, map        )) with CardMap"""
-      res += s"""$map2[$tT___](addMapKs (dataModel, op, keys       )) with CardMap"""
-      res += s"""$map3[$tA___](addMapVs (dataModel, op, vs         )) with CardMap"""
-      res += s"""$map4[$tA___](addMapOpt(dataModel, op, map        )) with CardMap"""
-      res += s"""$map5[$tO___](addMapKs (dataModel, op, Seq(key)   )) with CardMap"""
-    }
-    if (hasOne) {
-      res += s"$sort[$tA___](addSort  (dataModel, sort           ))"
-    }
+    val p1 = if (hasMap) "   " else ""
+    (if (hasOne) {
+      s"""
+         |  override protected def _sort      (sort: String                         ) = new $entA[Tpl                $p1, T     ](addSort  (dataModel, sort           ))
+         |  override protected def _aggrInt   (kw: _kw                              ) = new $entA[Int *: Tail[Tpl]   $p1, Int   ](toInt    (dataModel, kw             )) with SortAttrs[Int *: Tail[Tpl]   , Int   , $entA]
+         |  override protected def _aggrT     (kw: _kw                              ) = new $entA[Tpl                $p1, T     ](asIs     (dataModel, kw             )) with SortAttrs[Tpl                , T     , $entA]
+         |  override protected def _aggrDouble(kw: _kw                              ) = new $entA[Double *: Tail[Tpl]$p1, Double](toDouble (dataModel, kw             )) with SortAttrs[Double *: Tail[Tpl], Double, $entA]
+         |  override protected def _aggrSet   (kw: _kw, n: Option[Int]              ) = new $entA[Set[T] *: Tail[Tpl]$p1, T     ](asIs     (dataModel, kw, n          ))
+         |  override protected def _aggrDist  (kw: _kw                              ) = new $entA[Set[T] *: Tail[Tpl]$p1, T     ](asIs     (dataModel, kw             ))
+         |  override protected def _exprOneMan(op: _op, vs: Seq[T], binding: Boolean) = new $entA[Tpl                $p1, T     ](addOne   (dataModel, op, vs, binding)) with SortAttrs[Tpl, T, $entA] with CardOne
+         |  override protected def _exprOneOpt(op: _op, v : Option[T]               ) = new $entA[Tpl                $p1, T     ](addOneOpt(dataModel, op, v          )) with SortAttrs[Tpl, T, $entA]
+         |  override protected def _exprOneTac(op: _op, vs: Seq[T], binding: Boolean) = new $entA[Tpl                $p1, T     ](addOne   (dataModel, op, vs, binding)) with CardOne""".stripMargin
+    } else "") +
+      // Presuming that there's always cardinality-one attributes...
+      (if (hasSet) {
+        s"""
+           |  override protected def _exprSet   (op: _op, vs: Set[T]                  ) = new $entA[Tpl                $p1, T     ](addSet   (dataModel, op, vs         )) with CardSet
+           |  override protected def _exprSetOpt(op: _op, vs: Option[Set[T]]          ) = new $entA[Tpl                $p1, T     ](addSetOpt(dataModel, op, vs         ))""".stripMargin
+      } else "") +
+      (if (hasSeq && seqCount > 0) { // could be Array[Byte] only
+        s"""
+           |  override protected def _exprSeq   (op: _op, vs: Seq[T]                  ) = new $entA[Tpl                $p1, T     ](addSeq   (dataModel, op, vs         )) with CardSeq
+           |  override protected def _exprSeqOpt(op: _op, vs: Option[Seq[T]]          ) = new $entA[Tpl                $p1, T     ](addSeqOpt(dataModel, op, vs         ))""".stripMargin
+      } else "") +
+      (if (hasByteArray) {
+        s"""
+           |  override protected def _exprBAr   (op: _op, ba: Array[T]                ) = new $entA[Tpl                $p1, T     ](addBAr   (dataModel, op, ba         )) with CardSeq
+           |  override protected def _exprBArOpt(op: _op, ba: Option[Array[T]]        ) = new $entA[Tpl                $p1, T     ](addBArOpt(dataModel, op, ba         ))""".stripMargin
+      } else "") +
+      (if (hasMap) {
+        s"""
+           |  override protected def _exprMap   (op: _op, map : Map[String, T]        ) = new $entA[Tpl                   , T     ](addMap   (dataModel, op, map        )) with CardMap
+           |  override protected def _exprMapK  (op: _op, keys: Seq[String]           ) = new $entA[T *: Tail[Tpl]        , T     ](addMapKs (dataModel, op, keys       )) with CardMap
+           |  override protected def _exprMapV  (op: _op, vs  : Seq[T]                ) = new $entA[Tpl                   , T     ](addMapVs (dataModel, op, vs         )) with CardMap
+           |  override protected def _exprMapOpt(op: _op, map : Option[Map[String, T]]) = new $entA[Tpl                   , T     ](addMapOpt(dataModel, op, map        )) with CardMap
+           |  override protected def _exprMapOpK(op: _op, key : String                ) = new $entA[Option[T] *: Tail[Tpl], T     ](addMapKs (dataModel, op, Seq(key)   )) with CardMap""".stripMargin
+      } else "")
   }
+
 
   private val hasRefOne  = refs.exists(_.cardinality == CardOne)
   private val hasRefMany = refs.exists(_.cardinality == CardSet)
@@ -237,6 +206,7 @@ case class DbTable_Arities(
       val refName        = camel(attr)
       val pRefAttr       = padRefAttr(attr)
       val pRef           = padRefEntity(ref0)
+      val ref_X          = ref0 + cur
       val nsIndex        = entityList.indexOf(entity)
       val refAttrIndex   = attrList.indexOf(entity + "." + attr)
       val refEntityIndex = entityList.indexOf(ref0)
@@ -244,75 +214,106 @@ case class DbTable_Arities(
       val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord          = s"List($nsIndex, $refAttrIndex, $refEntityIndex)"
       val refObj         = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
-      if (arity == maxArity) {
-        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj))"""
-      } else if (card == CardOne) {
-        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj)) with OptRefInit"""
+      val tpl            = if (first) "EmptyTuple" else "Tpl"
+      if (card == CardOne) {
+        ref += s"""object $refName$pRefAttr extends $ref_X$pRef[$tpl, Nothing](dataModel.add($refObj)) with OptRefInit"""
       } else {
-        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj)) with NestedInit"""
+        ref += s"""object $refName$pRefAttr extends $ref_X$pRef[$tpl, Nothing](dataModel.add($refObj)) with NestedInit"""
       }
   }
 
-  private val manAttrs = if (last) "" else man.result().mkString("", "\n  ", "\n\n  ")
-  private val optAttrs = if (last) "" else opt.result().mkString("", "\n  ", "\n\n  ")
+  private val manAttrs = man.result().mkString("", "\n  ", "\n\n  ")
+  private val optAttrs = opt.result().mkString("", "\n  ", "\n\n  ")
   private val tacAttrs = tac.result().mkString("\n  ")
 
-  private val dataModel = "override val dataModel: DataModel"
+  private val dataModel = "override val dataModel: _dm.DataModel"
 
-  private val lastEntity = if (last) s"X${arity + 2}" else ent_1
-  private val modelOps   = s"ModelOps_$arity[${`A..V, `}t, $ent_0, $lastEntity]"
-
-  private val resolvers = res.result().mkString("\n  ")
-
-
-  private val filterAttrs = {
-    if (first) {
+  private val expressionOps = if (first) {
+    (if (hasOne)
       s"""
-         |
-         |  override protected def _attrTac[   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2]) = new $ent_0[   t](filterAttr(dataModel, op, a))
-         |  override protected def _attrMan[X, ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[X, t, ns1, ns2]) = new $ent_1[X, t](filterAttr(dataModel, op, a))""".stripMargin
-    } else if (last) {
+         |    with ExprOneTacOps[Tpl, T, $entA, $entB]""".stripMargin else "") +
+      (if (hasSet)
+        s"""
+           |    with ExprSetTacOps[Tpl, T, $entA, $entB]""".stripMargin else "") +
+      (if (hasSeq)
+        s"""
+           |    with ExprSeqTacOps[Tpl, T, $entA, $entB]
+           |    with ExprBArTacOps[Tpl, T, $entA, $entB]""".stripMargin else "") +
+      (if (hasMap)
+        s"""
+           |    with ExprMapTacOps[Tpl, T, $entA, $entB]""".stripMargin else "")
+  } else {
+    (if (hasOne)
       s"""
-         |
-         |  override protected def _attrSortTac[ns1[_], ns2[_, _]](op: Op, a: ModelOps_0[t, ns1, ns2] & CardOne) = new $ent_0[${`A..V`}, t](filterAttr(dataModel, op, a)) with SortAttrs${_0}[${`A..V`}, t, $ent_0]
-         |  override protected def _attrTac    [ns1[_], ns2[_, _]](op: Op, a: ModelOps_0[t, ns1, ns2]          ) = new $ent_0[${`A..V`}, t](filterAttr(dataModel, op, a))""".stripMargin
-    } else {
-      s"""
-         |
-         |  override protected def _attrSortTac[   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2] & CardOne) = new $ent_0[${`A..V`},    t](filterAttr(dataModel, op, a)) with SortAttrs${_0}[${`A..V`},    t, $ent_0]
-         |  override protected def _attrSortMan[   ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[$V, t, ns1, ns2]          ) = new $ent_1[${`A..V`}, $V, t](filterAttr(dataModel, op, a)) with SortAttrs${_1}[${`A..V`}, $V, t, $ent_1]
-         |  override protected def _attrTac    [   ns1[_]   , ns2[_, _]   ](op: Op, a: ModelOps_0[   t, ns1, ns2]          ) = new $ent_0[${`A..V`},    t](filterAttr(dataModel, op, a))
-         |  override protected def _attrMan    [X, ns1[_, _], ns2[_, _, _]](op: Op, a: ModelOps_1[X, t, ns1, ns2]          ) = new $ent_1[${`A..V`}, X, t](filterAttr(dataModel, op, a))""".stripMargin
-    }
+         |    with SortAttrsOps[Tpl, T, $entA]
+         |    with AggregatesOps[Tpl, T, $entA]
+         |    with ExprOneManOps[Tpl, T, $entA, $entB]
+         |    with ExprOneOptOps[Tpl, T, $entA, $entB]
+         |    with ExprOneTacOps[Tpl, T, $entA, $entB]""".stripMargin else "") +
+      (if (hasSet)
+        s"""
+           |    with ExprSetOptOps[Tpl, T, $entA, $entB]
+           |    with ExprSetTacOps[Tpl, T, $entA, $entB]""".stripMargin else "") +
+      (if (hasSeq)
+        s"""
+           |    with ExprSeqOptOps[Tpl, T, $entA, $entB]
+           |    with ExprSeqTacOps[Tpl, T, $entA, $entB]
+           |    with ExprBArTacOps[Tpl, T, $entA, $entB]
+           |    with ExprBArOptOps[Tpl, T, $entA, $entB]""".stripMargin else "") +
+      (if (hasMap)
+        s"""
+           |    with ExprMapOptOps[Tpl, T, $entA, $entB]
+           |    with ExprMapTacOps[Tpl, T, $entA, $entB]""".stripMargin else "")
   }
 
-  private val optRefInit = if (hasRefOne && arity < maxArity) {
-    val ns_refs = ent_1 + "_refs"
-    s"""trait OptRefInit extends OptRefOp_$arity[${`A..V, `}$ns_refs] with OptRef_$arity[${`A..V, `}$ns_refs] { self: Molecule =>
-       |    override protected def _optRef[RefTpl](optRefDataModel: DataModel): $ns_refs[${`A..V, `}Option[RefTpl], Any] =
-       |      new $ns_refs[${`A..V, `}Option[RefTpl], Any](DataModel(
-       |        self.dataModel.elements.init :+ OptRef(self.dataModel.elements.last.asInstanceOf[Ref], optRefDataModel.elements),
-       |        self.dataModel.attrIndexes ++ optRefDataModel.attrIndexes,
-       |        binds = self.dataModel.binds + optRefDataModel.binds
-       |      ))
+  private val filterAttrs = if (first)
+    s"""
+       |
+       |  override protected def _filterAttrTacTac(op: _op, a: Molecule_0 & CardOne)(using NotTuple[T])                      = new $entA[Tpl     , T](filterAttr(dataModel, op, a))
+       |  override protected def _filterAttrTacMan[ns[_ <: Tuple, _]](op: _op, a: Molecule & SortAttrsOps[Tuple1[T], T, ns]) = new $entB[T *: Tpl, T](filterAttr(dataModel, op, a))""".stripMargin
+  else
+    s"""
+       |
+       |  override protected def _filterAttrTacTac(op: _op, a: Molecule_0 & CardOne)(using NotTuple[T])                      = new $entA[Tpl     , T](filterAttr(dataModel, op, a))
+       |  override protected def _filterAttrManTac(op: _op, a: Molecule_0 & CardOne)(using NotTuple[T])                      = new $entA[Tpl     , T](filterAttr(dataModel, op, a)) with SortAttrs[Tpl     , T, $entA]
+       |  override protected def _filterAttrTacMan[ns[_ <: Tuple, _]](op: _op, a: Molecule & SortAttrsOps[Tuple1[T], T, ns]) = new $entB[T *: Tpl, T](filterAttr(dataModel, op, a))
+       |  override protected def _filterAttrManMan[ns[_ <: Tuple, _]](op: _op, a: Molecule & SortAttrsOps[Tuple1[T], T, ns]) = new $entB[T *: Tpl, T](filterAttr(dataModel, op, a)) with SortAttrs[T *: Tpl, T, $entB]""".stripMargin
+
+  private val optRefInit = if (hasRefOne) {
+    val (t1, t2) = if (first)
+      (
+        "Tuple1[RefT           ]",
+        "Tuple1[Reverse[RefTpl]]"
+      )
+    else
+      (
+        "Option[RefT           ] *: Tpl",
+        "Option[Reverse[RefTpl]] *: Tpl"
+      )
+
+    s"""trait OptRefInit { self: Molecule =>
+       |    def ?[RefT](optRef: Molecule_1[RefT])(using NotTuple[RefT]) = new $entB[$t1, Nothing](addOptRef(self, optRef))
+       |    def ?[RefTpl <: Tuple](optRef: Molecule_n[Reverse[RefTpl]]) = new $entB[$t2, Nothing](addOptRef(self, optRef))
        |  }""".stripMargin
   } else ""
 
-  private val nestedInit = if (hasRefMany && arity < maxArity) {
-    s"""trait NestedInit extends NestedOp_$arity${`[A..V]`} with Nested_$arity${`[A..V]`} { self: Molecule =>
-       |    override protected def _nestedMan[NestedTpl](nestedDataModel: DataModel): NestedInit_$n0[${`A..V, `}NestedTpl] =
-       |      new NestedInit_$n0(DataModel(
-       |        self.dataModel.elements.init :+ Nested(self.dataModel.elements.last.asInstanceOf[Ref], nestedDataModel.elements),
-       |        self.dataModel.attrIndexes ++ nestedDataModel.attrIndexes,
-       |        binds = self.dataModel.binds + nestedDataModel.binds
-       |      ))
+  private val nestedInit = if (hasRefMany) {
+    val (t1, t2) = if (first)
+      (
+        "Tuple1[Seq[NestedT           ]]",
+        "Tuple1[Seq[Reverse[NestedTpl]]]"
+      )
+    else
+      (
+        "Seq[NestedT           ] *: Tpl",
+        "Seq[Reverse[NestedTpl]] *: Tpl"
+      )
+    s"""trait NestedInit { self: Molecule =>
+       |    def * [NestedT](nested: Molecule_1[NestedT])(using NotTuple[NestedT]) = new $entB[$t1, Nothing](addNested(self, nested))
+       |    def *?[NestedT](nested: Molecule_1[NestedT])(using NotTuple[NestedT]) = new $entB[$t1, Nothing](addOptNested(self, nested))
        |
-       |    override protected def _nestedOpt[NestedTpl](nestedDataModel: DataModel): NestedInit_$n0[${`A..V, `}NestedTpl] =
-       |      new NestedInit_$n0(DataModel(
-       |        self.dataModel.elements.init :+ OptNested(self.dataModel.elements.last.asInstanceOf[Ref], nestedDataModel.elements),
-       |        self.dataModel.attrIndexes ++ nestedDataModel.attrIndexes,
-       |        binds = self.dataModel.binds + nestedDataModel.binds
-       |      ))
+       |    def * [NestedTpl <: Tuple](nested: Molecule_n[Reverse[NestedTpl]])    = new $entB[$t2, Nothing](addNested(self, nested))
+       |    def *?[NestedTpl <: Tuple](nested: Molecule_n[Reverse[NestedTpl]])    = new $entB[$t2, Nothing](addOptNested(self, nested))
        |  }""".stripMargin
   } else ""
 
@@ -327,27 +328,42 @@ case class DbTable_Arities(
         val prevEntityIndex = entityList.indexOf(backRef)
         val curEntityIndex  = entityList.indexOf(entity)
         val coord           = s"List($prevEntityIndex, $curEntityIndex)"
-        Some(s"""object _$backRef$pad extends $backRef${_0}$pad[${`A..V, `}t](dataModel.add(_dm.BackRef("$backRef", "$entity", $coord)))""")
+        val backRef_X       = backRef + cur
+        val tpl             = if (first) "EmptyTuple" else "Tpl"
+        Some(s"""object _$backRef$pad extends $backRef_X$pad[$tpl, Nothing](dataModel.add(_dm.BackRef("$backRef", "$entity", $coord)))""")
       }
     }.mkString("\n\n  ", "\n  ", "")
   }
 
-  private val (refClass, refClassBody) = if (refResult.isEmpty && backRefs.isEmpty) ("", "") else {
+  private val (refClass, refClassBody) = if (refResult.isEmpty && backRefs.isEmpty) {
+    ("", "")
+  } else {
+    val (t1, t2)   = if (first) ("T", "") else ("Tpl", "[Tpl <: Tuple]")
     val refHandles = List(optRefInit, nestedInit, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
     (
-      s"${ent_0}_refs[${`A..V, `}t](dataModel) with ",
+      s"$entity_refs_cur(dataModel) with ",
       s"""
          |
-         |class ${ent_0}_refs[${`A..V, `}t]($dataModel) extends Molecule_$n0${`[A..V]`} {
+         |class $entity_refs_cur$t2(dataModel: _dm.DataModel) extends ModelTransformations_ {
          |  $refHandles
          |}""".stripMargin
     )
   }
 
+  private val molecule = arity match {
+    case 0 => "Molecule_0"
+    case 1 => "Molecule_1[Head[Tpl]]"
+    case _ => "Molecule_n[Tpl]"
+  }
+
   def get: String =
-    s"""class $ent_0[${`A..V, `}t]($dataModel) extends $refClass${entity}_base with $modelOps {
-       |  $manAttrs$optAttrs$tacAttrs
+    s"""class $entA[Tpl <: Tuple, T]($dataModel)
+       |  extends $refClass${entity}_base
+       |    with $molecule
+       |    with ModelTransformations_
+       |    with FilterAttr[Tpl, T, $entA, $entB]$expressionOps {
        |
+       |  $manAttrs$optAttrs$tacAttrs
        |  $resolvers$filterAttrs
        |}$refClassBody
        |""".stripMargin
