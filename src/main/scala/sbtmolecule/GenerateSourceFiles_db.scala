@@ -3,17 +3,18 @@ package sbtmolecule
 import java.io.File
 import molecule.base.metaModel.*
 import sbt.*
-import sbtmolecule.db.dsl.DbTable
+import sbtmolecule.db.dsl.DbEntity
+import sbtmolecule.db.dsl.ops.*
 import sbtmolecule.db.schema.*
 
 
 case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
 
-  def getCode(metaEntity: MetaEntity): String = {
-    DbTable(metaDomain, metaEntity, 0, 0).get
-  }
+  def getEntityCode(metaEntity: MetaEntity): String = DbEntity(metaDomain, metaEntity).get
+  def getEntityBuilderCode(metaEntity: MetaEntity): String = Entity_Builders(metaDomain, metaEntity, 0, 0).get
 
-  def printCode(metaEntity: MetaEntity): Unit = println(getCode(metaEntity))
+  def printEntity(metaEntity: MetaEntity): Unit = println(getEntityCode(metaEntity))
+  def printEntityBuilder(metaEntity: MetaEntity): Unit = println(getEntityBuilderCode(metaEntity))
 
   def generate(srcManaged: File): Unit = {
     var entityIndex = 0
@@ -23,7 +24,6 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     val segments    = metaDomain.segments
     val base        = pkg.split('.').toList.foldLeft(srcManaged)((dir, pkg) => dir / pkg)
     val domainDir   = base / "dsl" / domain
-
 
     val segmentsWithoutEnums = segments.filter {
       case MetaSegment("_enums", entities) =>
@@ -48,11 +48,28 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
       metaSegment <- segmentsWithoutEnums
       metaEntity <- metaSegment.entities
     } yield {
-      val entityCode = DbTable(metaDomain, metaEntity, entityIndex, attrIndex).get
+      val ent             = metaEntity.entity
+      val ent_            = ent + "_"
+      val entity          = DbEntity(metaDomain, metaEntity).get
+      val entity_Attrs    = Entity_Attrs(metaDomain, metaEntity, entityIndex, attrIndex).get
+      val entity_Builders = Entity_Builders(metaDomain, metaEntity, entityIndex, attrIndex).get
+      val entity_Exprs    = Entity_Exprs(metaDomain, metaEntity, entityIndex, attrIndex).get
+      val entity_Sort     = Entity_Sort(metaDomain, metaEntity, entityIndex, attrIndex).get
+
       // Increment of entityIndex has to come after calling DbTable.get
       entityIndex += 1
       attrIndex += metaEntity.attributes.length
-      IO.write(domainDir / s"${metaEntity.entity}.scala", entityCode)
+      IO.write(domainDir / s"$ent.scala", entity)
+
+//      IO.write(domainDir / ent_ / s"${ent}_Attrs.scala", entity_Attrs)
+//      IO.write(domainDir / ent_ / s"${ent}_Builders.scala", entity_Builders)
+//      IO.write(domainDir / ent_ / s"${ent}_Exprs.scala", entity_Exprs)
+//      IO.write(domainDir / ent_ / s"${ent}_Sort.scala", entity_Sort)
+
+      IO.write(domainDir / "ops" / s"${ent}_Attrs.scala", entity_Attrs)
+      IO.write(domainDir / "ops" / s"${ent}_Builders.scala", entity_Builders)
+      IO.write(domainDir / "ops" / s"${ent}_Exprs.scala", entity_Exprs)
+      IO.write(domainDir / "ops" / s"${ent}_Sort.scala", entity_Sort)
     }
 
     val schema = base / "schema"

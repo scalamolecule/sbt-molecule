@@ -10,7 +10,8 @@ object RenderDomain extends TestSuite {
   //  lazy val cardinalities = ParseAndGenerate(basePath + "Cardinalities.scala").generate.get
   //  lazy val starwars      = ParseAndGenerate(basePath + "Starwars.scala").generate.get
   lazy val types      = ParseAndGenerate(basePath + "Types.scala").metaDomain
-  //  lazy val refs          = ParseAndGenerate(basePath + "Refs.scala").generate.get
+  lazy val refs       = ParseAndGenerate(basePath + "Refs.scala").metaDomain
+  //  lazy val refs       = ParseDomainStructure(basePath + "Types.scala", "sbtmolecule.db", "Refs", 3, body).getMetaDomain
   //  lazy val unique        = ParseAndGenerate(basePath + "Uniques.scala").generate.get
   lazy val validation = ParseAndGenerate(basePath + "Validation.scala").metaDomain
   //  lazy val scopes        = ParseAndGenerate(basePath + "Scopes.scala").generate.get
@@ -20,7 +21,17 @@ object RenderDomain extends TestSuite {
   override def tests: Tests = Tests {
 
     "DSL" - {
-      types.printCode(types.metaDomain.segments.head.entities(0)) ==> "check" // Types
+
+
+//      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
+      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
+
+      //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
+
+      //      refs.printEntity(refs.metaDomain.segments.head.entities(6)) // G
+
+
+      //      types.printCode(types.metaDomain.segments.head.entities(0))
 
       //      validation.printCode(validation.metaDomain.segments.head.entities(0)) ==> "check" // Types
       //            Dsl(types, "", types.segments.head.ents(1)).get ==> "check" // Refs

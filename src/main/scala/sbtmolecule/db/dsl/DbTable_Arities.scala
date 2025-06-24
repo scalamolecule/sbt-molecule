@@ -292,8 +292,11 @@ case class DbTable_Arities(
       )
 
     s"""trait OptRefInit { self: Molecule =>
-       |    def ?[RefT](optRef: Molecule_1[RefT])(using NotTuple[RefT]) = new $entB[$t1, Nothing](addOptRef(self, optRef))
-       |    def ?[RefTpl <: Tuple](optRef: Molecule_n[Reverse[RefTpl]]) = new $entB[$t2, Nothing](addOptRef(self, optRef))
+       |
+       |    def ?[T_or_Tpl](optRef: MoleculeBase[T_or_Tpl]) = new $entB[Option[T_or_Tpl] *: Tpl, Nothing](addOptRef(self, optRef))
+       |
+       | //   def ?[RefT](optRef: Molecule_1[RefT])(using NotTuple[RefT]) = new $entB[$t1, Nothing](addOptRef(self, optRef))
+       | //   def ?[RefTpl <: Tuple](optRef: Molecule_n[Reverse[RefTpl]]) = new $entB[$t2, Nothing](addOptRef(self, optRef))
        |  }""".stripMargin
   } else ""
 

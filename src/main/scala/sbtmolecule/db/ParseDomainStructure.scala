@@ -533,13 +533,13 @@ case class ParseDomainStructure(
 
       case q"$prev.email" =>
         oneValidationCall(entity, a)
-        val test  = "(s: String) => _dm.emailRegex.findFirstMatchIn(s).isDefined"
+        val test  = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
         val error = s"""`$$v` is not a valid email"""
         acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.email(${Lit.String(error)})" =>
         oneValidationCall(entity, a)
-        val test = "(s: String) => _dm.emailRegex.findFirstMatchIn(s).isDefined"
+        val test = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
         acc(pp, entity, prev, a.copy(validations = List(test -> error)))
 
       case q"$prev.regex(${Lit.String(regex)})" =>

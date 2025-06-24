@@ -22,7 +22,7 @@ case class GraphqlOutput(
 
   var attrIndex = attrIndexPrev
 
-  private val imports: String = {
+  override val imports: String = {
     val baseImports = Seq(
       "molecule.core.dataModel.*",
       "molecule.graphql.client.api.*",

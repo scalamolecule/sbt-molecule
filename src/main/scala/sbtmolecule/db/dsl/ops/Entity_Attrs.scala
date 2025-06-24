@@ -1,11 +1,10 @@
-package sbtmolecule.db.dsl
+package sbtmolecule.db.dsl.ops
 
 import molecule.base.metaModel.*
 import sbtmolecule.Formatting
-import sbtmolecule.db.dsl.ops.Validations
 
 
-case class DbTable(
+case class Entity_Attrs(
   metaDomain: MetaDomain,
   metaEntity: MetaEntity,
   nsIndex: Int = 0,
@@ -32,8 +31,6 @@ case class DbTable(
 //      "molecule.db.core.api.*",
 //      "molecule.db.core.api.expression.*",
 //      "molecule.db.core.ops.ModelTransformations_",
-////      "scala.Tuple.Head"
-////      "scala.Tuple.{Head, Tail}"
 //    )
 //    val typeImports = attributes.collect {
 //      case MetaAttribute(_, _, "Duration", _, _, _, _, _, _, _, _, _)       => "java.time.*"
@@ -53,7 +50,7 @@ case class DbTable(
 
   private val validationExtractor = Validations(metaDomain, metaEntity)
 
-  private val baseEntity: String = {
+  def get: String = {
     val man = List.newBuilder[String]
     val opt = List.newBuilder[String]
     val tac = List.newBuilder[String]
@@ -101,9 +98,9 @@ case class DbTable(
           s""", coord = List($nsIndex, $attrIndex$padAI, $refIndex$padRNI)"""
         }
         val ref1    = refOpt.fold("")(ref => s""", ref = Some("$ref")""")
-        val attrMan = "_dm.Attr" + card._marker + "Man" + tpe
-        val attrOpt = "_dm.Attr" + card._marker + "Opt" + tpe
-        val attrTac = "_dm.Attr" + card._marker + "Tac" + tpe
+        val attrMan = "Attr" + card._marker + "Man" + tpe
+        val attrOpt = "Attr" + card._marker + "Opt" + tpe
+        val attrTac = "Attr" + card._marker + "Tac" + tpe
         attrIndex += 1
 
         man += s"""protected def ${attr}_man$padA = $attrMan$padT0("$entity", "$attr"$padA$coord$ref1$valids)"""
@@ -116,43 +113,20 @@ case class DbTable(
     val vas2     = if (vas1.isEmpty) Nil else "" +: vas1
     val attrDefs = (man.result() ++ Seq("") ++ opt.result() ++ Seq("") ++ tac.result() ++ vas2).mkString("\n  ")
 
-    s"""trait ${entity}_base {
-       |  $attrDefs
-       |}""".stripMargin
-  }
-
-  private val entities: String = List(0, 1, 2)
-    .map(DbTable_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
-
-  private val entityIndex = entityList.indexOf(entity)
-  private val idCoord     = s"List($entityIndex, ${attrList.indexOf(entity + ".id")})"
-
-  private val rightRef = if (refs.isEmpty) "" else
-    s"""
-       |
-       |  def ?[T_or_Tpl](optRef: MoleculeBase[T_or_Tpl]) = new ${entity}_1[Option[T_or_Tpl] *: Tpl, Nothing](addOptRef(self, optRef))
-       |  final def ?[OptEntityT](optEntity: Molecule_1[OptEntityT])(using NotTuple[OptEntityT]) = new $entity_refs_next[Tuple1[Option[OptEntityT           ]]](_dm.DataModel(List(_dm.OptEntity(attrsOnly(optEntity.dataModel)))))
-       |  final def ?[OptEntityTpl <: Tuple](optEntity: Molecule_n[Reverse[OptEntityTpl]])       = new $entity_refs_next[Tuple1[Option[Reverse[OptEntityTpl]]]](_dm.DataModel(List(_dm.OptEntity(attrsOnly(optEntity.dataModel)))))""".stripMargin
+//    s"""trait ${entity}_attrs {
+//       |  $attrDefs
+//       |}""".stripMargin
 
 
-  def get: String = {
     s"""// AUTO-GENERATED Molecule DSL boilerplate code for entity `$entity`
        |package $pkg.$domain
+       |package ops // to access enums and let them be public to the user
+       |//package ${entity}_ // to access enums and let them be public to the user
        |
-       |import molecule.core.dataModel.{AttrOneTacID as _AttrOneTacID, DataModel as _DataModel, Eq as _Eq}
+       |$imports
        |
-       |
-       |object $entity extends ${entity}_0[EmptyTuple, Nothing](_dm.DataModel(Nil, firstEntityIndex = $entityIndex)) {
-       |  final def apply(id : Long, ids: Long*) = new ${entity}_0[EmptyTuple, Long](_dm.DataModel(List(_dm.AttrOneTacID("$entity", "id", _dm.Eq, id +: ids, $idCoord)), firstEntityIndex = $entityIndex))
-       |  final def apply(ids: Iterable[Long])   = new ${entity}_0[EmptyTuple, Long](_dm.DataModel(List(_dm.AttrOneTacID("$entity", "id", _dm.Eq, ids.toSeq, $idCoord)), firstEntityIndex = $entityIndex))$rightRef
-       |}
-       |object $entity extends ops.${entity}_0[EmptyTuple, Nothing](_DataModel(Nil, firstEntityIndex = 0)) {
-       |  final def apply(id: Long, ids: Long*) = new ops.${entity}_0[EmptyTuple, Long](
-       |    _DataModel(List(_AttrOneTacID("$entity", "id", _Eq, id +: ids, coord = $idCoord)), firstEntityIndex = $entityIndex)
-       |  )
-       |  final def apply(ids: Iterable[Long]) = new ops.${entity}_0[EmptyTuple, Long](
-       |    _DataModel(List(_AttrOneTacID("$entity", "id", _Eq, ids.toSeq, coord = $idCoord)), firstEntityIndex = $entityIndex)
-       |  )$rightRef
+       |trait ${entity}_attrs {
+       |  $attrDefs
        |}
        |""".stripMargin
   }

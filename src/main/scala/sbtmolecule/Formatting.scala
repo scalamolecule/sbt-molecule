@@ -14,6 +14,7 @@ class Formatting(
   val maxArity = metaDomain.maxArity
   val entity   = metaEntity.entity
   val first    = arity == 0
+  val last     = arity == 2
 
   val (cur, next, next2) = arity match {
     case 0 => ("_0", "_1", "_n")
@@ -21,11 +22,11 @@ class Formatting(
     case _ => ("_n", "_n", "_n")
   }
 
-  val entA  = entity + cur
+  val entA = entity + cur
   val entB = entity + next
   val entC = entity + next2
 
-  val entity_refs_cur = entity + "_refs" + cur
+  val entity_refs_cur  = entity + "_refs" + cur
   val entity_refs_next = entity + "_refs" + next
 
 
@@ -51,6 +52,34 @@ class Formatting(
   lazy val padType1     = (s: String) => padS(maxBaseTpe1, s)
   lazy val padRefAttr   = (s: String) => padS(maxRefAttr, s)
   lazy val padRefEntity = (s: String) => padS(maxRefEntity, s)
+
+
+  val imports: String = {
+    val baseImports = Seq(
+      "molecule.base.error.ExecutionError",
+      "molecule.base.metaModel.*",
+      "molecule.core.dataModel as _m",
+      "molecule.core.dataModel.*",
+      "molecule.core.dataModel.Keywords.*",
+      "molecule.db.core.api.*",
+      "molecule.db.core.api.expression.*",
+      "molecule.db.core.ops.ModelTransformations_",
+    )
+    val typeImports = attributes.collect {
+      case MetaAttribute(_, _, "Duration", _, _, _, _, _, _, _, _, _)       => "java.time.*"
+      case MetaAttribute(_, _, "Instant", _, _, _, _, _, _, _, _, _)        => "java.time.*"
+      case MetaAttribute(_, _, "LocalDate", _, _, _, _, _, _, _, _, _)      => "java.time.*"
+      case MetaAttribute(_, _, "LocalTime", _, _, _, _, _, _, _, _, _)      => "java.time.*"
+      case MetaAttribute(_, _, "LocalDateTime", _, _, _, _, _, _, _, _, _)  => "java.time.*"
+      case MetaAttribute(_, _, "OffsetTime", _, _, _, _, _, _, _, _, _)     => "java.time.*"
+      case MetaAttribute(_, _, "OffsetDateTime", _, _, _, _, _, _, _, _, _) => "java.time.*"
+      case MetaAttribute(_, _, "ZonedDateTime", _, _, _, _, _, _, _, _, _)  => "java.time.*"
+      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _)           => "java.util.Date"
+      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _)           => "java.util.UUID"
+      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _)            => "java.net.URI"
+    }.distinct
+    (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
+  }
 
   //  lazy val V        = ('A' + arity - 1).toChar
   //  lazy val tpes     = (0 until arity) map (n => (n + 'A').toChar)
