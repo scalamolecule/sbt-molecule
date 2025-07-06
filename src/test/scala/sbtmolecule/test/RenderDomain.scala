@@ -6,7 +6,11 @@ import utest.*
 
 object RenderDomain extends TestSuite {
   val projectRoot = System.getProperty("user.dir")
-  lazy val basePath   = projectRoot + "/src/test/scala/sbtmolecule/db/"
+  lazy val basePath     = projectRoot + "/src/test/scala/sbtmolecule/db/"
+  lazy val resourcePath = projectRoot + "/src/main/resources/"
+
+
+
   //  lazy val cardinalities = ParseAndGenerate(basePath + "Cardinalities.scala").generate.get
   //  lazy val starwars      = ParseAndGenerate(basePath + "Starwars.scala").generate.get
   lazy val types      = ParseAndGenerate(basePath + "Types.scala").metaDomain
@@ -22,9 +26,10 @@ object RenderDomain extends TestSuite {
 
     "DSL" - {
 
-
-//      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
-      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
+      validation.printMetaDb
+      //      refs.printMetaDb
+      //      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
+      //      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
 

@@ -46,7 +46,7 @@ case class GraphqlQuery(
 
 
   def get: String = {
-    s"""// AUTO-GENERATED Molecule boilerplate code for query
+    s"""// AUTO-GENERATED Molecule boilerplate code
        |package $pkg.$domain
        |
        |import molecule.base.metaModel.*

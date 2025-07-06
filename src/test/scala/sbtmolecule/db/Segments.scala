@@ -2,7 +2,7 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Segments extends DomainStructure(5) {
+object Segments extends DomainStructure {
 
   // General segment
   object gen {

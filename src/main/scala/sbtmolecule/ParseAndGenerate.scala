@@ -18,57 +18,131 @@ case class ParseAndGenerate(filePath: String) {
   }.getOrElse(throw new Exception(s"Missing package definition in file $filePath:\n" + tree))
 
 
-  def generate(srcManaged: File): Option[(String, String)] = {
-    val (domain, defFile, body, maxArity, urlOrPath) = extract
-    if (maxArity > 0) {
-      defFile match {
-        case "DomainStructure" =>
-          val metaDomain = ParseDomainStructure(filePath, pkg, domain, maxArity, body).getMetaDomain
-          GenerateSourceFiles_db(metaDomain).generate(srcManaged)
+  // Use Scala Meta to find definition files:
+  def generate(srcManaged: File, resourcesDir: File): Option[(String, String)] = afterPkg.collectFirst {
+    // object MyDefFile extends DomainStructure
+    case Defn.Object(Nil, Term.Name(domain), Template.internal.Latest(_, List(Init.internal.Latest(
+    Type.Name("DomainStructure"), _, Nil)), _, body, _)) =>
+      val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
+      GenerateSourceFiles_db(metaDomain).generate(srcManaged, resourcesDir)
+      (pkg, domain)
 
-        case "Graphql" =>
-          val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
-          GenerateSourceFiles_graphql(doc, pkg, domain, maxArity).generate(srcManaged)
+    // object MyDefFile extends Graphql("url or filePath")
+    case Defn.Object(Nil, Term.Name(domain), Template.internal.Latest(_, List(Init.internal.Latest(
+    Type.Name("Graphql"), _, List(Term.ArgClause(List(Lit.String(urlOrPath)), _)))), _, _, _)) =>
+      val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
+      GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
+      (pkg, domain)
+  }
+
+  //    extract.map {
+  //      case (domain, defFile, body, urlOrPath) =>
+  //        // Generate boilerplate files
+  //        defFile match {
+  //          case "DomainStructure" =>
+  //            val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
+  //            GenerateSourceFiles_db(metaDomain).generate(srcManaged)
+  //
+  //          case "Graphql" =>
+  //            val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
+  //            GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
+  //        }
+  //        (pkg, domain)
+  //    }
+  //  }
+  //
+  //
+  //  def extract: Option[(String, String, List[Stat], String)] = {
+  //    afterPkg.collectFirst {
+  //      // Use Scala Meta to find definition files:
+  //      // object MyDefFile extends DomainStructure(6)
+  //      // object MyDefFile extends Graphql(6) // adjacent graphql schema
+  //      // object MyDefFile extends Graphql(6, "url")
+  //      // object MyDefFile extends Graphql(6, "filePath")
+  //      case Defn.Object(_, Term.Name(domain),
+  //      Template.internal.Latest(_,
+  //      List(Init.internal.Latest(
+  //      Type.Name(defFile), _,
+  //      //      List(Term.ArgClause(args, _))
+  //      params
+  //      )), _, body, _)
+  //      ) =>
+  //        defFile match {
+  //          case "DomainStructure" =>
+  //            val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
+  //            GenerateSourceFiles_db(metaDomain).generate(srcManaged)
+  //
+  //          case "Graphql" =>
+  //            val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
+  //            GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
+  //        }
+  //
+  //
+  //        params match {
+  //          case List(Term.ArgClause(args, _)) =>
+  //
+  //            val (maxArity, urlOrPath) = args match {
+  //              case List(Lit.Int(maxArity))                        => (maxArity, "")
+  //              case List(Lit.Int(maxArity), Lit.String(urlOrPath)) => (maxArity, urlOrPath)
+  //            }
+  //            (domain, defFile, body, urlOrPath)
+  //          case other                         =>
+  //            println(other)
+  //
+  //            ???
+  //        }
+  //    }
+  //  }
+  //
+  //
+  //  def generateX(srcManaged: File): Option[(String, String)] = {
+  //    val (domain, defFile, body, maxArity, urlOrPath) = extract
+  //    if (maxArity > 0) {
+  //      defFile match {
+  //        case "DomainStructure" =>
+  //          val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
+  //          GenerateSourceFiles_db(metaDomain).generate(srcManaged)
+  //
+  //        case "Graphql" =>
+  //          val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
+  //          GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
+  //      }
+  //      Some((pkg, domain))
+  //    } else None
+  //  }
+
+
+  def extract: (String, String, List[Stat], String) = afterPkg.collectFirst {
+    case Defn.Object(Nil, Term.Name(domain), Template.internal.Latest(_, List(Init.internal.Latest(
+    Type.Name(defFile@("DomainStructure" | "Graphql")), _, args)), _, body, _)) =>
+      val urlOrPath = args match {
+        case List(Term.ArgClause(List(Lit.String(urlOrPath)), _)) => urlOrPath
+        case _                                                    => ""
       }
-      Some((pkg, domain))
-    } else None
-  }
-
-
-  def extract: (String, String, List[Stat], Int, String) = {
-    afterPkg.collectFirst {
-      // Use Scala Meta to find definition files:
-      // object MyDefFile extends DomainStructure(6)
-      // object MyDefFile extends Graphql(6) // adjacent graphql schema
-      // object MyDefFile extends Graphql(6, "url")
-      // object MyDefFile extends Graphql(6, "filePath")
-      case Defn.Object(_, Term.Name(domain),
-      Template.internal.Latest(_,
-      List(Init.internal.Latest(Type.Name(defFile), _,
-      List(Term.ArgClause(args, _)))), _, body, _)) =>
-        val (maxArity, urlOrPath) = args match {
-          case List(Lit.Int(maxArity))                        => (maxArity, "")
-          case List(Lit.Int(maxArity), Lit.String(urlOrPath)) => (maxArity, urlOrPath)
-        }
-        (domain, defFile, body, maxArity, urlOrPath)
-    }.get
-  }
+      (domain, defFile, body, urlOrPath)
+  }.getOrElse(
+    throw new Exception(
+      s"Couldn't find matching source tree for $filePath:" +
+        afterPkg.take(5).map(_.structure.take(300) + " ...")
+          .mkString("\n\n", "\n-----------------\n", "\n-----------------\n")
+    )
+  )
 
 
   // For testing:
 
   def metaDomain: GenerateSourceFiles_db = {
-    val (domain, _, body, maxArity, _) = extract
+    val (domain, _, body, _) = extract
 
-    val metaDomain = ParseDomainStructure(filePath, pkg, domain, maxArity, body).getMetaDomain
+    val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
     GenerateSourceFiles_db(metaDomain)
   }
 
   def graphql: GenerateSourceFiles_graphql = {
-    val (domain, _, _, maxArity, urlOrPath) = extract
+    val (domain, _, _, urlOrPath) = extract
 
     val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
-    GenerateSourceFiles_graphql(doc, pkg, domain, maxArity)
+    GenerateSourceFiles_graphql(doc, pkg, domain)
   }
 }
 

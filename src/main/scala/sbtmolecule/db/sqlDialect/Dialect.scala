@@ -1,4 +1,4 @@
-package sbtmolecule.db.schema.sqlDialect
+package sbtmolecule.db.sqlDialect
 
 import molecule.base.metaModel.MetaAttribute
 import molecule.base.util.BaseHelpers

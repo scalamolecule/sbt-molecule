@@ -1,23 +1,23 @@
-package sbtmolecule.db.schema.sqlDialect
+package sbtmolecule.db.sqlDialect
 
 import molecule.base.metaModel.*
 
-object Postgres extends Dialect {
+object H2 extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
     if (metaAttribute.attribute == "id")
-      "BIGSERIAL PRIMARY KEY"
+      "BIGINT AUTO_INCREMENT PRIMARY KEY"
     else metaAttribute.cardinality match {
       case _: CardOne => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
-        case "String"         => "TEXT COLLATE ucs_basic"
-        case "Int"            => "INTEGER"
+        case "String"         => "LONGVARCHAR"
+        case "Int"            => "INT"
         case "Long"           => "BIGINT"
-        case "Float"          => "DECIMAL"
+        case "Float"          => "REAL"
         case "Double"         => "DOUBLE PRECISION"
         case "Boolean"        => "BOOLEAN"
-        case "BigInt"         => "DECIMAL"
-        case "BigDecimal"     => "DECIMAL"
+        case "BigInt"         => "DECIMAL(100, 0)"
+        case "BigDecimal"     => "DECIMAL(65535, 38)"
         case "Date"           => "BIGINT"
         case "Duration"       => "VARCHAR"
         case "Instant"        => "VARCHAR"
@@ -29,19 +29,45 @@ object Postgres extends Dialect {
         case "ZonedDateTime"  => "VARCHAR"
         case "UUID"           => "UUID"
         case "URI"            => "VARCHAR"
-        case "Byte"           => "SMALLINT"
+        case "Byte"           => "TINYINT"
         case "Short"          => "SMALLINT"
-        case "Char"           => "CHAR(1)"
+        case "Char"           => "CHAR"
+      }
+      case _: CardSeq => metaAttribute.baseTpe match {
+        case "ID"             => "BIGINT ARRAY"
+        case "String"         => "LONGVARCHAR ARRAY"
+        case "Int"            => "INT ARRAY"
+        case "Long"           => "BIGINT ARRAY"
+        case "Float"          => "REAL ARRAY"
+        case "Double"         => "DOUBLE PRECISION ARRAY"
+        case "Boolean"        => "BOOLEAN ARRAY"
+        case "BigInt"         => "DECIMAL(100, 0) ARRAY"
+        case "BigDecimal"     => "DECIMAL(65535, 38) ARRAY"
+        case "Date"           => "BIGINT ARRAY"
+        case "Duration"       => "VARCHAR ARRAY"
+        case "Instant"        => "VARCHAR ARRAY"
+        case "LocalDate"      => "VARCHAR ARRAY"
+        case "LocalTime"      => "VARCHAR ARRAY"
+        case "LocalDateTime"  => "VARCHAR ARRAY"
+        case "OffsetTime"     => "VARCHAR ARRAY"
+        case "OffsetDateTime" => "VARCHAR ARRAY"
+        case "ZonedDateTime"  => "VARCHAR ARRAY"
+        case "UUID"           => "UUID ARRAY"
+        case "URI"            => "VARCHAR ARRAY"
+        case "Byte"           => "VARBINARY" // special for byte arrays
+        case "Short"          => "SMALLINT ARRAY"
+        case "Char"           => "CHAR ARRAY"
       }
       case _: CardSet => metaAttribute.baseTpe match {
-        case "String"         => "TEXT ARRAY"
-        case "Int"            => "INTEGER ARRAY"
+        case "ID"             => "BIGINT ARRAY"
+        case "String"         => "LONGVARCHAR ARRAY"
+        case "Int"            => "INT ARRAY"
         case "Long"           => "BIGINT ARRAY"
-        case "Float"          => "DECIMAL ARRAY"
+        case "Float"          => "REAL ARRAY"
         case "Double"         => "DOUBLE PRECISION ARRAY"
         case "Boolean"        => "BOOLEAN ARRAY"
-        case "BigInt"         => "DECIMAL ARRAY"
-        case "BigDecimal"     => "DECIMAL ARRAY"
+        case "BigInt"         => "DECIMAL(100, 0) ARRAY"
+        case "BigDecimal"     => "DECIMAL(65535, 38) ARRAY"
         case "Date"           => "BIGINT ARRAY"
         case "Duration"       => "VARCHAR ARRAY"
         case "Instant"        => "VARCHAR ARRAY"
@@ -53,66 +79,34 @@ object Postgres extends Dialect {
         case "ZonedDateTime"  => "VARCHAR ARRAY"
         case "UUID"           => "UUID ARRAY"
         case "URI"            => "VARCHAR ARRAY"
-        case "Byte"           => "SMALLINT ARRAY"
+        case "Byte"           => "TINYINT ARRAY"
         case "Short"          => "SMALLINT ARRAY"
-        case "Char"           => "CHAR(1) ARRAY"
+        case "Char"           => "CHAR ARRAY"
       }
-
-      case _: CardSeq => metaAttribute.baseTpe match {
-        case "String"         => "TEXT ARRAY"
-        case "Int"            => "INTEGER ARRAY"
-        case "Long"           => "BIGINT ARRAY"
-        case "Float"          => "DECIMAL ARRAY"
-        case "Double"         => "DOUBLE PRECISION ARRAY"
-        case "Boolean"        => "BOOLEAN ARRAY"
-        case "BigInt"         => "DECIMAL ARRAY"
-        case "BigDecimal"     => "DECIMAL ARRAY"
-        case "Date"           => "BIGINT ARRAY"
-        case "Duration"       => "VARCHAR ARRAY"
-        case "Instant"        => "VARCHAR ARRAY"
-        case "LocalDate"      => "VARCHAR ARRAY"
-        case "LocalTime"      => "VARCHAR ARRAY"
-        case "LocalDateTime"  => "VARCHAR ARRAY"
-        case "OffsetTime"     => "VARCHAR ARRAY"
-        case "OffsetDateTime" => "VARCHAR ARRAY"
-        case "ZonedDateTime"  => "VARCHAR ARRAY"
-        case "UUID"           => "UUID ARRAY"
-        case "URI"            => "VARCHAR ARRAY"
-        case "Byte"           => "BYTEA" // special for byte arrays
-        case "Short"          => "SMALLINT ARRAY"
-        case "Char"           => "CHAR(1) ARRAY"
-      }
-
-      case _: CardMap => "JSONB"
+      case _: CardMap => "JSON"
     }
   }
 
-  // https://www.postgresql.org/docs/current/sql-keywords-appendix.html
+  // http://www.h2database.com/html/advanced.html#keywords
   override def reservedKeyWords: List[String] = List(
+    "_rowid_",
     "all",
-    "analyse",
-    "analyze",
     "and",
     "any",
     "array",
     "as",
-    "asc",
     "asymmetric",
     "authorization",
-    "binary",
+    "between",
     "both",
     "case",
     "cast",
     "check",
-    "collate",
-    "collation",
-    "column",
-    "concurrently",
     "constraint",
-    "create",
     "cross",
     "current_catalog",
     "current_date",
+    "current_path",
     "current_role",
     "current_schema",
     "current_time",
@@ -120,86 +114,80 @@ object Postgres extends Dialect {
     "current_user",
     "day",
     "default",
-    "deferrable",
-    "desc",
     "distinct",
-    "do",
     "else",
     "end",
     "except",
+    "exists",
     "false",
     "fetch",
-    "filter",
     "for",
     "foreign",
-    "freeze",
     "from",
     "full",
-    "grant",
     "group",
+    "groups",
     "having",
     "hour",
+    "if",
     "ilike",
     "in",
-    "initially",
     "inner",
     "intersect",
-    "into",
+    "interval",
     "is",
-    "isnull",
     "join",
-    "lateral",
+    "key",
     "leading",
     "left",
     "like",
     "limit",
     "localtime",
     "localtimestamp",
+    "minus",
     "minute",
     "month",
     "natural",
     "not",
-    "notnull",
     "null",
     "offset",
     "on",
-    "only",
     "or",
     "order",
-    "outer",
     "over",
-    "overlaps",
-    "placing",
+    "partition",
     "primary",
-    "references",
-    "returning",
+    "qualify",
+    "range",
+    "regexp",
     "right",
+    "row",
+    "rownum",
+    "rows",
     "second",
     "select",
     "session_user",
-    "similar",
+    "set",
     "some",
     "symmetric",
     "system_user",
     "table",
-    "tablesample",
-    "then",
     "to",
+    "top",
     "trailing",
     "true",
+    "uescape",
     "union",
     "unique",
+    "unknown",
     "user",
     "using",
-    "variadic",
-    "varying",
-    "verbose",
+    "value",
+    "values",
     "when",
     "where",
     "window",
     "with",
-    "within",
-    "without",
     "year",
   )
 }

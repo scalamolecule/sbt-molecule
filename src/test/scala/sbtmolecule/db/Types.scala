@@ -2,14 +2,24 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Types extends DomainStructure(5) {
+//@deprecated
+object Types extends DomainStructure {
 
   trait Entity {
     val i    = oneInt
     val iSet = setInt
     val iSeq = seqInt
+    val iMap = mapInt
     val s    = oneString
     val u    = oneInt.unique
+
+    // Can't test scala 3 enums in 2.12 - tested in test projects
+    //    enum Color:
+    //      case White, Red, Green, Blue, Yellow, Black
+    //
+    //    val color    = oneEnum[Color]
+    //    val colorSet = setEnum[Color]
+    //    val colorSeq = seqEnum[Color]("optional comment")
 
     // Single values
     val string         = oneString
@@ -84,7 +94,7 @@ object Types extends DomainStructure(5) {
     val zonedDateTimeSeq  = seqZonedDateTime
     val uuidSeq           = seqUUID
     val uriSeq            = seqURI
-    val byteArray         = arrayByte
+    val byteArray         = arrayByte.descr("special case")
     val shortSeq          = seqShort
     val charSeq           = seqChar
 
@@ -190,7 +200,7 @@ object Types extends DomainStructure(5) {
     val shortSeq          = seqShort
     val charSeq           = seqChar
 
-    val nss = many[Entity]
+    val entities = many[Entity]
   }
 
   trait Other {

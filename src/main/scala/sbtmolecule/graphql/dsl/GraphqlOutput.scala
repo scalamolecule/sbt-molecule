@@ -22,7 +22,7 @@ case class GraphqlOutput(
 
   var attrIndex = attrIndexPrev
 
-  override val imports: String = {
+  val imports: String = {
     val baseImports = Seq(
       "molecule.core.dataModel.*",
       "molecule.graphql.client.api.*",
@@ -64,7 +64,7 @@ case class GraphqlOutput(
 //    .map(GraphqlOutput_Arities(metaDomain, entityList, attrList, metaEntity, _).get).mkString("\n\n")
 
   def get: String = {
-    s"""// AUTO-GENERATED Molecule DSL boilerplate code for entity `$entity`
+    s"""// AUTO-GENERATED Molecule boilerplate code
        |package $pkg.$domain
        |
        |$imports

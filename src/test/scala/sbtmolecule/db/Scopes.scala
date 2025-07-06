@@ -2,7 +2,7 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Scopes extends DomainStructure(3) {
+object Scopes extends DomainStructure {
 
   object accounting {
     trait Invoice {

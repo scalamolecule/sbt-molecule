@@ -3,7 +3,6 @@ package sbtmolecule.db.dsl.ops
 import molecule.base.metaModel.*
 import sbtmolecule.Formatting
 
-
 case class Entity_Attrs(
   metaDomain: MetaDomain,
   metaEntity: MetaEntity,
@@ -11,44 +10,9 @@ case class Entity_Attrs(
   attrIndexPrev: Int = 0
 ) extends Formatting(metaDomain, metaEntity) {
 
-  private val entityList: Seq[String] = metaDomain.segments.flatMap(_.entities.map(_.entity))
-  private val attrList  : Seq[String] = {
-    for {
-      segment <- metaDomain.segments
-      entity <- segment.entities
-      attribute <- entity.attributes
-    } yield entity.entity + "." + attribute.attribute
-  }
-
-  private var attrIndex = attrIndexPrev
-
-//  private val imports: String = {
-//    val baseImports = Seq(
-//      "molecule.base.metaModel.*",
-//      "molecule.core.dataModel as _dm",
-//      "molecule.core.dataModel.Keywords.Kw as _kw",
-//      "molecule.core.dataModel.Op as _op",
-//      "molecule.db.core.api.*",
-//      "molecule.db.core.api.expression.*",
-//      "molecule.db.core.ops.ModelTransformations_",
-//    )
-//    val typeImports = attributes.collect {
-//      case MetaAttribute(_, _, "Duration", _, _, _, _, _, _, _, _, _)       => "java.time.*"
-//      case MetaAttribute(_, _, "Instant", _, _, _, _, _, _, _, _, _)        => "java.time.*"
-//      case MetaAttribute(_, _, "LocalDate", _, _, _, _, _, _, _, _, _)      => "java.time.*"
-//      case MetaAttribute(_, _, "LocalTime", _, _, _, _, _, _, _, _, _)      => "java.time.*"
-//      case MetaAttribute(_, _, "LocalDateTime", _, _, _, _, _, _, _, _, _)  => "java.time.*"
-//      case MetaAttribute(_, _, "OffsetTime", _, _, _, _, _, _, _, _, _)     => "java.time.*"
-//      case MetaAttribute(_, _, "OffsetDateTime", _, _, _, _, _, _, _, _, _) => "java.time.*"
-//      case MetaAttribute(_, _, "ZonedDateTime", _, _, _, _, _, _, _, _, _)  => "java.time.*"
-//      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _)           => "java.util.Date"
-//      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _)           => "java.util.UUID"
-//      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _)            => "java.net.URI"
-//    }.distinct
-//    (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
-//  }
-
-  private val validationExtractor = Validations(metaDomain, metaEntity)
+  private val entityList          = metaDomain.segments.flatMap(_.entities.map(_.entity))
+  private var attrIndex           = attrIndexPrev
+  private val validationExtractor = Entity_Validations(metaDomain, metaEntity)
 
   def get: String = {
     val man = List.newBuilder[String]
@@ -63,8 +27,9 @@ case class Entity_Attrs(
     val padAttrIndex = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
 
     attributes.collect {
-      case MetaAttribute(attr, card, tpe, _, refOpt, _, _, _, _, valueAttrs, validations, _) =>
-        val valids  = if (validations.nonEmpty) {
+      case MetaAttribute(attr, card, tpe, _, optRef, _, _, optAlias, _, valueAttrs, validations, _) =>
+        val cleanAttr = optAlias.getOrElse(attr)
+        val valids    = if (validations.nonEmpty) {
           val valueAttrMetas = attributes.collect {
             case MetaAttribute(attr1, card1, tpe1, _, _, _, _, _, _, _, _, _)
               if valueAttrs.contains(attr1) =>
@@ -78,18 +43,19 @@ case class Entity_Attrs(
               }
               (attr1, isCardOne, fullTpe, s"Attr${card1._marker}Man$tpe1", s"${card1._marker}$tpe1")
           }.sortBy(_._1)
-          vas += validationExtractor.validationMethod(attr, tpe, validations, valueAttrMetas)
+          vas += validationExtractor.validationMethod(attr, cleanAttr, tpe, validations, valueAttrMetas)
           if (valueAttrs.isEmpty) {
-            s", validator = Some(validation_$attr)"
+            s", validator = Some(validation_$cleanAttr)"
           } else {
             val valueAttrsStr = valueAttrs.mkString("\"", "\", \"", "\"")
-            s", validator = Some(validation_$attr), valueAttrs = List($valueAttrsStr)"
+            s", validator = Some(validation_$cleanAttr), valueAttrs = List($valueAttrsStr)"
           }
         } else ""
-        val padA    = padAttr(attr)
-        val padT0   = padType(tpe)
-        val padAI   = padAttrIndex(attrIndex)
-        val coord   = refOpt.fold {
+        val padA      = padAttrClean(cleanAttr)
+        val padB      = padAttr(attr)
+        val padT0     = padType(tpe)
+        val padAI     = padAttrIndex(attrIndex)
+        val coord     = optRef.fold {
           val padRNI = if (maxRefIndex == 0) "" else "  " + " " * maxRefIndex
           s""", coord = List($nsIndex, $attrIndex$padAI$padRNI)"""
         } { ref =>
@@ -97,37 +63,24 @@ case class Entity_Attrs(
           val padRNI   = padRefIndex(refIndex)
           s""", coord = List($nsIndex, $attrIndex$padAI, $refIndex$padRNI)"""
         }
-        val ref1    = refOpt.fold("")(ref => s""", ref = Some("$ref")""")
-        val attrMan = "Attr" + card._marker + "Man" + tpe
-        val attrOpt = "Attr" + card._marker + "Opt" + tpe
-        val attrTac = "Attr" + card._marker + "Tac" + tpe
+        val ref1      = optRef.fold("")(ref => s""", ref = Some("$ref")""")
+        val attrMan   = "Attr" + card._marker + "Man" + tpe
+        val attrOpt   = "Attr" + card._marker + "Opt" + tpe
+        val attrTac   = "Attr" + card._marker + "Tac" + tpe
         attrIndex += 1
 
-        man += s"""protected def ${attr}_man$padA = $attrMan$padT0("$entity", "$attr"$padA$coord$ref1$valids)"""
+        man += s"""protected def ${cleanAttr}_man$padA = $attrMan$padT0("$entity", "$attr"$padB$coord$ref1$valids)"""
         if (attr != "id") {
-          opt += s"""protected def ${attr}_opt$padA = $attrOpt$padT0("$entity", "$attr"$padA$coord$ref1$valids)"""
+          opt += s"""protected def ${cleanAttr}_opt$padA = $attrOpt$padT0("$entity", "$attr"$padB$coord$ref1$valids)"""
         }
-        tac += s"""protected def ${attr}_tac$padA = $attrTac$padT0("$entity", "$attr"$padA$coord$ref1$valids)"""
+        tac += s"""protected def ${cleanAttr}_tac$padA = $attrTac$padT0("$entity", "$attr"$padB$coord$ref1$valids)"""
     }
     val vas1     = vas.result()
     val vas2     = if (vas1.isEmpty) Nil else "" +: vas1
     val attrDefs = (man.result() ++ Seq("") ++ opt.result() ++ Seq("") ++ tac.result() ++ vas2).mkString("\n  ")
 
-//    s"""trait ${entity}_attrs {
-//       |  $attrDefs
-//       |}""".stripMargin
-
-
-    s"""// AUTO-GENERATED Molecule DSL boilerplate code for entity `$entity`
-       |package $pkg.$domain
-       |package ops // to access enums and let them be public to the user
-       |//package ${entity}_ // to access enums and let them be public to the user
-       |
-       |$imports
-       |
-       |trait ${entity}_attrs {
+    s"""trait ${entity}_attrs {
        |  $attrDefs
-       |}
-       |""".stripMargin
+       |}""".stripMargin
   }
 }

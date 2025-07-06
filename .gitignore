@@ -20,6 +20,10 @@ project/plugins/project/
 *.idea
 *.bsp
 
+# resources
+*.edn
+*.sql
+
 # Scala-IDE specific
 .scala_dependencies
 .worksheet

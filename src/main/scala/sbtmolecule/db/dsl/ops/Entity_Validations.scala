@@ -3,12 +3,12 @@ package sbtmolecule.db.dsl.ops
 import molecule.base.metaModel.*
 import sbtmolecule.Formatting
 
-
-case class Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
+case class Entity_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
   extends Formatting(metaDomain, metaEntity) {
 
   def validationMethod(
     attr: String,
+    cleanAttr: String,
     baseTpe: String,
     validations: List[(String, String)],
     valueAttrs: List[(String, Boolean, String, String, String)]
@@ -17,36 +17,34 @@ case class Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
     val single = validations.length == 1
     val pad    = if (static) "" else "  "
     val body   = if (single) {
-      getBodySingle(pad + "  ", attr, baseTpe, validations.head)
+      getBodySingle(pad + "  ", cleanAttr, baseTpe, validations.head)
     } else {
       getBodyMulti(pad, baseTpe, validations)
     }
     if (static) {
-      getStatic(pad, body, attr, baseTpe)
+      getStatic(pad, body, cleanAttr, baseTpe)
     } else {
-      getDynamic(body, attr, baseTpe, valueAttrs)
+      getDynamic(body, cleanAttr, baseTpe, valueAttrs)
     }
   }
-
 
   private def getStatic(
     pad: String,
     body: String,
-    attr: String,
+    cleanAttr: String,
     baseTpe0: String,
   ): String = {
     val baseTpe = if (baseTpe0 == "ID") "Long" else baseTpe0
-    s"""private lazy val validation_$attr = new Validate$baseTpe0 {
+    s"""private lazy val validation_$cleanAttr = new Validate$baseTpe0 {
        |$pad    override def validate(v: $baseTpe): Seq[String] = {
        |$pad      $body
        |$pad    }
        |$pad  }"""
   }
 
-
   private def getDynamic(
     body: String,
-    attr: String,
+    cleanAttr: String,
     baseTpe0: String,
     valueAttrs: List[(String, Boolean, String, String, String)]
   ): String = {
@@ -73,9 +71,8 @@ case class Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
 
     val variablesFromMetaAttr = variablesMeta.mkString("\n      ")
     val variablesFromValue    = variablesValue.mkString("\n      ")
-
     s"""
-       |  private lazy val validation_$attr = new $validator {
+       |  private lazy val validation_$cleanAttr = new $validator {
        |    val _withVariables = {
        |      ($variableParams) =>
        |        (v: $baseTpe) => {
@@ -98,7 +95,7 @@ case class Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
 
   private def getBodySingle(
     pad: String,
-    attr: String,
+    cleanAttr: String,
     baseTpe0: String,
     validation: (String, String),
   ): String = {
@@ -124,7 +121,7 @@ case class Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
       } else if (error.isEmpty) {
         val indentedTest = test.split('\n').toList.mkString(s"|$pad           |", s"\n||$pad           |  ", "")
         s"""Seq(
-           |$pad        s\"\"\"$entity.$attr with value `$$v` doesn't satisfy validation:
+           |$pad        s\"\"\"$entity.$cleanAttr with value `$$v` doesn't satisfy validation:
            |$pad         $indentedTest
            |$pad|$pad           |\"\"\".stripMargin
            |$pad      )""".stripMargin('#')
@@ -132,7 +129,6 @@ case class Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
         s"Seq($error1)"
       }
     }
-
     s"""val ok: $baseTpe => Boolean = $testStr
        |$pad      if (ok(v)) Nil else $errorStr"""
   }

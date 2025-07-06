@@ -5,7 +5,7 @@ import java.util.Date
 import molecule.DomainStructure
 import scala.collection.immutable.Seq
 
-object Validation extends DomainStructure(5) {
+object Validation extends DomainStructure {
 
   trait Strings {
     val email        = oneString.email

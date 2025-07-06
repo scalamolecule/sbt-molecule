@@ -36,13 +36,20 @@ object MoleculePlugin extends sbt.AutoPlugin {
   )
 
   private def generateSources(config: Configuration): Def.Initialize[Task[Seq[(String, String)]]] = Def.task {
-    val log        = streams.value.log
-    val srcDir     = getSrcDir(config).value
-    val srcManaged = (config / sourceManaged).value / "moleculeGen"
+    val log          = streams.value.log
+    val srcDir       = getSrcDir(config).value
+    val srcManaged   = (config / sourceManaged).value / "moleculeGen"
+    val resourcesDir = (config / resourceDirectory).value / "moleculeGen"
 
     // Clear previously generated jar files to avoid conflicts
     val baseDir                                               = baseDirectory.value
     val (isJvm, platformPrefix, module, base, clsJar, srcJar) = getCoordinates(config).value
+
+    val srcPath = s"${platformPrefix}target/scala-${scalaVersion.value}/src_managed/main/moleculeGen/"
+    log.info(s"Generating Molecule DSL source files in $srcPath ...")
+    if (isJvm) {
+      log.info(s"Generating Molecule database schema files in resources/moleculeGen/ ...")
+    }
 
     val (clsJarFile, srcJarFile) = (baseDir / clsJar, baseDir / srcJar)
     if (clsJarFile.exists()) {
@@ -54,20 +61,19 @@ object MoleculePlugin extends sbt.AutoPlugin {
       log.success(s"Deleted previous lib/${srcJarFile.getName}")
     }
 
-    // Clear previously generated source files in moleculeGenerated namespace only
+    // Clear previously generated files in moleculeGen namespaces
     IO.delete(srcManaged)
+    IO.delete(resourcesDir)
     IO.createDirectory(srcManaged)
-    log.success(s"Deleted previous generated sources in src_managed/main/moleculeGen/$base")
+    IO.createDirectory(resourcesDir)
 
-    val srcPath = s"${platformPrefix}target/scala-${scalaVersion.value}/src_managed/main/moleculeGen/$base"
-
-    log.info(s"Generating Molecule boilerplate files for $module in $srcDir")
-    val pkgDomains = parseAndGenerate(srcManaged, IO.listFiles(srcDir), Nil)
+    // Generate new sources and resources
+    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir), Nil)
 
     if (isJvm && pkgDomains.nonEmpty) {
       // Only render once
       if (pkgDomains.nonEmpty) {
-        log.success(s"Generated Molecule boilerplate files for domains of '$module' in $srcPath")
+        log.success(s"Generated Molecule boilerplate files for:")
         pkgDomains.foreach { case (pkg, domain) =>
           log.success(s"  $pkg.$domain")
         }
@@ -75,22 +81,24 @@ object MoleculePlugin extends sbt.AutoPlugin {
         log.info(s"Found no Molecule definitions in $module")
       }
     }
-
     pkgDomains
   }
 
   // Recursively find and parse all molecule definition files and generate dsl files
   private def parseAndGenerate(
-    srcDir: File,
+    srcManaged: File,
+    resourcesDir: File,
     files: Seq[File],
     pkgDomains: Seq[(String, String)]
   ): Seq[(String, String)] = {
     files.flatMap {
       case file if file.isFile =>
         if (file.name.endsWith(".scala"))
-          ParseAndGenerate(file.getPath).generate(srcDir) else Nil
+          ParseAndGenerate(file.getPath).generate(srcManaged, resourcesDir)
+        else
+          None
 
-      case dir => parseAndGenerate(srcDir, IO.listFiles(dir), pkgDomains)
+      case dir => parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(dir), pkgDomains)
     }
   }
 

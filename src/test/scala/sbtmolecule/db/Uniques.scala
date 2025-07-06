@@ -2,7 +2,7 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Uniques extends DomainStructure(3) {
+object Uniques extends DomainStructure {
 
   trait Uniques {
     val i = oneInt

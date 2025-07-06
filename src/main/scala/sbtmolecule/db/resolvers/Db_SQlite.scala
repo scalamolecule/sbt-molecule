@@ -1,11 +1,11 @@
-package sbtmolecule.db.schema
+package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
-import sbtmolecule.db.schema.sqlDialect.{Dialect, SQlite}
+import sbtmolecule.db.sqlDialect.{Dialect, SQlite}
 import scala.collection.mutable.ListBuffer
 
 
-case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDomain) {
+case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
 
   private val refs2 = ListBuffer.empty[(String, String)] // refAttr, ref
 
@@ -58,15 +58,15 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
     }
 
     val optForeignKeys = if (foreignKeys.isEmpty) "" else
-      foreignKeys.mkString("\n|      |  ", s",\n|      |  ", "")
+      foreignKeys.mkString("\n  ", s",\n  ", "")
 
-    val columns = fields.mkString(s",\n|      |  ") + optForeignKeys
+    val columns = fields.mkString(s",\n  ") + optForeignKeys
 
     val table =
       s"""CREATE TABLE IF NOT EXISTS $ent$tableSuffix (
-         |      |  $columns
-         |      |);
-         |      |"""
+         |  $columns
+         |);
+         |""".stripMargin
 
     val joinTables = metaEntity.attributes.collect {
       case MetaAttribute(refAttr, CardSet, _, _, Some(ref), _, _, _, _, _, _, _) =>
@@ -79,23 +79,27 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
         val cleanRefEntity = clean(dialect, ref)
 
         s"""CREATE TABLE IF NOT EXISTS ${ent}_${refAttr}_$ref (
-           |      |  $key1 BIGINT,
-           |      |  $key2 BIGINT
-           |      |  -- CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanEntity (id),
-           |      |  -- CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefEntity (id)
-           |      |);
-           |      |"""
+           |  $key1 BIGINT,
+           |  $key2 BIGINT
+           |  -- CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanEntity (id),
+           |  -- CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefEntity (id)
+           |);
+           |""".stripMargin
     }
 
     table +: joinTables
   }
 
-  override protected def tables(dialect: Dialect): String = {
+  override protected def getTables(dialect: Dialect): String = {
     hasReserved = false
     reservedEntities = Array.empty[Byte]
     reservedAttrs = Array.empty[Byte]
     reservedEntityAttrs = Array.empty[String]
     var hasRefs            = false
+
+    val entityMax = entities.map(_.entity.length).max
+    val pEntity   = (ent: String) => " " * (entityMax - ent.length)
+
     val tables             = entities.flatMap { entity =>
       refs2.clear() // foreign key constraints per table
       val reservedEntity: Byte =
@@ -107,34 +111,36 @@ case class Schema_SQlite(metaDomain: MetaDomain) extends Schema_SqlBase(metaDoma
       hasRefs = hasRefs || refs2.nonEmpty
 
       reservedEntityAttrs = reservedEntityAttrs :+ reservedAttrs
-        .mkString(s"\n      // ${entity.entity}\n      ", ", ", "")
+        .mkString(s"/* ${entity.entity}${pEntity(entity.entity)} */   ", ", ", "")
 
       reservedAttrs = Array.empty[Byte]
       result
     }
     val enforceForeignKeys = if (hasRefs)
       """-- PRAGMA foreign_keys = 1;
-        |      |
-        |      |"""
+        |
+        |""".stripMargin
     else ""
-    tables.mkString(enforceForeignKeys, "\n|      |", "")
+    tables.mkString(enforceForeignKeys, "\n", "")
   }
 
-  val domain = metaDomain.domain
+  val tables = getTables(SQlite)
 
-  def get: String =
-    s"""|// AUTO-GENERATED Molecule Schema boilerplate code for the `$domain` domain
-        |package ${metaDomain.pkg}.schema
+  def getSQL: String =
+    s"""|$tables
+        |""".stripMargin
+
+
+  def getMeta: String =
+    s"""|// AUTO-GENERATED Molecule boilerplate code
+        |package $pkg.$domain.metadb
         |
         |import molecule.base.metaModel.*
         |import molecule.db.core.api.*
         |
         |
-        |object ${domain}Schema_sqlite extends ${domain}Schema with Schema_sqlite {
+        |object ${domain}_MetaDb_sqlite extends ${domain}_MetaDb with MetaDb_sqlite {
         |
-        |  override val schemaData: List[String] = List(
-        |    \"\"\"
-        |      |${tables(SQlite)}\"\"\".stripMargin
-        |  )$getReserved
+        |  override val schemaResourcePath: String = "${schemaResourcePath("sqlite.sql")}"$getReserved
         |}""".stripMargin
 }

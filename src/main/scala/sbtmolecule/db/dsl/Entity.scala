@@ -2,10 +2,9 @@ package sbtmolecule.db.dsl
 
 import molecule.base.metaModel.*
 import sbtmolecule.Formatting
-import sbtmolecule.db.dsl.ops.Validations
 
 
-case class DbEntity(
+case class Entity(
   metaDomain: MetaDomain,
   metaEntity: MetaEntity,
 ) extends Formatting(metaDomain, metaEntity) {
@@ -25,23 +24,25 @@ case class DbEntity(
   private val rightRef = if (refs.isEmpty) "" else
     s"""
        |
-       |  final def ?[T           ](optEntity: Molecule_1[T  ]) = new ops.$entity_refs_next[Tuple1[Option[T  ]]](_DataModel(List(_OptEntity(attrsOnly(optEntity.dataModel)))))
-       |  final def ?[Tpl <: Tuple](optEntity: Molecule_n[Tpl]) = new ops.$entity_refs_next[Tuple1[Option[Tpl]]](_DataModel(List(_OptEntity(attrsOnly(optEntity.dataModel)))))""".stripMargin
+       |  final def ?              (optEntity: Molecule_0     ) = new ops.$entity_refs_cur             (_DataModel(List(_OptEntity(attrsOnly(optEntity.dataModel)))))
+       |  final def ?[T           ](optEntity: Molecule_1[T  ]) = new ops.$entity_refs_next[Option[T  ]](_DataModel(List(_OptEntity(attrsOnly(optEntity.dataModel)))))
+       |  final def ?[Tpl <: Tuple](optEntity: Molecule_n[Tpl]) = new ops.$entity_refs_next[Option[Tpl]](_DataModel(List(_OptEntity(attrsOnly(optEntity.dataModel)))))""".stripMargin
 
 
   def get: String = {
-    s"""// AUTO-GENERATED Molecule DSL boilerplate code for entity `$entity`
+    s"""// AUTO-GENERATED Molecule boilerplate code
        |package $pkg.$domain
        |
        |import molecule.core.dataModel.{AttrOneTacID as _AttrOneTacID, DataModel as _DataModel, Eq as _Eq, OptEntity as _OptEntity}
        |import molecule.db.core.api.*
+       |import molecule.db.core.ops.ModelTransformations_.*
        |
        |
-       |object $entity extends ops.${entity}_0[Nothing](_DataModel(Nil, firstEntityIndex = 0)) {
-       |  final def apply(id: Long, ids: Long*) = new ops.${entity}_0[Long](
+       |object $entity extends ops.${entity}_0(_DataModel(Nil, firstEntityIndex = 0)) {
+       |  final def apply(id: Long, ids: Long*) = new ops.${entity}_0(
        |    _DataModel(List(_AttrOneTacID("$entity", "id", _Eq, id +: ids, coord = $idCoord)), firstEntityIndex = $entityIndex)
        |  )
-       |  final def apply(ids: Iterable[Long]) = new ops.${entity}_0[Long](
+       |  final def apply(ids: Iterable[Long]) = new ops.${entity}_0(
        |    _DataModel(List(_AttrOneTacID("$entity", "id", _Eq, ids.toSeq, coord = $idCoord)), firstEntityIndex = $entityIndex)
        |  )$rightRef
        |}

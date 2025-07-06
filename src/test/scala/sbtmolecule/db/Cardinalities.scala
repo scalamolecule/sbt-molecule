@@ -2,7 +2,7 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Cardinalities extends DomainStructure(6) {
+object Cardinalities extends DomainStructure {
 
   //  trait Card1 {
   //    val one = oneInt

@@ -8,7 +8,7 @@ import molecule.base.metaModel.*
 import sbt.*
 import sbtmolecule.graphql.dsl.GraphqlQuery
 
-case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: String, maxArity: Int) {
+case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: String) {
 
   private lazy val (queryType, mutationType, subscriptionType) = doc.schemaDefinition.fold(
     ("Query", "Mutation", "Subscription")
@@ -161,7 +161,7 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     val payload    = if (payloads.nonEmpty) Some(MetaSegment("payload", payloads)) else None
 
     val segments = List(input, output, enum, scalar, query, mutation, subscription, pagination, payload).flatten
-    val md       = MetaDomain(pkg, domain, maxArity, segments)
+    val md       = MetaDomain(pkg, domain, segments)
     println(md)
     md
   }

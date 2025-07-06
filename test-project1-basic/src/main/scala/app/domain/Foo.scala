@@ -3,17 +3,19 @@ package app.domain
 import molecule.DomainStructure
 
 
-object Foo extends DomainStructure(2) {
+object Foo extends DomainStructure {
 
   enum Color:
     case RED, BLUE, GREEN
 
   trait Person {
-    val name = oneString
-    val age  = oneInt
+    val name          = oneString
+    val age           = oneInt
+    val favoriteColor = oneEnum[Color]
+    val home          = one[Address]
+  }
 
-    val color    = oneEnum[Color]
-    val colorSet = setEnum[Color]
-    val colorSeq = seqEnum[Color]("optional comment")
+  trait Address {
+    val street = oneString
   }
 }

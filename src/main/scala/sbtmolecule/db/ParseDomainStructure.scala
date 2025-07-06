@@ -10,25 +10,33 @@ case class ParseDomainStructure(
   filePath: String,
   pkg: String,
   domain: String,
-  maxArity: Int,
   body: List[Stat]
 ) extends BaseHelpers {
 
   private val reservedAttrNames = List(
     // Actions
-    "query", "save", "insert", "update", "delete",
+    "query", "save", "insert", "update", "upsert", "delete",
 
     // sorting
     "a1", "a2", "a3", "a4", "a5", "d1", "d2", "d3", "d4", "d5",
 
     // Expressions
-    "apply", "not", "has", "hasNo", "add", "remove", "getV",
+    "apply", "not", "has", "hasNo", "add", "remove",
 
     // Generic attributes
     "id",
 
-    // Data model elements
-    "elements"
+    // Data Model
+    "dataModel"
+  )
+
+  private val reservedScalaKeywords = List(
+    "abstract", "case", "catch", "class", "def", "do", "else", "extends", "false",
+    "final", "finally", "for", "forSome", "if", "implicit", "import", "lazy",
+    "macro", "match", "new", "null", "object", "override", "package", "private",
+    "protected", "return", "sealed", "super", "this", "throw", "trait", "try",
+    "true", "type", "val", "var", "while", "with", "yield",
+    "_", ":", "=", "=>", "<-", "<:", "<%", ">:","#", "@"
   )
 
   private var backRefs   = Map.empty[String, List[String]]
@@ -82,7 +90,7 @@ case class ParseDomainStructure(
         }
       )
     }
-    MetaDomain(pkg, domain, maxArity, segments2)
+    MetaDomain(pkg, domain, segments2)
   }
 
   private def checkCircularMandatoryRefs(segments: List[MetaSegment]): Unit = {
@@ -186,17 +194,30 @@ case class ParseDomainStructure(
     MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
+  def marked(keywords: List[String], keyword: String) = keywords.map{
+    case `keyword` => s"\u001b[41;37;1m $keyword \u001b[0m" // red background + white text + bold
+    case other     => other
+  }
+
   private def getAttrs(segmentPrefix: String, entity: String, attrs: List[Stat]): List[MetaAttribute] = {
     attrs.flatMap {
       case q"val $attr = $defs" =>
-        val a = attr.toString
-        if (reservedAttrNames.contains(a)) {
-          err(
-            s"Please change attribute name $entity.$a to avoid colliding with reserved attribute names:\n  " +
-              reservedAttrNames.mkString("\n  ")
-          )
+        val attrStr = attr.toString
+        val rawAttr = if (attrStr.contains("`")) {
+          if (!defs.structure.contains("""Term.Name("alias")""")) {
+            err(s"Please make an alias for back ticked attribute name $entity.$attr\n")
+          } else {
+            // strip back ticks and keep raw possibly keyword-conflicting name
+            attrStr.tail.init
+          }
+        } else {
+          attrStr
         }
-        Some(acc(segmentPrefix, entity, defs, MetaAttribute(a, CardOne, "")))
+        if (reservedAttrNames.contains(attrStr)) {
+          err(s"Please change attribute name $entity.$attr to avoid collision with reserved Molecule names:\n" +
+            marked(reservedAttrNames, attrStr).mkString(",  "))
+        }
+        Some(acc(segmentPrefix, entity, defs, MetaAttribute(rawAttr, CardOne, "")))
 
       case Defn.Enum.After_4_6_0(_, name, _, _, templ) => parseEnum[MetaAttribute](name, templ)
       case other                                       => unexpected(other)
@@ -227,6 +248,8 @@ case class ParseDomainStructure(
       acc(segmentPrefix, entity, prev, a.copy(description = Some(s)))
   }
 
+  def formatEntityName(tpe: Type) = tpe.toString.split('.').takeRight(2).mkString(".")
+
   @tailrec
   private def acc(pp: String, entity: String, t: Tree, a: MetaAttribute): MetaAttribute = {
     val attr = entity + "." + a.attribute
@@ -242,43 +265,55 @@ case class ParseDomainStructure(
       case q"$prev.owner"          => acc(pp, entity, prev, a.copy(options = a.options :+ "owner"))
       case q"$prev.mandatory"      => acc(pp, entity, prev, a.copy(options = a.options :+ "mandatory"))
 
+      case q"$prev.index(${Lit.String(s)})"          => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "index"))
+      case q"$prev.noHistory(${Lit.String(s)})"      => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "noHistory"))
+      case q"$prev.uniqueIdentity(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "uniqueIdentity"))
+      case q"$prev.unique(${Lit.String(s)})"         => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "unique"))
+      case q"$prev.fulltext(${Lit.String(s)})"       => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "fulltext"))
+      case q"$prev.owner(${Lit.String(s)})"          => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "owner"))
+      case q"$prev.mandatory(${Lit.String(s)})"      => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "mandatory"))
+
       case q"$prev.descr(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s)
       case q"$prev.apply(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s)
 
-      case q"$prev.alias(${Lit.String(s)})" => s match {
-        case r"([a-zA-Z0-9]+)$alias" =>
-          if (reservedAttrNames.contains(alias)) {
-            err(
-              s"Alias `$alias` for attribute $attr can't be any of the reserved molecule attribute names:\n  " +
-                reservedAttrNames.mkString("\n  ")
-            )
-          } else {
-            acc(pp, entity, prev, a.copy(alias = Some(alias)))
-          }
-        case other                   =>
-          err(s"Invalid alias for attribute $attr: " + other)
+      case q"$prev.alias(${Lit.String(s)})" => {
+        def msg(alias: String): String =
+          s"""Alias '$alias' for attribute $attr should:
+             |- follow the pattern [a-z][a-zA-Z0-9]* (i.e. start with a lower case letter a-z)
+             |- not be a molecule keyword: ${marked(reservedAttrNames, alias).mkString(", ")}
+             |- not be a Scala keyword: ${marked(reservedScalaKeywords, alias).mkString(", ")}
+             |""".stripMargin
+        s match {
+          case r"([a-z][a-zA-Z0-9]*)$alias" =>
+            if (reservedAttrNames.contains(alias) || reservedScalaKeywords.contains(alias)) {
+              err(msg(alias))
+            } else {
+              acc(pp, entity, prev, a.copy(alias = Some(alias)))
+            }
+          case other                        => err(msg(other))
+        }
       }
 
-
+// query, save, insert, update, ----> upsert <----, delete, a1, a2, a3, a4, a5, d1, d2, d3, d4, d5, apply, not, has, hasNo, add, remove, id, dataModel
       // Refs ................................................
 
       case q"one[$refEnt0]" =>
-        val refEnt = refEnt0.toString
+        val refEnt = formatEntityName(refEnt0)
         addBackRef(pp, entity, refEnt)
         a.copy(cardinality = CardOne, baseTpe = "ID", ref = Some(fullEntity(pp, refEnt)))
 
       case q"one[$refEnt0](${Lit.String(s)})" =>
-        val refEnt = refEnt0.toString
+        val refEnt = formatEntityName(refEnt0)
         addBackRef(pp, entity, refEnt)
         a.copy(cardinality = CardOne, baseTpe = "ID", ref = Some(fullEntity(pp, refEnt)), description = Some(s))
 
       case q"many[$refEnt0]" =>
-        val refEnt = refEnt0.toString
+        val refEnt = formatEntityName(refEnt0)
         addBackRef(pp, entity, refEnt)
         a.copy(cardinality = CardSet, baseTpe = "ID", ref = Some(fullEntity(pp, refEnt)))
 
       case q"many[$refEnt0](${Lit.String(s)})" =>
-        val refEnt = refEnt0.toString
+        val refEnt = formatEntityName(refEnt0)
         addBackRef(pp, entity, refEnt)
         a.copy(cardinality = CardSet, baseTpe = "ID", ref = Some(fullEntity(pp, refEnt)), description = Some(s))
 

@@ -1,12 +1,12 @@
-package sbtmolecule.db.schema
+package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
 import molecule.base.util.{BaseHelpers, RegexMatching}
-import sbtmolecule.db.schema.sqlDialect.{Dialect, Postgres}
+import sbtmolecule.db.sqlDialect.{Dialect, Postgres}
 import scala.collection.mutable.ListBuffer
 
 
-abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHelpers {
+abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHelpers {
 
   protected val entities: Seq[MetaEntity] = metaDomain.segments.flatMap(_.entities)
 
@@ -16,6 +16,9 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
   protected var reservedEntityAttrs = Array.empty[String]
   protected val refs                = ListBuffer.empty[(String, String, String)] // entity, refAttr, ref
 
+  val pkg    = metaDomain.pkg + ".dsl"
+  val domain = metaDomain.domain
+  def schemaResourcePath(db: String) = s"moleculeGen/$domain/${domain}_Schema_$db"
 
   val b0 = 0.toByte
   val b1 = 1.toByte
@@ -54,13 +57,13 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
         a.ref.foreach(refEntity => refs += ((entity, a.attribute, refEntity)))
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
-    }.mkString(s",\n|      |  ")
+    }.mkString(s",\n  ")
 
     val table =
       s"""CREATE TABLE IF NOT EXISTS $entity$tableSuffix (
-         |      |  $columns
-         |      |);
-         |      |"""
+         |  $columns
+         |);
+         |""".stripMargin
 
     val joinTables = metaEntity.attributes.collect {
       case MetaAttribute(refAttr, CardSet, _, _, Some(ref), _, _, _, _, _, _, _) =>
@@ -75,10 +78,10 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
           (joinTable, s"${ref}_$id2", ref),
         )
         s"""CREATE TABLE IF NOT EXISTS $joinTable (
-           |      |  $ref1 BIGINT,
-           |      |  $ref2 BIGINT
-           |      |);
-           |      |"""
+           |  $ref1 BIGINT,
+           |  $ref2 BIGINT
+           |);
+           |""".stripMargin
     }
 
     table +: joinTables
@@ -88,11 +91,14 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
     s + (if (dialect.reservedKeyWords.contains(s.toLowerCase)) "_" else "")
   }
 
-  protected def tables(dialect: Dialect): String = {
+  protected def getTables(dialect: Dialect): String = {
     hasReserved = false
     reservedEntities = Array.empty[Byte]
     reservedAttrs = Array.empty[Byte]
     reservedEntityAttrs = Array.empty[String]
+
+    val entityMax = entities.map(_.entity.length).max
+    val pEntity   = (ent: String) => " " * (entityMax - ent.length)
 
     val tableDefinitions = entities.flatMap { entity =>
       val reservedEntity: Byte =
@@ -100,7 +106,7 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
       reservedEntities = reservedEntities :+ reservedEntity
       val result = createTable(entity, dialect)
       reservedEntityAttrs = reservedEntityAttrs :+
-        reservedAttrs.mkString(s"\n    // ${entity.entity}\n    ", ", ", "")
+        reservedAttrs.mkString(s"/* ${entity.entity}${pEntity(entity.entity)} */   ", ", ", "")
       reservedAttrs = Array.empty[Byte]
       result
     }
@@ -137,24 +143,26 @@ abstract class Schema_SqlBase(metaDomain: MetaDomain) extends RegexMatching with
           val constraint = s"${quote}_$refAttr2" + padS(m4, refAttr2)
           s"-- ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id);"
       }.mkString(
-        "-- Optional reference constraints to avoid orphan relationships (add manually)\n|      |",
-        "\n|      |",
-        "\n|      |"
+        "-- Optional reference constraints to avoid orphan relationships (add manually)\n",
+        "\n",
+        "\n"
       ))
     }
 
-    (tableDefinitions ++ foreignKeys).mkString("\n|      |")
+    (tableDefinitions ++ foreignKeys).mkString("\n")
   }
 
   protected def getReserved = if (hasReserved) {
     s"""
        |
+       |  /** Indexes to lookup if entity names collide with db keyword */
+       |  override val reservedEntities: IArray[Byte] = IArray(
+       |    ${reservedEntities.mkString(", ")}
+       |  )
        |
-       |  // Indexes to lookup if entity/attribute names collides with db keyword
-       |
-       |  override val reservedEntities: IArray[Byte] = IArray(${reservedEntities.mkString(", ")})
-       |
-       |  override val reservedAttributes: IArray[Byte] = IArray(${reservedEntityAttrs.mkString(",\n    ")}
+       |  /** Indexes to lookup if attribute names collide with db keyword */
+       |  override val reservedAttributes: IArray[Byte] = IArray(
+       |    ${reservedEntityAttrs.mkString(",\n    ")}
        |  )""".stripMargin
   } else ""
 }
