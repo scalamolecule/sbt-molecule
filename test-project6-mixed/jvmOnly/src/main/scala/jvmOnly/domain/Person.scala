@@ -3,7 +3,7 @@ package jvmOnly.domain
 import molecule.DomainStructure
 
 
-object Person extends DomainStructure(2) {
+object Person extends DomainStructure {
 
   trait Person {
     val name = oneString
