@@ -71,8 +71,6 @@ object RenderDomain extends TestSuite {
       //
       //      SchemaBase(types).get ==> "check"
 
-      //      Schema_Datomic(types).get ==> "check"
-      //      Schema_Datomic(refs).get ==> "check"
       //            Schema_MariaDB(types).get ==> "check"
       //      Schema_MariaDB(starwars).get ==> "check"
       //      Schema_SQlite(types).get ==> "check"

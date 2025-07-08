@@ -17,10 +17,10 @@ case class Db_Mysql(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |package $pkg.$domain.metadb
         |
         |import molecule.base.metaModel.*
-        |import molecule.db.core.api.*
+        |import molecule.db.common.api.*
         |
         |
-        |object ${domain}_MetaDb_mysql extends ${domain}_MetaDb with MetaDb_mysql {
+        |case class ${domain}_MetaDb_mysql() extends ${domain}_MetaDb with MetaDb_mysql {
         |
         |  override val schemaResourcePath: String = "${schemaResourcePath("mysql.sql")}"$getReserved
         |}""".stripMargin

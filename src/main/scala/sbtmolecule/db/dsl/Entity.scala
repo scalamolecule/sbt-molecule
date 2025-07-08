@@ -34,8 +34,8 @@ case class Entity(
        |package $pkg.$domain
        |
        |import molecule.core.dataModel.{AttrOneTacID as _AttrOneTacID, DataModel as _DataModel, Eq as _Eq, OptEntity as _OptEntity}
-       |import molecule.db.core.api.*
-       |import molecule.db.core.ops.ModelTransformations_.*
+       |import molecule.db.common.api.*
+       |import molecule.db.common.ops.ModelTransformations_.*
        |
        |
        |object $entity extends ops.${entity}_0(_DataModel(Nil, firstEntityIndex = 0)) {

@@ -257,21 +257,15 @@ case class ParseDomainStructure(
 
       // Options ................................................
 
-      case q"$prev.index"          => acc(pp, entity, prev, a.copy(options = a.options :+ "index"))
-      case q"$prev.noHistory"      => acc(pp, entity, prev, a.copy(options = a.options :+ "noHistory"))
-      case q"$prev.uniqueIdentity" => acc(pp, entity, prev, a.copy(options = a.options :+ "uniqueIdentity"))
-      case q"$prev.unique"         => acc(pp, entity, prev, a.copy(options = a.options :+ "unique"))
-      case q"$prev.fulltext"       => acc(pp, entity, prev, a.copy(options = a.options :+ "fulltext"))
-      case q"$prev.owner"          => acc(pp, entity, prev, a.copy(options = a.options :+ "owner"))
-      case q"$prev.mandatory"      => acc(pp, entity, prev, a.copy(options = a.options :+ "mandatory"))
+      case q"$prev.index"     => acc(pp, entity, prev, a.copy(options = a.options :+ "index"))
+      case q"$prev.unique"    => acc(pp, entity, prev, a.copy(options = a.options :+ "unique"))
+      case q"$prev.owner"     => acc(pp, entity, prev, a.copy(options = a.options :+ "owner"))
+      case q"$prev.mandatory" => acc(pp, entity, prev, a.copy(options = a.options :+ "mandatory"))
 
-      case q"$prev.index(${Lit.String(s)})"          => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "index"))
-      case q"$prev.noHistory(${Lit.String(s)})"      => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "noHistory"))
-      case q"$prev.uniqueIdentity(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "uniqueIdentity"))
-      case q"$prev.unique(${Lit.String(s)})"         => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "unique"))
-      case q"$prev.fulltext(${Lit.String(s)})"       => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "fulltext"))
-      case q"$prev.owner(${Lit.String(s)})"          => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "owner"))
-      case q"$prev.mandatory(${Lit.String(s)})"      => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "mandatory"))
+      case q"$prev.index(${Lit.String(s)})"     => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "index"))
+      case q"$prev.unique(${Lit.String(s)})"    => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "unique"))
+      case q"$prev.owner(${Lit.String(s)})"     => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "owner"))
+      case q"$prev.mandatory(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s); acc(pp, entity, prev, a.copy(options = a.options :+ "mandatory"))
 
       case q"$prev.descr(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s)
       case q"$prev.apply(${Lit.String(s)})" => saveDescr(pp, entity, prev, a, attr, s)
@@ -294,7 +288,6 @@ case class ParseDomainStructure(
         }
       }
 
-// query, save, insert, update, ----> upsert <----, delete, a1, a2, a3, a4, a5, d1, d2, d3, d4, d5, apply, not, has, hasNo, add, remove, id, dataModel
       // Refs ................................................
 
       case q"one[$refEnt0]" =>

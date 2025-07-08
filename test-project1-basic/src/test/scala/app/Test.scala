@@ -3,10 +3,10 @@ package app
 import java.sql.DriverManager
 import app.domain.dsl.Bar.metadb.Bar_MetaDb_h2
 import app.domain.dsl.Foo.metadb.Foo_MetaDb_h2
-import molecule.db.core.api.MetaDb
-import molecule.db.core.marshalling.JdbcProxy
-import molecule.db.sql.core.facade.{JdbcConn_JVM, JdbcHandler_JVM}
-import molecule.db.sql.h2.sync.*
+import molecule.db.common.api.MetaDb
+import molecule.db.common.facade.{JdbcConn_JVM, JdbcHandler_JVM}
+import molecule.db.common.marshalling.JdbcProxy
+import molecule.db.h2.sync.*
 import utest.*
 
 object Test extends TestSuite {
@@ -24,25 +24,18 @@ object Test extends TestSuite {
 
     "bar" - {
       import app.domain.dsl.Bar.*
-      implicit val conn: JdbcConn_JVM = getConn(Bar_MetaDb_h2)
+      implicit val conn: JdbcConn_JVM = getConn(Bar_MetaDb_h2())
 
-      Person.name("Bob").age(42).tpe("x").save.i.transact
-      Person.name.age.tpe.query.i.get ==> List(("Bob", 42, "x"))
+Person.name("Bob").age(42).save.i.transact
+Person.name.age.query.i.get ==> List(("Bob", 42))
     }
 
     "foo" - {
       import app.domain.dsl.Foo.*
-      implicit val conn: JdbcConn_JVM = getConn( Foo_MetaDb_h2)
+      implicit val conn: JdbcConn_JVM = getConn(Foo_MetaDb_h2())
 
       Person.name("Liz").age(38).save.transact
       Person.name.age.query.get ==> List(("Liz", 38))
-
-      // Pass enum value (is saved as String in the database)
-      Person.favoriteColor(Color.BLUE).save.transact
-
-      // Enum as string returned
-      Person.favoriteColor.query.get ==> List("BLUE")
-      Person.favoriteColor.query.get ==> List(Color.BLUE.toString)
     }
   }
 }

@@ -23,11 +23,7 @@ case class MetaDb_(metaDomain: MetaDomain) {
       val maxEntity = entities.map(_._1.length).max
       entities.map { case (entity, mandatoryAttrs) =>
         val fullAttrs = mandatoryAttrs.map(attr => s"$entity.$attr").mkString("\", \"")
-//        val fullAttrs = mandatoryAttrs.map(attr => s"$attr").mkString("\", \"")
         s""""$entity"${padS(maxEntity, entity)} -> List("$fullAttrs")"""
-
-//        s""""$entity"${padS(maxEntity, entity)} -> List("${mandatoryAttrs.mkString("\", \"")}")"""
-
       }.mkString(pad, s",$pad", s"\n$p")
     }
     s"Map($pairs)"
@@ -110,7 +106,7 @@ case class MetaDb_(metaDomain: MetaDomain) {
     val attrs    = for {
       segment <- metaDomain.segments
       entity <- segment.entities
-      attr <- entity.attributes if attr.options.exists(s => s == "unique" || s == "uniqueIdentity")
+      attr <- entity.attributes if attr.options.contains("unique")
     } yield {
       s""""${entity.entity}.${attr.attribute}""""
     }
@@ -124,7 +120,7 @@ case class MetaDb_(metaDomain: MetaDomain) {
         |package $pkg.$domain.metadb
         |
         |import molecule.base.metaModel.*
-        |import molecule.db.core.api.MetaDb
+        |import molecule.db.common.api.MetaDb
         |
         |trait ${domain}_MetaDb extends MetaDb {
         |

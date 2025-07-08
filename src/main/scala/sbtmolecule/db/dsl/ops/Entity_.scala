@@ -49,9 +49,9 @@ case class Entity_(
        |import molecule.base.metaModel.*
        |import molecule.core.dataModel as _dm
        |import molecule.core.dataModel.*
-       |import molecule.db.core.api.*
-       |import molecule.db.core.api.expression.*
-       |import molecule.db.core.ops.ModelTransformations_.*
+       |import molecule.db.common.api.*
+       |import molecule.db.common.api.expression.*
+       |import molecule.db.common.ops.ModelTransformations_.*
        |import scala.Tuple.:*
        |
        |

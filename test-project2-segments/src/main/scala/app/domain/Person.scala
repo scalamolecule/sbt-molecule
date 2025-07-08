@@ -2,7 +2,7 @@ package app.domain
 
 import molecule.DomainStructure
 
-object Person extends DomainStructure(5) {
+object Person extends DomainStructure {
 
   object male {
     trait Character {
@@ -22,7 +22,7 @@ object Person extends DomainStructure(5) {
 
   object story {
     trait Conversation {
-      val says = oneString.noHistory.descr("hi there")
+      val says = oneString.descr("hi there")
     }
   }
 }

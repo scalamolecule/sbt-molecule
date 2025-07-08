@@ -64,7 +64,6 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
       IO.write(domainDir / "ops" / s"${ent}_.scala", entity_)
     }
 
-    val datomic  = Db_Datomic(metaDomain)
     val h2       = Db_H2(metaDomain)
     val mariadb  = Db_MariaDB(metaDomain)
     val mysql    = Db_Mysql(metaDomain)
@@ -73,7 +72,6 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
 
     val metadb = domainDir / "metadb"
     IO.write(metadb / s"${domain}_MetaDb.scala", MetaDb_(metaDomain).getMeta)
-    IO.write(metadb / s"${domain}_MetaDb_datomic.scala", datomic.get)
     IO.write(metadb / s"${domain}_MetaDb_h2.scala", h2.get)
     IO.write(metadb / s"${domain}_MetaDb_mariadb.scala", mariadb.get)
     IO.write(metadb / s"${domain}_MetaDb_mysql.scala", mysql.get)
@@ -82,7 +80,6 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
 
 //    val schema = domainDir / "schema"
     val resources = resourcesDir / domain
-    IO.write(resources / s"${domain}_Schema_datomic.edn", datomic.getEDN)
     IO.write(resources / s"${domain}_Schema_h2.sql", h2.getSQL)
     IO.write(resources / s"${domain}_Schema_mariadb.sql", mariadb.getSQL)
     IO.write(resources / s"${domain}_Schema_mysql.sql", mysql.getSQL)

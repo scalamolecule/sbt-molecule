@@ -38,10 +38,10 @@ case class Db_PostgreSQL(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |package $pkg.$domain.metadb
         |
         |import molecule.base.metaModel.*
-        |import molecule.db.core.api.*
+        |import molecule.db.common.api.*
         |
         |
-        |object ${domain}_MetaDb_postgres extends ${domain}_MetaDb with MetaDb_postgres {
+        |case class ${domain}_MetaDb_postgres() extends ${domain}_MetaDb with MetaDb_postgres {
         |
         |  override val schemaResourcePath: String = "${schemaResourcePath("postgres.sql")}"$getReserved
         |}""".stripMargin
