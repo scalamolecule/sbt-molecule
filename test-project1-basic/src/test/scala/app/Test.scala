@@ -26,8 +26,8 @@ object Test extends TestSuite {
       import app.domain.dsl.Bar.*
       implicit val conn: JdbcConn_JVM = getConn(Bar_MetaDb_h2())
 
-Person.name("Bob").age(42).save.i.transact
-Person.name.age.query.i.get ==> List(("Bob", 42))
+      Person.name("Bob").age(42).save.i.transact
+      Person.name.age.query.i.get ==> List(("Bob", 42))
     }
 
     "foo" - {
