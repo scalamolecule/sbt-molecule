@@ -7,7 +7,7 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.19.0",
+    version := "1.19.1",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
@@ -23,6 +23,11 @@ lazy val root = (project in file("."))
 
       "com.lihaoyi" %% "utest" % "0.8.5" % Test
     ),
+
+    // Ensure expected scalameta version is used for parsing DomainStructure files in this plugin
+    // (older incompatible versions could be used by Metals or other parts of user code)
+    dependencyOverrides += "org.scalameta" %% "scalameta" % "4.9.0",
+
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )
   .settings(publishSettings)

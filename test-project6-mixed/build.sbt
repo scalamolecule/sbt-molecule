@@ -3,7 +3,7 @@ name := "test-project6-mixed"
 
 inThisBuild(
   List(
-    version := "1.19.0",
+    version := "1.19.1",
     organization := "org.scalamolecule",
     scalaVersion := "3.7.1",
     libraryDependencies ++= Seq(
