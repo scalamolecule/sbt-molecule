@@ -7,16 +7,10 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.19.2",
+    version := "1.19.3",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
-      //      "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalameta" %% "common" % "4.9.0",
-      "org.scalameta" %% "parsers" % "4.9.0",
-      "org.scalameta" % "scalafmt-interfaces" % "3.9.8",
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalameta" %% "trees" % "4.9.0",
-
       "org.scalamolecule" %% "molecule-base" % "0.24.0",
 
       "com.lihaoyi" %% "requests" % "0.9.0",
@@ -28,16 +22,6 @@ lazy val root = (project in file("."))
       "com.github.ghostdogpr" %% "caliban-client" % calibanVersion,
 
       "com.lihaoyi" %% "utest" % "0.8.5" % Test
-    ),
-
-    // Ensure expected scalameta version is used for parsing DomainStructure files in this plugin
-    // Prevent sbt dependency resolution pick a lower version that some other plugin uses
-    dependencyOverrides ++= Seq(
-      "org.scalameta" %% "common" % "4.9.0",
-      "org.scalameta" %% "parsers" % "4.9.0",
-      "org.scalameta" % "scalafmt-interfaces" % "3.9.8",
-      "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalameta" %% "trees" % "4.9.0",
     ),
 
     testFrameworks += new TestFramework("utest.runner.Framework"),

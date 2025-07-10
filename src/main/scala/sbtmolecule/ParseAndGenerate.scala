@@ -7,11 +7,6 @@ import sbtmolecule.graphql.ParseGraphqlSchema
 import scala.meta.*
 
 case class ParseAndGenerate(filePath: String) {
-
-  val actual = classOf[scala.meta.Tree].getPackage.getImplementationVersion
-  require(actual == "4.9.0", s"Incompatible scalameta version: $actual (expected 4.9.0)")
-
-
   private val bytes       = Files.readAllBytes(Paths.get(filePath))
   private val content     = new String(bytes, "UTF-8")
   private val virtualFile = Input.VirtualFile(filePath, content)
@@ -22,33 +17,25 @@ case class ParseAndGenerate(filePath: String) {
     case Pkg(pkg, afterPkg) => (pkg.toString, afterPkg)
   }.getOrElse(throw new Exception(s"Missing package definition in file $filePath:\n" + tree))
 
-
-  // Use Scala Meta to find definition files:
   def generate(srcManaged: File, resourcesDir: File): Option[(String, String)] = afterPkg.collectFirst {
-    // object MyDefFile extends DomainStructure
-    case Defn.Object(Nil, Term.Name(domain), Template.internal.Latest(_, List(Init.internal.Latest(
-    Type.Name("DomainStructure"), _, Nil)), _, body, _)) =>
-      val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
+    case q"object $domain extends DomainStructure { ..$body }" =>
+      val metaDomain = ParseDomainStructure(filePath, pkg, domain.value, body).getMetaDomain
       GenerateSourceFiles_db(metaDomain).generate(srcManaged, resourcesDir)
-      (pkg, domain)
+      (pkg, domain.value)
 
-    // object MyDefFile extends Graphql("url or filePath")
-    case Defn.Object(Nil, Term.Name(domain), Template.internal.Latest(_, List(Init.internal.Latest(
-    Type.Name("Graphql"), _, List(Term.ArgClause(List(Lit.String(urlOrPath)), _)))), _, _, _)) =>
-      val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
-      GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
-      (pkg, domain)
+    case q"object $domain extends Graphql($urlOrPath)" =>
+      val doc = ParseGraphqlSchema(filePath, domain.value, urlOrPath.children.head.text).getDoc
+      GenerateSourceFiles_graphql(doc, pkg, domain.value).generate(srcManaged)
+      (pkg, domain.value)
   }
 
 
-  def extract: (String, String, List[Stat], String) = afterPkg.collectFirst {
-    case Defn.Object(Nil, Term.Name(domain), Template.internal.Latest(_, List(Init.internal.Latest(
-    Type.Name(defFile@("DomainStructure" | "Graphql")), _, args)), _, body, _)) =>
-      val urlOrPath = args match {
-        case List(Term.ArgClause(List(Lit.String(urlOrPath)), _)) => urlOrPath
-        case _                                                    => ""
-      }
-      (domain, defFile, body, urlOrPath)
+  def extract: (String, String, Seq[Stat], String) = afterPkg.collectFirst {
+    case q"object $domain extends DomainStructure { ..$body }" =>
+      (domain.value, "DomainStructure", body, "")
+
+    case q"object $domain extends Graphql($urlOrPath)" =>
+      (domain.value, "Graphql", Nil, urlOrPath.children.head.text)
   }.getOrElse(
     throw new Exception(
       s"Couldn't find matching source tree for $filePath:" +

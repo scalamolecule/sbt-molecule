@@ -10,7 +10,7 @@ case class ParseDomainStructure(
   filePath: String,
   pkg: String,
   domain: String,
-  body: List[Stat]
+  body: Seq[Stat]
 ) extends BaseHelpers {
 
   private val reservedAttrNames = List(
@@ -93,7 +93,7 @@ case class ParseDomainStructure(
     MetaDomain(pkg, domain, segments2)
   }
 
-  private def checkCircularMandatoryRefs(segments: List[MetaSegment]): Unit = {
+  private def checkCircularMandatoryRefs(segments: Seq[MetaSegment]): Unit = {
     val mappings: Map[String, List[(String, String)]] = segments
       .flatMap(_.entities
         .filter(_.attributes.exists(ref =>
@@ -133,16 +133,16 @@ case class ParseDomainStructure(
     if (entity.contains(".")) entity.replace(".", "_") else segmentPrefix + entity
   }
 
-  private def addBackRefs(segments: List[MetaSegment]): List[MetaSegment] = {
+  private def addBackRefs(segments: Seq[MetaSegment]): List[MetaSegment] = {
     segments.map { segment =>
       val entities1 = segment.entities.map { entity =>
         entity.copy(backRefs = backRefs.getOrElse(entity.entity, Nil).distinct.sorted)
       }
       segment.copy(entities = entities1)
     }
-  }
+  }.toList
 
-  private def getEntities(segmentPrefix: String, entities: List[Stat]): List[MetaEntity] = {
+  private def getEntities(segmentPrefix: String, entities: Seq[Stat]): List[MetaEntity] = {
     entities.flatMap {
       case q"trait $entityTpe { ..$attrs }" =>
         Some(getEntity(segmentPrefix, entityTpe, attrs.toList))
@@ -151,9 +151,9 @@ case class ParseDomainStructure(
       case q"object $o { ..$_ }"                       => noMix()
       case other                                       => unexpected(other)
     }
-  }
+  }.toList
 
-  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: List[Stat]): MetaEntity = {
+  private def getEntity(segmentPrefix: String, entityTpe: Name, attrs: Seq[Stat]): MetaEntity = {
     val entity = entityTpe.toString
     if (entity.head.isLower) {
       err(s"Please change entity trait name `$entity` to start with upper case letter.")
@@ -194,12 +194,12 @@ case class ParseDomainStructure(
     MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs)
   }
 
-  def marked(keywords: List[String], keyword: String) = keywords.map{
+  def marked(keywords: Seq[String], keyword: String) = keywords.map{
     case `keyword` => s"\u001b[41;37;1m $keyword \u001b[0m" // red background + white text + bold
     case other     => other
   }
 
-  private def getAttrs(segmentPrefix: String, entity: String, attrs: List[Stat]): List[MetaAttribute] = {
+  private def getAttrs(segmentPrefix: String, entity: String, attrs: Seq[Stat]): List[MetaAttribute] = {
     attrs.flatMap {
       case q"val $attr = $defs" =>
         val attrStr = attr.toString
@@ -222,7 +222,7 @@ case class ParseDomainStructure(
       case Defn.Enum.After_4_6_0(_, name, _, _, templ) => parseEnum[MetaAttribute](name, templ)
       case other                                       => unexpected(other)
     }
-  }
+  }.toList
 
   def parseEnum[T](name: Type.Name, templ: Template): Option[T] = {
     val enumName = name.value
