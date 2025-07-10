@@ -10,7 +10,6 @@ object RenderDomain extends TestSuite {
   lazy val resourcePath = projectRoot + "/src/main/resources/"
 
 
-
   //  lazy val cardinalities = ParseAndGenerate(basePath + "Cardinalities.scala").generate.get
   //  lazy val starwars      = ParseAndGenerate(basePath + "Starwars.scala").generate.get
   lazy val types      = ParseAndGenerate(basePath + "Types.scala").metaDomain
@@ -26,9 +25,9 @@ object RenderDomain extends TestSuite {
 
     "DSL" - {
 
-      validation.printMetaDb
+      //      validation.printMetaDb
       //      refs.printMetaDb
-      //      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
+      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
       //      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)

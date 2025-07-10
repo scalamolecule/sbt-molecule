@@ -7,6 +7,11 @@ import sbtmolecule.graphql.ParseGraphqlSchema
 import scala.meta.*
 
 case class ParseAndGenerate(filePath: String) {
+
+  val actual = classOf[scala.meta.Tree].getPackage.getImplementationVersion
+  require(actual == "4.9.0", s"Incompatible scalameta version: $actual (expected 4.9.0)")
+
+
   private val bytes       = Files.readAllBytes(Paths.get(filePath))
   private val content     = new String(bytes, "UTF-8")
   private val virtualFile = Input.VirtualFile(filePath, content)
@@ -34,82 +39,6 @@ case class ParseAndGenerate(filePath: String) {
       GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
       (pkg, domain)
   }
-
-  //    extract.map {
-  //      case (domain, defFile, body, urlOrPath) =>
-  //        // Generate boilerplate files
-  //        defFile match {
-  //          case "DomainStructure" =>
-  //            val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
-  //            GenerateSourceFiles_db(metaDomain).generate(srcManaged)
-  //
-  //          case "Graphql" =>
-  //            val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
-  //            GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
-  //        }
-  //        (pkg, domain)
-  //    }
-  //  }
-  //
-  //
-  //  def extract: Option[(String, String, List[Stat], String)] = {
-  //    afterPkg.collectFirst {
-  //      // Use Scala Meta to find definition files:
-  //      // object MyDefFile extends DomainStructure(6)
-  //      // object MyDefFile extends Graphql(6) // adjacent graphql schema
-  //      // object MyDefFile extends Graphql(6, "url")
-  //      // object MyDefFile extends Graphql(6, "filePath")
-  //      case Defn.Object(_, Term.Name(domain),
-  //      Template.internal.Latest(_,
-  //      List(Init.internal.Latest(
-  //      Type.Name(defFile), _,
-  //      //      List(Term.ArgClause(args, _))
-  //      params
-  //      )), _, body, _)
-  //      ) =>
-  //        defFile match {
-  //          case "DomainStructure" =>
-  //            val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
-  //            GenerateSourceFiles_db(metaDomain).generate(srcManaged)
-  //
-  //          case "Graphql" =>
-  //            val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
-  //            GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
-  //        }
-  //
-  //
-  //        params match {
-  //          case List(Term.ArgClause(args, _)) =>
-  //
-  //            val (maxArity, urlOrPath) = args match {
-  //              case List(Lit.Int(maxArity))                        => (maxArity, "")
-  //              case List(Lit.Int(maxArity), Lit.String(urlOrPath)) => (maxArity, urlOrPath)
-  //            }
-  //            (domain, defFile, body, urlOrPath)
-  //          case other                         =>
-  //            println(other)
-  //
-  //            ???
-  //        }
-  //    }
-  //  }
-  //
-  //
-  //  def generateX(srcManaged: File): Option[(String, String)] = {
-  //    val (domain, defFile, body, maxArity, urlOrPath) = extract
-  //    if (maxArity > 0) {
-  //      defFile match {
-  //        case "DomainStructure" =>
-  //          val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
-  //          GenerateSourceFiles_db(metaDomain).generate(srcManaged)
-  //
-  //        case "Graphql" =>
-  //          val doc = ParseGraphqlSchema(filePath, domain, urlOrPath).getDoc
-  //          GenerateSourceFiles_graphql(doc, pkg, domain).generate(srcManaged)
-  //      }
-  //      Some((pkg, domain))
-  //    } else None
-  //  }
 
 
   def extract: (String, String, List[Stat], String) = afterPkg.collectFirst {

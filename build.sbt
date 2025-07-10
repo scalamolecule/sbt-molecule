@@ -7,10 +7,16 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.19.1",
+    version := "1.19.2",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
+      //      "org.scalameta" %% "scalameta" % "4.9.0",
+      "org.scalameta" %% "common" % "4.9.0",
+      "org.scalameta" %% "parsers" % "4.9.0",
+      "org.scalameta" % "scalafmt-interfaces" % "3.9.8",
       "org.scalameta" %% "scalameta" % "4.9.0",
+      "org.scalameta" %% "trees" % "4.9.0",
+
       "org.scalamolecule" %% "molecule-base" % "0.24.0",
 
       "com.lihaoyi" %% "requests" % "0.9.0",
@@ -25,8 +31,14 @@ lazy val root = (project in file("."))
     ),
 
     // Ensure expected scalameta version is used for parsing DomainStructure files in this plugin
-    // (older incompatible versions could be used by Metals or other parts of user code)
-    dependencyOverrides += "org.scalameta" %% "scalameta" % "4.9.0",
+    // Prevent sbt dependency resolution pick a lower version that some other plugin uses
+    dependencyOverrides ++= Seq(
+      "org.scalameta" %% "common" % "4.9.0",
+      "org.scalameta" %% "parsers" % "4.9.0",
+      "org.scalameta" % "scalafmt-interfaces" % "3.9.8",
+      "org.scalameta" %% "scalameta" % "4.9.0",
+      "org.scalameta" %% "trees" % "4.9.0",
+    ),
 
     testFrameworks += new TestFramework("utest.runner.Framework"),
   )
@@ -34,7 +46,6 @@ lazy val root = (project in file("."))
 
 lazy val publishSettings: Seq[Def.Setting[_]] = Seq(
   publishMavenStyle := true,
-  // pomIncludeRepository := (_ => false), // necessary for local snapshots?
   publishTo := {
     val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
     if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
