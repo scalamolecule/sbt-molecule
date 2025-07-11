@@ -12,6 +12,15 @@ case class Entity_Exprs(
   val ent_1 = entity + "_1"
   val ent_n = entity + "_n"
 
+  val sorts = List(
+    s"""// Sort result types ===========================================================================================
+       |
+       |class ${entity}_1_Sort   [T           ](dm: DataModel) extends ${entity}_1[T        ](dm) with ${entity}_Sort_1[T        ] with CardOne
+       |class ${entity}_1_SortOpt[T           ](dm: DataModel) extends ${entity}_1[Option[T]](dm) with ${entity}_Sort_1[Option[T]] with CardOne
+       |class ${entity}_n_Sort   [Tpl <: Tuple](dm: DataModel) extends ${entity}_n[Tpl      ](dm) with ${entity}_Sort_n[Tpl      ] with CardOne
+       |""".stripMargin
+  )
+
   val exprOne = if (attributes.exists(_.cardinality == CardOne)) {
     val cardOneAttrs = attributes.filter(_.cardinality == CardOne)
 
@@ -20,110 +29,100 @@ case class Entity_Exprs(
          |
          |class ${ent_1}_ExprOneMan[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1[T, [t] =>> $ent_1[t] & ${entity}_Sort_1[t] & CardOne]
-         |    with ${entity}_Sort_1[T] {
-         |  override val entity = [t] => (dm: DataModel) => new $ent_1[t](dm) with ${entity}_Sort_1[t] with CardOne
-         |}
+         |    with ExprOneMan_1[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
+         |    with ${entity}_Sort_1[T]
+         |
          |class ${ent_n}_ExprOneMan[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> $ent_n[tpl] & ${entity}_Sort_n[tpl] & CardOne]
-         |    with ${entity}_Sort_n[Tpl] {
-         |  override val entity = [tpl <: Tuple] => (dm: DataModel) => new $ent_n[tpl](dm) with ${entity}_Sort_n[tpl] with CardOne
-         |}
+         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
+         |    with ${entity}_Sort_n[Tpl]
+         |
          |
          |class ${ent_1}_ExprOneOpt[T](override val dataModel: DataModel)
          |  extends $ent_1[Option[T]](dataModel)
-         |    with ExprOneOpt[T, $ent_1[Option[T]]]((dm: DataModel) => new $ent_1[Option[T]](dm) with ${entity}_Sort_1[Option[T]] with CardOne)
+         |    with ExprOneOpt[T, ${entity}_1_SortOpt[T]]((dm: DataModel) => new ${entity}_1_SortOpt[T](dm))
          |    with ${entity}_Sort_1[Option[T]]
          |
          |class ${ent_n}_ExprOneOpt[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneOpt[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with ${entity}_Sort_n[Tpl] with CardOne)
+         |    with ExprOneOpt[T, ${entity}_n_Sort[Tpl]]((dm: DataModel) => new ${entity}_n_Sort[Tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
          |
          |
          |class ${ent_0}_ExprOneTac[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac[T, $ent_0] {
-         |  override val entity = (dm: DataModel) => new $ent_0(dm) with CardOne
-         |}
-         |class ${ent_1}_ExprOneTac[T](override val dataModel: DataModel)
-         |  extends $ent_1[T](dataModel)
-         |    with ExprOneTac[T, $ent_1[?]] {
-         |  override val entity = (dm: DataModel) => new $ent_1[T](dm) with CardOne
-         |}
+         |    with ExprOneTac[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with CardOne)
+         |
+         |class ${ent_1}_ExprOneTac[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprOneTac[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  CardOne)
+         |
          |class ${ent_n}_ExprOneTac[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac[T, $ent_n[?]] {
-         |  override val entity = (dm: DataModel) => new $ent_n[Tpl](dm) with CardOne
-         |}
+         |    with ExprOneTac[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
          |""".stripMargin
     )
 
     val string = if (cardOneAttrs.exists(_.baseTpe == "String")) List(
       s"""class ${ent_1}_ExprOneMan_String[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_String[T, [t] =>> $ent_1[t] & ${entity}_Sort_1[t] & CardOne]
-         |    with ${entity}_Sort_1[T] {
-         |  override val entity = [t] => (dm: DataModel) => new $ent_1[t](dm) with ${entity}_Sort_1[t] with CardOne
-         |}
+         |    with ExprOneMan_1_String[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
+         |    with ${entity}_Sort_1[T]
+         |
          |class ${ent_n}_ExprOneMan_String[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> $ent_n[tpl] & ${entity}_Sort_n[tpl] & CardOne]
-         |    with ${entity}_Sort_n[Tpl] {
-         |  override val entity = [tpl <: Tuple] => (dm: DataModel) => new $ent_n[tpl](dm) with ${entity}_Sort_n[tpl] with CardOne
-         |}
+         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
+         |    with ${entity}_Sort_n[Tpl]
+         |
          |
          |class ${ent_0}_ExprOneTac_String[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_String[T, $ent_0] {
-         |  override val entity = (dm: DataModel) => new $ent_0(dm) with CardOne
-         |}
-         |class ${ent_1}_ExprOneTac_String[T](override val dataModel: DataModel)
-         |  extends $ent_1[T](dataModel)
-         |    with ExprOneTac_String[T, $ent_1[?]] {
-         |  override val entity = (dm: DataModel) => new $ent_1[T](dm) with CardOne
-         |}
+         |    with ExprOneTac_String[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with CardOne)
+         |
+         |class ${ent_1}_ExprOneTac_String[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprOneTac_String[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  CardOne)
+         |
          |class ${ent_n}_ExprOneTac_String[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_String[T, $ent_n[?]] {
-         |  override val entity = (dm: DataModel) => new $ent_n[Tpl](dm) with CardOne
-         |}
+         |    with ExprOneTac_String[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
          |""".stripMargin
     ) else Nil
 
     val enum = if (cardOneAttrs.exists(_.enumTpe.isDefined)) List(
-      s"""class ${ent_1}_ExprOneMan_Enum[T](override val dataModel: DataModel)
-         |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Enum[T, [t] =>> $ent_1[t]]([t] => (dm: DataModel) => new $ent_1[t](dm) with ${entity}_Sort_1[t] with CardOne)
-         |    with ${entity}_Sort_1[T]
+      s"""class ${ent_1}_ExprOneMan_Enum[EnumType](override val dataModel: DataModel)
+         |  extends $ent_1[String](dataModel)
+         |    with ExprOneMan_1_Enum[EnumType, ${entity}_1_Sort[String]]((dm: DataModel) => new ${entity}_1_Sort[String](dm))
+         |    with ${entity}_Sort_1[String]
          |
-         |class ${ent_n}_ExprOneMan_Enum[T, Tpl <: Tuple](override val dataModel: DataModel)
+         |class ${ent_n}_ExprOneMan_Enum[EnumType, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Enum[T, Tpl, [tpl <: Tuple] =>> $ent_n[tpl]]([tpl <: Tuple] => (dm: DataModel) => new $ent_n[tpl](dm) with ${entity}_Sort_n[tpl] with CardOne)
+         |    with ExprOneMan_n_Enum[EnumType, ${entity}_n_Sort[Tpl]]((dm: DataModel) => new ${entity}_n_Sort[Tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
          |
-         |class ${ent_1}_ExprOneOpt_Enum[T](override val dataModel: DataModel)
-         |  extends $ent_1[Option[T]](dataModel)
-         |    with ExprOneOpt_Enum[T, $ent_1[Option[T]]]((dm: DataModel) => new $ent_1[Option[T]](dm) with ${entity}_Sort_1[Option[T]] with CardOne)
-         |    with ${entity}_Sort_1[Option[T]]
          |
-         |class ${ent_n}_ExprOneOpt_Enum[T, Tpl <: Tuple](override val dataModel: DataModel)
+         |class ${ent_1}_ExprOneOpt_Enum[EnumType](override val dataModel: DataModel)
+         |  extends $ent_1[Option[String]](dataModel)
+         |    with ExprOneOpt_Enum[EnumType, ${entity}_1_SortOpt[String]]((dm: DataModel) => new ${entity}_1_SortOpt[String](dm))
+         |    with ${entity}_Sort_1[Option[String]]
+         |
+         |class ${ent_n}_ExprOneOpt_Enum[EnumType, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneOpt_Enum[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with ${entity}_Sort_n[Tpl] with CardOne)
+         |    with ExprOneOpt_Enum[EnumType, ${entity}_n_Sort[Tpl]]((dm: DataModel) => new ${entity}_n_Sort[Tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
          |
-         |class ${ent_0}_ExprOneTac_Enum[T](override val dataModel: DataModel)
+         |
+         |class ${ent_0}_ExprOneTac_Enum[EnumType](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_Enum[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with ${entity}_Sort_1[T] with CardOne)
+         |    with ExprOneTac_Enum[EnumType, $ent_0]((dm: DataModel) => new $ent_0(dm) with CardOne)
          |
-         |class ${ent_1}_ExprOneTac_Enum[T](override val dataModel: DataModel)
-         |  extends $ent_1[T](dataModel)
-         |    with ExprOneTac_Enum[T, $ent_1[?]]((dm: DataModel) => new $ent_1[T](dm) with  CardOne)
+         |class ${ent_1}_ExprOneTac_Enum[S, EnumType](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprOneTac_Enum[EnumType, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  CardOne)
          |
-         |class ${ent_n}_ExprOneTac_Enum[T, Tpl <: Tuple](override val dataModel: DataModel)
+         |class ${ent_n}_ExprOneTac_Enum[EnumType, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_Enum[T, $ent_n[?]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
+         |    with ExprOneTac_Enum[EnumType, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
          |""".stripMargin
     ) else Nil
 
@@ -131,32 +130,26 @@ case class Entity_Exprs(
     val integer      = if (cardOneAttrs.exists(a => integerTypes.contains(a.baseTpe))) List(
       s"""class ${ent_1}_ExprOneMan_Integer[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Integer[T, [t] =>> $ent_1[t] & ${entity}_Sort_1[t] & CardOne]
-         |    with ${entity}_Sort_1[T] {
-         |  override val entity = [t] => (dm: DataModel) => new $ent_1[t](dm) with ${entity}_Sort_1[t] with CardOne
-         |}
+         |    with ExprOneMan_1_Integer[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
+         |    with ${entity}_Sort_1[T]
+         |
          |class ${ent_n}_ExprOneMan_Integer[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Integer[T, Tpl, [tpl <: Tuple] =>> $ent_n[tpl] & ${entity}_Sort_n[tpl] & CardOne]
-         |    with ${entity}_Sort_n[Tpl] {
-         |  override val entity = [tpl <: Tuple] => (dm: DataModel) => new $ent_n[tpl](dm) with ${entity}_Sort_n[tpl] with CardOne
-         |}
+         |    with ExprOneMan_n_Integer[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
+         |    with ${entity}_Sort_n[Tpl]
+         |
          |
          |class ${ent_0}_ExprOneTac_Integer[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_Integer[T, $ent_0] {
-         |  override val entity = (dm: DataModel) => new $ent_0(dm) with CardOne
-         |}
-         |class ${ent_1}_ExprOneTac_Integer[T](override val dataModel: DataModel)
-         |  extends $ent_1[T](dataModel)
-         |    with ExprOneTac_Integer[T, $ent_1[?]] {
-         |  override val entity = (dm: DataModel) => new $ent_1[T](dm) with CardOne
-         |}
+         |    with ExprOneTac_Integer[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with CardOne)
+         |
+         |class ${ent_1}_ExprOneTac_Integer[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprOneTac_Integer[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  CardOne)
+         |
          |class ${ent_n}_ExprOneTac_Integer[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_Integer[T, $ent_n[?]] {
-         |  override val entity = (dm: DataModel) => new $ent_n[Tpl](dm) with CardOne
-         |}
+         |    with ExprOneTac_Integer[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
          |""".stripMargin
     ) else Nil
 
@@ -164,32 +157,52 @@ case class Entity_Exprs(
     val decimal      = if (cardOneAttrs.exists(a => decimalTypes.contains(a.baseTpe))) List(
       s"""class ${ent_1}_ExprOneMan_Decimal[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Decimal[T, [t] =>> $ent_1[t] & ${entity}_Sort_1[t] & CardOne]
-         |    with ${entity}_Sort_1[T] {
-         |  override val entity = [t] => (dm: DataModel) => new $ent_1[t](dm) with ${entity}_Sort_1[t] with CardOne
-         |}
+         |    with ExprOneMan_1_Decimal[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
+         |    with ${entity}_Sort_1[T]
+         |
          |class ${ent_n}_ExprOneMan_Decimal[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Decimal[T, Tpl, [tpl <: Tuple] =>> $ent_n[tpl] & ${entity}_Sort_n[tpl] & CardOne]
-         |    with ${entity}_Sort_n[Tpl] {
-         |  override val entity = [tpl <: Tuple] => (dm: DataModel) => new $ent_n[tpl](dm) with ${entity}_Sort_n[tpl] with CardOne
-         |}
+         |    with ExprOneMan_n_Decimal[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
+         |    with ${entity}_Sort_n[Tpl]
+         |
+         |
+         |class ${ent_0}_ExprOneTac_Decimal[T](override val dataModel: DataModel)
+         |  extends $ent_0(dataModel)
+         |    with ExprOneTac_Decimal[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with CardOne)
+         |
+         |class ${ent_1}_ExprOneTac_Decimal[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprOneTac_Decimal[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  CardOne)
+         |
+         |class ${ent_n}_ExprOneTac_Decimal[T, Tpl <: Tuple](override val dataModel: DataModel)
+         |  extends $ent_n[Tpl](dataModel)
+         |    with ExprOneTac_Decimal[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
          |""".stripMargin
     ) else Nil
 
     val boolean = if (cardOneAttrs.exists(_.baseTpe == "Boolean")) List(
       s"""class ${ent_1}_ExprOneMan_Boolean[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Boolean[T, [t] =>> $ent_1[t] & ${entity}_Sort_1[t] & CardOne]
-         |    with ${entity}_Sort_1[T] {
-         |  override val entity = [t] => (dm: DataModel) => new $ent_1[t](dm) with ${entity}_Sort_1[t] with CardOne
-         |}
+         |    with ExprOneMan_1_Boolean[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
+         |    with ${entity}_Sort_1[T]
+         |
          |class ${ent_n}_ExprOneMan_Boolean[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Boolean[T, Tpl, [tpl <: Tuple] =>> $ent_n[tpl] & ${entity}_Sort_n[tpl] & CardOne]
-         |    with ${entity}_Sort_n[Tpl] {
-         |  override val entity = [tpl <: Tuple] => (dm: DataModel) => new $ent_n[tpl](dm) with ${entity}_Sort_n[tpl] with CardOne
-         |}
+         |    with ExprOneMan_n_Boolean[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
+         |    with ${entity}_Sort_n[Tpl]
+         |
+         |
+         |class ${ent_0}_ExprOneTac_Boolean[T](override val dataModel: DataModel)
+         |  extends $ent_0(dataModel)
+         |    with ExprOneTac_Boolean[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with CardOne)
+         |
+         |class ${ent_1}_ExprOneTac_Boolean[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprOneTac_Boolean[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  CardOne)
+         |
+         |class ${ent_n}_ExprOneTac_Boolean[T, Tpl <: Tuple](override val dataModel: DataModel)
+         |  extends $ent_n[Tpl](dataModel)
+         |    with ExprOneTac_Boolean[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  CardOne)
          |""".stripMargin
     ) else Nil
 
@@ -223,9 +236,9 @@ case class Entity_Exprs(
          |  extends $ent_0(dataModel)
          |    with ExprSetTac[T, $ent_0]((dm: DataModel) => new $ent_0(dm))
          |
-         |class ${ent_1}_ExprSetTac[T](override val dataModel: DataModel)
-         |  extends $ent_1[Set[T]](dataModel)
-         |    with ExprSetTac[T, $ent_1[Set[T]]]((dm: DataModel) => new $ent_1[Set[T]](dm))
+         |class ${ent_1}_ExprSetTac[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprSetTac[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm))
          |
          |class ${ent_n}_ExprSetTac[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
@@ -256,9 +269,9 @@ case class Entity_Exprs(
          |  extends $ent_0(dataModel)
          |    with ExprSetTac_Enum[T, $ent_0]((dm: DataModel) => new $ent_0(dm))
          |
-         |class ${ent_1}_ExprSetTac_Enum[T](override val dataModel: DataModel)
-         |  extends $ent_1[Set[T]](dataModel)
-         |    with ExprSetTac_Enum[T, $ent_1[Set[T]]]((dm: DataModel) => new $ent_1[Set[T]](dm))
+         |class ${ent_1}_ExprSetTac_Enum[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprSetTac_Enum[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm))
          |
          |class ${ent_n}_ExprSetTac_Enum[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
@@ -295,9 +308,9 @@ case class Entity_Exprs(
          |  extends $ent_0(dataModel)
          |    with ExprSeqTac[T, $ent_0]((dm: DataModel) => new $ent_0(dm))
          |
-         |class ${ent_1}_ExprSeqTac[T](override val dataModel: DataModel)
-         |  extends $ent_1[Seq[T]](dataModel)
-         |    with ExprSeqTac[T, $ent_1[Seq[T]]]((dm: DataModel) => new $ent_1[Seq[T]](dm))
+         |class ${ent_1}_ExprSeqTac[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprSeqTac[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm))
          |
          |class ${ent_n}_ExprSeqTac[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
@@ -328,9 +341,9 @@ case class Entity_Exprs(
          |  extends $ent_0(dataModel)
          |    with ExprSeqTac_Enum[T, $ent_0]((dm: DataModel) => new $ent_0(dm))
          |
-         |class ${ent_1}_ExprSeqTac_Enum[T](override val dataModel: DataModel)
-         |  extends $ent_1[Seq[T]](dataModel)
-         |    with ExprSeqTac_Enum[T, $ent_1[Seq[T]]]((dm: DataModel) => new $ent_1[Seq[T]](dm))
+         |class ${ent_1}_ExprSeqTac_Enum[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprSeqTac_Enum[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm))
          |
          |class ${ent_n}_ExprSeqTac_Enum[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
@@ -366,12 +379,11 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprBArTac[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac[T, $ent_0] {
-         |  override val entity = (dm: DataModel) => new $ent_0(dm)
-         |}
-         |class ${ent_1}_ExprBArTac[T](override val dataModel: DataModel)
-         |  extends $ent_1[Array[T]](dataModel)
-         |    with ExprBArTac[T, $ent_1[Array[T]]]((dm: DataModel) => new $ent_1[Array[T]](dm))
+         |    with ExprOneTac[T, $ent_0]((dm: DataModel) => new $ent_0(dm))
+         |
+         |class ${ent_1}_ExprBArTac[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprBArTac[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm))
          |
          |class ${ent_n}_ExprBArTac[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
@@ -407,9 +419,9 @@ case class Entity_Exprs(
          |  extends $ent_0(dataModel)
          |    with ExprMapTac[T, $ent_0]((dm: DataModel) => new $ent_0(dm))
          |
-         |class ${ent_1}_ExprMapTac[T](override val dataModel: DataModel)
-         |  extends $ent_1[Map[String, T]](dataModel)
-         |    with ExprMapTac[T, $ent_1[Map[String, T]]]((dm: DataModel) => new $ent_1[Map[String, T]](dm))
+         |class ${ent_1}_ExprMapTac[S, T](override val dataModel: DataModel)
+         |  extends $ent_1[S](dataModel)
+         |    with ExprMapTac[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm))
          |
          |class ${ent_n}_ExprMapTac[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
@@ -418,5 +430,5 @@ case class Entity_Exprs(
     )
   } else Nil
 
-  def get: String = (exprOne ++ exprSet ++ exprSeq ++ exprByteArray ++ exprMap).map(_.trim).mkString("\n\n\n")
+  def get: String = (sorts ++ exprOne ++ exprSet ++ exprSeq ++ exprByteArray ++ exprMap).map(_.trim).mkString("\n\n\n")
 }

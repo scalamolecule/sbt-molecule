@@ -84,13 +84,13 @@ case class Entity_Builder(
             (
               s"$baseType1$pad1, (T, $pad2        )",
               s"$baseType1$pad1, (T, Option[$pad2])",
-              s"$baseType1$pad1             $pad3  "
+              s"T, $baseType1$pad1          $pad3  "
             )
           case _ =>
             (
               s"$baseType1$pad1, Tpl :* $pad2        ",
               s"$baseType1$pad1, Tpl :* Option[$pad2]",
-              s"$baseType1$pad1, Tpl           $pad3 "
+              s"$baseType1$pad1, Tpl        $pad3 "
             )
         }
       }
@@ -99,7 +99,7 @@ case class Entity_Builder(
       lazy val elemsO = s"dataModel.add(${cleanAttr}_opt$padA)"
       lazy val elemsT = s"dataModel.add(${cleanAttr}_tac$padA)"
 
-      val filtersMan = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
+      val subType = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
         case _ if isEnum                                  => "_Enum   "
         case "String"                                     => "_String "
         case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer"
@@ -111,16 +111,9 @@ case class Entity_Builder(
       else
         "        "
 
+      val filtersMan = subType
       val filtersOpt = if (isEnum) "_Enum   " else "        "
-      val filtersTac = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
-        case _ if isEnum                                  => "_Enum   "
-        case "String"                                     => "_String "
-        case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer"
-        case _                                            => "        "
-      } else if (isEnum)
-        "_Enum   "
-      else
-        "        "
+      val filtersTac = subType
 
       lazy val exprM = s"Expr${c}Man$filtersMan[$tpesM]"
       lazy val exprO = s"Expr${c}Opt$filtersOpt[$tpesO]"

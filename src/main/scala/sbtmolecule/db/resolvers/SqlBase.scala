@@ -2,7 +2,7 @@ package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
 import molecule.base.util.{BaseHelpers, RegexMatching}
-import sbtmolecule.db.sqlDialect.{Dialect, Postgres}
+import sbtmolecule.db.sqlDialect.{Dialect, PostgreSQL}
 import scala.collection.mutable.ListBuffer
 
 
@@ -112,8 +112,8 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
     }
 
     val quote       = dialect match {
-      case _: Postgres.type => ""
-      case _                => "`"
+      case _: PostgreSQL.type => ""
+      case _                  => "`"
     }
     val foreignKeys = if (refs.isEmpty) Nil else {
       var m1 = 0

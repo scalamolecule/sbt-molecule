@@ -2,7 +2,7 @@ package sbtmolecule.db.sqlDialect
 
 import molecule.base.metaModel.*
 
-object Postgres extends Dialect {
+object PostgreSQL extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
     if (metaAttribute.attribute == "id")

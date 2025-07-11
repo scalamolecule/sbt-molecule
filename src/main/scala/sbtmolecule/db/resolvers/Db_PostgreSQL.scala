@@ -1,12 +1,12 @@
 package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
-import sbtmolecule.db.sqlDialect.Postgres
+import sbtmolecule.db.sqlDialect.PostgreSQL
 
 
 case class Db_PostgreSQL(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
 
-  val tables = getTables(Postgres)
+  val tables = getTables(PostgreSQL)
 
   def getSQL: String =
     s"""|$tables
@@ -41,8 +41,8 @@ case class Db_PostgreSQL(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |import molecule.db.common.api.*
         |
         |
-        |case class ${domain}_MetaDb_postgres() extends ${domain}_MetaDb with MetaDb_postgres {
+        |case class ${domain}_MetaDb_postgresql() extends ${domain}_MetaDb with MetaDb_postgresql {
         |
-        |  override val schemaResourcePath: String = "${schemaResourcePath("postgres.sql")}"$getReserved
+        |  override val schemaResourcePath: String = "${schemaResourcePath("postgresql.sql")}"$getReserved
         |}""".stripMargin
 }

@@ -17,7 +17,7 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
   def printEntity(metaEntity: MetaEntity): Unit = println(getEntityCode(metaEntity))
   def printEntityBuilder(metaEntity: MetaEntity): Unit = println(getEntityBuilderCode(metaEntity))
   def printMetaDb: Unit = {
-//    println(domainDir)
+    //    println(domainDir)
     println(getMetaDb)
   }
 
@@ -64,26 +64,26 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
       IO.write(domainDir / "ops" / s"${ent}_.scala", entity_)
     }
 
-    val h2       = Db_H2(metaDomain)
-    val mariadb  = Db_MariaDB(metaDomain)
-    val mysql    = Db_Mysql(metaDomain)
-    val postgres = Db_PostgreSQL(metaDomain)
-    val sqlite   = Db_SQlite(metaDomain)
+    val h2         = Db_H2(metaDomain)
+    val mariadb    = Db_MariaDB(metaDomain)
+    val mysql      = Db_MySQL(metaDomain)
+    val postgresql = Db_PostgreSQL(metaDomain)
+    val sqlite     = Db_SQlite(metaDomain)
 
     val metadb = domainDir / "metadb"
     IO.write(metadb / s"${domain}_MetaDb.scala", MetaDb_(metaDomain).getMeta)
     IO.write(metadb / s"${domain}_MetaDb_h2.scala", h2.get)
     IO.write(metadb / s"${domain}_MetaDb_mariadb.scala", mariadb.get)
     IO.write(metadb / s"${domain}_MetaDb_mysql.scala", mysql.get)
-    IO.write(metadb / s"${domain}_MetaDb_postgres.scala", postgres.get)
+    IO.write(metadb / s"${domain}_MetaDb_postgresql.scala", postgresql.get)
     IO.write(metadb / s"${domain}_MetaDb_sqlite.scala", sqlite.getMeta)
 
-//    val schema = domainDir / "schema"
+    //    val schema = domainDir / "schema"
     val resources = resourcesDir / domain
     IO.write(resources / s"${domain}_Schema_h2.sql", h2.getSQL)
     IO.write(resources / s"${domain}_Schema_mariadb.sql", mariadb.getSQL)
     IO.write(resources / s"${domain}_Schema_mysql.sql", mysql.getSQL)
-    IO.write(resources / s"${domain}_Schema_postgres.sql", postgres.getSQL)
+    IO.write(resources / s"${domain}_Schema_postgresql.sql", postgresql.getSQL)
     IO.write(resources / s"${domain}_Schema_sqlite.sql", sqlite.getSQL)
   }
 }

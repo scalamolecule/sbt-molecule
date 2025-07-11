@@ -2,7 +2,7 @@ package sbtmolecule.db.sqlDialect
 
 import molecule.base.metaModel.{CardOne, CardSeq, MetaAttribute}
 
-object Mysql extends Dialect {
+object MySQL extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
     if (metaAttribute.attribute == "id")

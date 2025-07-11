@@ -1,12 +1,12 @@
 package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
-import sbtmolecule.db.sqlDialect.Mysql
+import sbtmolecule.db.sqlDialect.MySQL
 
 
-case class Db_Mysql(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
+case class Db_MySQL(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
 
-  val tables = getTables(Mysql)
+  val tables = getTables(MySQL)
 
   def getSQL: String =
     s"""|$tables
