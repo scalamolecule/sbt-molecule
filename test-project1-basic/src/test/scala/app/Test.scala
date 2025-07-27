@@ -24,7 +24,7 @@ object Test extends TestSuite {
 
     "bar" - {
       import app.domain.dsl.Bar.*
-      implicit val conn: JdbcConn_JVM = getConn(Bar_MetaDb_h2())
+      given JdbcConn_JVM = getConn(Bar_MetaDb_h2())
 
       Person.name("Bob").age(42).save.i.transact
       Person.name.age.query.i.get ==> List(("Bob", 42))
@@ -32,10 +32,38 @@ object Test extends TestSuite {
 
     "foo" - {
       import app.domain.dsl.Foo.*
-      implicit val conn: JdbcConn_JVM = getConn(Foo_MetaDb_h2())
+      given JdbcConn_JVM = getConn(Foo_MetaDb_h2())
 
       Person.name("Liz").age(38).save.transact
       Person.name.age.query.get ==> List(("Liz", 38))
+    }
+
+    "types" - {
+      import molecule.db.h2.async.*
+      import molecule.db.common.util.Executor.*
+
+      import app.domain.dsl.Bar.*
+      given JdbcConn_JVM = getConn(Bar_MetaDb_h2())
+
+      val chatRoomQuery = Person.name.query
+      var chatRoomUI    = List.empty[String]
+      for {
+        _ <- Person.name("a").save.transact
+
+        _ <- chatRoomQuery.subscribe { updatedStrings =>
+          println("--- " + updatedStrings)
+          chatRoomUI = updatedStrings
+        }
+
+        _ <- Person.name("b").save.transact
+        _ <- Person.name("c").save.transact
+
+        _ <- chatRoomQuery.unsubscribe()
+        _ = chatRoomUI ==> List("a", "b", "c")
+
+        _ <- Person.name("x").save.transact
+        _ = chatRoomUI ==> List("a", "b", "c")
+      } yield ()
     }
   }
 }

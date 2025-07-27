@@ -10,7 +10,7 @@ import utest.*
 
 object Test extends TestSuite {
 
-  implicit val conn: JdbcConn_JVM = {
+  given JdbcConn_JVM = {
     val url     = "jdbc:h2:mem:test"
     Class.forName("org.h2.Driver") // Explicitly load the driver
     val proxy   = JdbcProxy(url, Person_MetaDb_h2())
