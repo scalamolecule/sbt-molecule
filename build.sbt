@@ -11,7 +11,7 @@ lazy val root = (project in file("."))
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalamolecule" %% "molecule-base" % "0.24.1",
+      "org.scalamolecule" %% "molecule-base" % "0.24.2",
 
       "com.lihaoyi" %% "requests" % "0.9.0",
       "com.lihaoyi" %% "upickle" % "4.2.1",
