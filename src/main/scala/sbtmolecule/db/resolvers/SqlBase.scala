@@ -18,7 +18,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
 
   val pkg    = metaDomain.pkg + ".dsl"
   val domain = metaDomain.domain
-  def schemaResourcePath(db: String) = s"moleculeGen/$domain/${domain}_Schema_$db"
+  def schemaResourcePath(db: String) = s"moleculeGen/$domain/${domain}_$db"
 
   val b0 = 0.toByte
   val b1 = 1.toByte

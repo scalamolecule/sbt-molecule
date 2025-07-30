@@ -20,7 +20,7 @@ case class Db_MySQL(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |import molecule.db.common.api.*
         |
         |
-        |case class ${domain}_MetaDb_mysql() extends ${domain}_MetaDb with MetaDb_mysql {
+        |case class ${domain}_mysql() extends ${domain}_ with MetaDb_mysql {
         |
         |  override val schemaResourcePath: String = "${schemaResourcePath("mysql.sql")}"$getReserved
         |}""".stripMargin

@@ -93,7 +93,7 @@ case class Db_H2(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |import molecule.db.common.api.*
         |
         |
-        |case class ${domain}_MetaDb_h2() extends ${domain}_MetaDb with MetaDb_h2 {
+        |case class ${domain}_h2() extends ${domain}_ with MetaDb_h2 {
         |
         |  /** Resource path to SQL schema file to create the database */
         |  override val schemaResourcePath: String = "${schemaResourcePath("h2.sql")}"$getReserved

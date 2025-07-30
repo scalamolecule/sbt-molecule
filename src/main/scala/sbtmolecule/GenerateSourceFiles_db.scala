@@ -71,19 +71,18 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     val sqlite     = Db_SQlite(metaDomain)
 
     val metadb = domainDir / "metadb"
-    IO.write(metadb / s"${domain}_MetaDb.scala", MetaDb_(metaDomain).getMeta)
-    IO.write(metadb / s"${domain}_MetaDb_h2.scala", h2.get)
-    IO.write(metadb / s"${domain}_MetaDb_mariadb.scala", mariadb.get)
-    IO.write(metadb / s"${domain}_MetaDb_mysql.scala", mysql.get)
-    IO.write(metadb / s"${domain}_MetaDb_postgresql.scala", postgresql.get)
-    IO.write(metadb / s"${domain}_MetaDb_sqlite.scala", sqlite.getMeta)
+    IO.write(metadb / s"${domain}_.scala", MetaDb_(metaDomain).getMeta)
+    IO.write(metadb / s"${domain}_h2.scala", h2.get)
+    IO.write(metadb / s"${domain}_mariadb.scala", mariadb.get)
+    IO.write(metadb / s"${domain}_mysql.scala", mysql.get)
+    IO.write(metadb / s"${domain}_postgresql.scala", postgresql.get)
+    IO.write(metadb / s"${domain}_sqlite.scala", sqlite.getMeta)
 
-    //    val schema = domainDir / "schema"
     val resources = resourcesDir / domain
-    IO.write(resources / s"${domain}_Schema_h2.sql", h2.getSQL)
-    IO.write(resources / s"${domain}_Schema_mariadb.sql", mariadb.getSQL)
-    IO.write(resources / s"${domain}_Schema_mysql.sql", mysql.getSQL)
-    IO.write(resources / s"${domain}_Schema_postgresql.sql", postgresql.getSQL)
-    IO.write(resources / s"${domain}_Schema_sqlite.sql", sqlite.getSQL)
+    IO.write(resources / s"${domain}_h2.sql", h2.getSQL)
+    IO.write(resources / s"${domain}_mariadb.sql", mariadb.getSQL)
+    IO.write(resources / s"${domain}_mysql.sql", mysql.getSQL)
+    IO.write(resources / s"${domain}_postgresql.sql", postgresql.getSQL)
+    IO.write(resources / s"${domain}_sqlite.sql", sqlite.getSQL)
   }
 }

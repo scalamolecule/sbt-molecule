@@ -20,7 +20,7 @@ case class Db_MariaDB(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |import molecule.db.common.api.*
         |
         |
-        |case class ${domain}_MetaDb_mariadb() extends ${domain}_MetaDb with MetaDb_mariadb {
+        |case class ${domain}_mariadb() extends ${domain}_ with MetaDb_mariadb {
         |
         |  override val schemaResourcePath: String = "${schemaResourcePath("mariadb.sql")}"$getReserved
         |}""".stripMargin

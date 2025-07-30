@@ -139,7 +139,7 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         |import molecule.db.common.api.*
         |
         |
-        |case class ${domain}_MetaDb_sqlite() extends ${domain}_MetaDb with MetaDb_sqlite {
+        |case class ${domain}_sqlite() extends ${domain}_ with MetaDb_sqlite {
         |
         |  override val schemaResourcePath: String = "${schemaResourcePath("sqlite.sql")}"$getReserved
         |}""".stripMargin

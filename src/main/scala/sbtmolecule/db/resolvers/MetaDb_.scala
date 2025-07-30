@@ -122,7 +122,7 @@ case class MetaDb_(metaDomain: MetaDomain) {
         |import molecule.base.metaModel.*
         |import molecule.db.common.api.MetaDb
         |
-        |trait ${domain}_MetaDb extends MetaDb {
+        |trait ${domain}_ extends MetaDb {
         |
         |  /** entity -> List[mandatory-attribute] */
         |  val mandatoryAttrs: Map[String, List[String]] = $mandatoryAttrs
