@@ -10,25 +10,23 @@ import sbtmolecule.db.resolvers.*
 
 case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
 
-  def getEntityCode(metaEntity: MetaEntity): String = Entity(metaDomain, metaEntity).get
-  def getEntityBuilderCode(metaEntity: MetaEntity): String = Entity_(metaDomain, metaEntity, 0, 0).get
-  def getMetaDb: String = MetaDb_(metaDomain).getMeta
+  // For testing only
+  def printEntity(metaEntity: MetaEntity): Unit = println(Entity(metaDomain, metaEntity).get)
+  def printEntityBuilder(metaEntity: MetaEntity): Unit = println(Entity_(metaDomain, metaEntity, 0, 0).get)
+  def printMetaDb: Unit = println(MetaDb_(metaDomain).getMeta)
 
-  def printEntity(metaEntity: MetaEntity): Unit = println(getEntityCode(metaEntity))
-  def printEntityBuilder(metaEntity: MetaEntity): Unit = println(getEntityBuilderCode(metaEntity))
-  def printMetaDb: Unit = {
-    //    println(domainDir)
-    println(getMetaDb)
-  }
 
-  def generate(srcManaged: File, resourcesDir: File): Unit = {
-    var entityIndex = 0
-    var attrIndex   = 0
-    val pkg         = metaDomain.pkg
-    val domain      = metaDomain.domain
-    val segments    = metaDomain.segments
-    val base        = pkg.split('.').toList.foldLeft(srcManaged)((dir, pkg) => dir / pkg)
-    val domainDir   = base / "dsl" / domain
+  def generate(srcManaged: File, resources: File): Unit = {
+    var entityIndex  = 0
+    var attrIndex    = 0
+    val pkg          = metaDomain.pkg
+    val domain       = metaDomain.domain
+    val segments     = metaDomain.segments
+    val pkgSegments  = pkg.split('.').toList
+    val domainBase   = pkgSegments.foldLeft(srcManaged)((dir, pkg) => dir / pkg)
+    val domainDir    = domainBase / "dsl" / domain
+    val resourceBase = pkgSegments.foldLeft(resources)((dir, pkg) => dir / pkg)
+    val resourceDir  = resourceBase / domain
 
     val segmentsWithoutEnums = segments.filter {
       case MetaSegment("_enums", entities) =>
@@ -78,11 +76,10 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     IO.write(metadb / s"${domain}_postgresql.scala", postgresql.get)
     IO.write(metadb / s"${domain}_sqlite.scala", sqlite.getMeta)
 
-    val resources = resourcesDir / domain
-    IO.write(resources / s"${domain}_h2.sql", h2.getSQL)
-    IO.write(resources / s"${domain}_mariadb.sql", mariadb.getSQL)
-    IO.write(resources / s"${domain}_mysql.sql", mysql.getSQL)
-    IO.write(resources / s"${domain}_postgresql.sql", postgresql.getSQL)
-    IO.write(resources / s"${domain}_sqlite.sql", sqlite.getSQL)
+    IO.write(resourceDir / s"${domain}_h2.sql", h2.getSQL)
+    IO.write(resourceDir / s"${domain}_mariadb.sql", mariadb.getSQL)
+    IO.write(resourceDir / s"${domain}_mysql.sql", mysql.getSQL)
+    IO.write(resourceDir / s"${domain}_postgresql.sql", postgresql.getSQL)
+    IO.write(resourceDir / s"${domain}_sqlite.sql", sqlite.getSQL)
   }
 }

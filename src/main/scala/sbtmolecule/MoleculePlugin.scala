@@ -68,7 +68,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     IO.createDirectory(resourcesDir)
 
     // Generate new sources and resources
-    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir), Nil)
+    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir))
 
     if (isJvm && pkgDomains.nonEmpty) {
       // Only render once
@@ -89,7 +89,6 @@ object MoleculePlugin extends sbt.AutoPlugin {
     srcManaged: File,
     resourcesDir: File,
     files: Seq[File],
-    pkgDomains: Seq[(String, String)]
   ): Seq[(String, String)] = {
     files.flatMap {
       case file if file.isFile =>
@@ -98,7 +97,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
         else
           None
 
-      case dir => parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(dir), pkgDomains)
+      case dir => parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(dir))
     }
   }
 
