@@ -7,11 +7,11 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.19.6",
+    version := "1.20.0",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
-      "org.scalamolecule" %% "molecule-base" % "0.24.2",
+      "org.scalamolecule" %% "molecule-base" % "0.25.0",
 
       "com.lihaoyi" %% "requests" % "0.9.0",
       "com.lihaoyi" %% "upickle" % "4.2.1",

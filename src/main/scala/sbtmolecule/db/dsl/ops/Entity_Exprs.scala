@@ -13,11 +13,20 @@ case class Entity_Exprs(
   val ent_n = entity + "_n"
 
   val sorts = List(
-    s"""// Sort result types ===========================================================================================
+    s"""// Sort ========================================================================================================
        |
        |class ${entity}_1_Sort   [T           ](dm: DataModel) extends ${entity}_1[T        ](dm) with ${entity}_Sort_1[T        ] with CardOne
        |class ${entity}_1_SortOpt[T           ](dm: DataModel) extends ${entity}_1[Option[T]](dm) with ${entity}_Sort_1[Option[T]] with CardOne
        |class ${entity}_n_Sort   [Tpl <: Tuple](dm: DataModel) extends ${entity}_n[Tpl      ](dm) with ${entity}_Sort_n[Tpl      ] with CardOne
+       |       |
+       |trait ${entity}_Sort_1[T] extends Sort[${entity}_1[T]] { self: Molecule =>
+       |  override def sortEntity: DataModel => ${entity}_1[T] = (dm: DataModel) => ${entity}_1[T](dm)
+       |}
+       |
+       |trait ${entity}_Sort_n[Tpl <: Tuple] extends Sort[${entity}_n[Tpl]] { self: Molecule =>
+       |  override def sortEntity: DataModel => ${entity}_n[Tpl] = (dm: DataModel) => ${entity}_n[Tpl](dm)
+       |}
+       |
        |""".stripMargin
   )
 
@@ -29,23 +38,48 @@ case class Entity_Exprs(
          |
          |class ${ent_1}_ExprOneMan[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
          |    with ${entity}_Sort_1[T]
+         |    with ExprOneMan_1[T, [t] =>> ${ent_1}_Sort[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_Sort[t](dm)
+         |  )
+         |    with ExprOneMan_1_Aggr[T, [t] =>> ${ent_1}_ExprOneMan_AggrOps[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_ExprOneMan_AggrOps[t](dm)
+         |  )
+         |
+         |class ${ent_1}_ExprOneMan_AggrOps[T](dm: DataModel)
+         |  extends ${ent_1}_Sort[T](dm)
+         |    with ExprOneMan_1_AggrOps[T, ${ent_1}_Sort[T]](
+         |    (dm: DataModel) => new ${ent_1}_Sort[T](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_1[T] = (dm: DataModel) => $ent_1[T](dm)
+         |}
          |
          |class ${ent_n}_ExprOneMan[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
+         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> ${ent_n}_Sort[tpl]](
+         |    [tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_Sort[tpl](dm)
+         |  )
+         |    with ExprOneMan_n_Aggr[T, Tpl, [t, tpl <: Tuple] =>> ${ent_n}_ExprOneMan_AggrOps[t, tpl]](
+         |    [t, tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_ExprOneMan_AggrOps[t, tpl](dm)
+         |  )
          |
+         |class ${ent_n}_ExprOneMan_AggrOps[T, Tpl <: Tuple](dm: DataModel)
+         |  extends ${ent_n}_Sort[Tpl](dm)
+         |    with ExprOneMan_n_AggrOps[T, ${ent_n}_Sort[Tpl]](
+         |    (dm: DataModel) => new ${ent_n}_Sort[Tpl](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_n[Tpl] = (dm: DataModel) => $ent_n[Tpl](dm)
+         |}
          |
          |class ${ent_1}_ExprOneOpt[T](override val dataModel: DataModel)
          |  extends $ent_1[Option[T]](dataModel)
-         |    with ExprOneOpt[T, ${entity}_1_SortOpt[T]]((dm: DataModel) => new ${entity}_1_SortOpt[T](dm))
+         |    with ExprOneOpt[T, ${ent_1}_SortOpt[T]]((dm: DataModel) => new ${ent_1}_SortOpt[T](dm))
          |    with ${entity}_Sort_1[Option[T]]
          |
          |class ${ent_n}_ExprOneOpt[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneOpt[T, ${entity}_n_Sort[Tpl]]((dm: DataModel) => new ${entity}_n_Sort[Tpl](dm))
+         |    with ExprOneOpt[T, ${ent_n}_Sort[Tpl]]((dm: DataModel) => new ${ent_n}_Sort[Tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
          |
          |
@@ -66,14 +100,39 @@ case class Entity_Exprs(
     val string = if (cardOneAttrs.exists(_.baseTpe == "String")) List(
       s"""class ${ent_1}_ExprOneMan_String[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_String[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
          |    with ${entity}_Sort_1[T]
+         |    with ExprOneMan_1_String[T, [t] =>> ${ent_1}_Sort[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_Sort[t](dm)
+         |  )
+         |    with ExprOneMan_1_String_Aggr[T, [t] =>> ${ent_1}_ExprOneMan_String_AggrOps[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_ExprOneMan_String_AggrOps[t](dm)
+         |  )
+         |
+         |class ${ent_1}_ExprOneMan_String_AggrOps[T](dm: DataModel)
+         |  extends ${ent_1}_Sort[T](dm)
+         |    with ExprOneMan_1_String_AggrOps[T, ${ent_1}_Sort[T]](
+         |    (dm: DataModel) => new ${ent_1}_Sort[T](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_1[T] = (dm: DataModel) => $ent_1[T](dm)
+         |}
          |
          |class ${ent_n}_ExprOneMan_String[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
+         |    with ExprOneMan_n_String[T, Tpl, [tpl <: Tuple] =>> ${ent_n}_Sort[tpl]](
+         |    [tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_Sort[tpl](dm)
+         |  )
+         |    with ExprOneMan_n_String_Aggr[T, Tpl, [t, tpl <: Tuple] =>> ${ent_n}_ExprOneMan_String_AggrOps[t, tpl]](
+         |    [t, tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_ExprOneMan_String_AggrOps[t, tpl](dm)
+         |  )
          |
+         |class ${ent_n}_ExprOneMan_String_AggrOps[T, Tpl <: Tuple](dm: DataModel)
+         |  extends ${ent_n}_Sort[Tpl](dm)
+         |    with ExprOneMan_n_String_AggrOps[T, ${ent_n}_Sort[Tpl]](
+         |    (dm: DataModel) => new ${ent_n}_Sort[Tpl](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_n[Tpl] = (dm: DataModel) => $ent_n[Tpl](dm)
+         |}
          |
          |class ${ent_0}_ExprOneTac_String[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
@@ -92,23 +151,23 @@ case class Entity_Exprs(
     val enum = if (cardOneAttrs.exists(_.enumTpe.isDefined)) List(
       s"""class ${ent_1}_ExprOneMan_Enum[EnumType](override val dataModel: DataModel)
          |  extends $ent_1[String](dataModel)
-         |    with ExprOneMan_1_Enum[EnumType, ${entity}_1_Sort[String]]((dm: DataModel) => new ${entity}_1_Sort[String](dm))
+         |    with ExprOneMan_1_Enum[EnumType, ${ent_1}_Sort[String]]((dm: DataModel) => new ${ent_1}_Sort[String](dm))
          |    with ${entity}_Sort_1[String]
          |
          |class ${ent_n}_ExprOneMan_Enum[EnumType, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Enum[EnumType, ${entity}_n_Sort[Tpl]]((dm: DataModel) => new ${entity}_n_Sort[Tpl](dm))
+         |    with ExprOneMan_n_Enum[EnumType, ${ent_n}_Sort[Tpl]]((dm: DataModel) => new ${ent_n}_Sort[Tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
          |
          |
          |class ${ent_1}_ExprOneOpt_Enum[EnumType](override val dataModel: DataModel)
          |  extends $ent_1[Option[String]](dataModel)
-         |    with ExprOneOpt_Enum[EnumType, ${entity}_1_SortOpt[String]]((dm: DataModel) => new ${entity}_1_SortOpt[String](dm))
+         |    with ExprOneOpt_Enum[EnumType, ${ent_1}_SortOpt[String]]((dm: DataModel) => new ${ent_1}_SortOpt[String](dm))
          |    with ${entity}_Sort_1[Option[String]]
          |
          |class ${ent_n}_ExprOneOpt_Enum[EnumType, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneOpt_Enum[EnumType, ${entity}_n_Sort[Tpl]]((dm: DataModel) => new ${entity}_n_Sort[Tpl](dm))
+         |    with ExprOneOpt_Enum[EnumType, ${ent_n}_Sort[Tpl]]((dm: DataModel) => new ${ent_n}_Sort[Tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
          |
          |
@@ -130,14 +189,39 @@ case class Entity_Exprs(
     val integer      = if (cardOneAttrs.exists(a => integerTypes.contains(a.baseTpe))) List(
       s"""class ${ent_1}_ExprOneMan_Integer[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Integer[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
          |    with ${entity}_Sort_1[T]
+         |    with ExprOneMan_1_Integer[T, [t] =>> ${ent_1}_Sort[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_Sort[t](dm)
+         |  )
+         |    with ExprOneMan_1_Integer_Aggr[T, [t] =>> ${ent_1}_ExprOneMan_Integer_AggrOps[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_ExprOneMan_Integer_AggrOps[t](dm)
+         |  )
+         |
+         |class ${ent_1}_ExprOneMan_Integer_AggrOps[T](dm: DataModel)
+         |  extends ${ent_1}_Sort[T](dm)
+         |    with ExprOneMan_1_Integer_AggrOps[T, ${ent_1}_Sort[T]](
+         |    (dm: DataModel) => new ${ent_1}_Sort[T](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_1[T] = (dm: DataModel) => $ent_1[T](dm)
+         |}
          |
          |class ${ent_n}_ExprOneMan_Integer[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Integer[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
+         |    with ExprOneMan_n_Integer[T, Tpl, [tpl <: Tuple] =>> ${ent_n}_Sort[tpl]](
+         |    [tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_Sort[tpl](dm)
+         |  )
+         |    with ExprOneMan_n_Integer_Aggr[T, Tpl, [t, tpl <: Tuple] =>> ${ent_n}_ExprOneMan_Integer_AggrOps[t, tpl]](
+         |    [t, tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_ExprOneMan_Integer_AggrOps[t, tpl](dm)
+         |  )
          |
+         |class ${ent_n}_ExprOneMan_Integer_AggrOps[T, Tpl <: Tuple](dm: DataModel)
+         |  extends ${ent_n}_Sort[Tpl](dm)
+         |    with ExprOneMan_n_Integer_AggrOps[T, ${ent_n}_Sort[Tpl]](
+         |    (dm: DataModel) => new ${ent_n}_Sort[Tpl](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_n[Tpl] = (dm: DataModel) => $ent_n[Tpl](dm)
+         |}
          |
          |class ${ent_0}_ExprOneTac_Integer[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
@@ -157,14 +241,39 @@ case class Entity_Exprs(
     val decimal      = if (cardOneAttrs.exists(a => decimalTypes.contains(a.baseTpe))) List(
       s"""class ${ent_1}_ExprOneMan_Decimal[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Decimal[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
          |    with ${entity}_Sort_1[T]
+         |    with ExprOneMan_1_Decimal[T, [t] =>> ${ent_1}_Sort[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_Sort[t](dm)
+         |  )
+         |    with ExprOneMan_1_Decimal_Aggr[T, [t] =>> ${ent_1}_ExprOneMan_Decimal_AggrOps[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_ExprOneMan_Decimal_AggrOps[t](dm)
+         |  )
+         |
+         |class ${ent_1}_ExprOneMan_Decimal_AggrOps[T](dm: DataModel)
+         |  extends ${ent_1}_Sort[T](dm)
+         |    with ExprOneMan_1_Decimal_AggrOps[T, ${ent_1}_Sort[T]](
+         |    (dm: DataModel) => new ${ent_1}_Sort[T](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_1[T] = (dm: DataModel) => $ent_1[T](dm)
+         |}
          |
          |class ${ent_n}_ExprOneMan_Decimal[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Decimal[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
+         |    with ExprOneMan_n_Decimal[T, Tpl, [tpl <: Tuple] =>> ${ent_n}_Sort[tpl]](
+         |    [tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_Sort[tpl](dm)
+         |  )
+         |    with ExprOneMan_n_Decimal_Aggr[T, Tpl, [t, tpl <: Tuple] =>> ${ent_n}_ExprOneMan_Decimal_AggrOps[t, tpl]](
+         |    [t, tpl <: Tuple] => (dm: DataModel) => ${ent_n}_ExprOneMan_Decimal_AggrOps[t, tpl](dm)
+         |  )
          |
+         |class ${ent_n}_ExprOneMan_Decimal_AggrOps[T, Tpl <: Tuple](dm: DataModel)
+         |  extends ${ent_n}_Sort[Tpl](dm)
+         |    with ExprOneMan_n_Decimal_AggrOps[T, ${ent_n}_Sort[Tpl]](
+         |    (dm: DataModel) => new ${ent_n}_Sort[Tpl](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_n[Tpl] = (dm: DataModel) => $ent_n[Tpl](dm)
+         |}
          |
          |class ${ent_0}_ExprOneTac_Decimal[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
@@ -183,14 +292,39 @@ case class Entity_Exprs(
     val boolean = if (cardOneAttrs.exists(_.baseTpe == "Boolean")) List(
       s"""class ${ent_1}_ExprOneMan_Boolean[T](override val dataModel: DataModel)
          |  extends $ent_1[T](dataModel)
-         |    with ExprOneMan_1_Boolean[T, [t] =>> ${entity}_1_Sort[t]]([t] => (dm: DataModel) => new ${entity}_1_Sort[t](dm))
          |    with ${entity}_Sort_1[T]
+         |    with ExprOneMan_1_Boolean[T, [t] =>> ${ent_1}_Sort[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_Sort[t](dm)
+         |  )
+         |    with ExprOneMan_1_Boolean_Aggr[T, [t] =>> ${ent_1}_ExprOneMan_Boolean_AggrOps[t]](
+         |    [t] => (dm: DataModel) => new ${ent_1}_ExprOneMan_Boolean_AggrOps[t](dm)
+         |  )
+         |
+         |class ${ent_1}_ExprOneMan_Boolean_AggrOps[T](dm: DataModel)
+         |  extends ${ent_1}_Sort[T](dm)
+         |    with ExprOneMan_1_Boolean_AggrOps[T, ${ent_1}_Sort[T]](
+         |    (dm: DataModel) => new ${ent_1}_Sort[T](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_1[T] = (dm: DataModel) => $ent_1[T](dm)
+         |}
          |
          |class ${ent_n}_ExprOneMan_Boolean[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneMan_n_Boolean[T, Tpl, [tpl <: Tuple] =>> ${entity}_n_Sort[tpl]]([tpl <: Tuple] => (dm: DataModel) => new ${entity}_n_Sort[tpl](dm))
          |    with ${entity}_Sort_n[Tpl]
+         |    with ExprOneMan_n_Boolean[T, Tpl, [tpl <: Tuple] =>> ${ent_n}_Sort[tpl]](
+         |    [tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_Sort[tpl](dm)
+         |  )
+         |    with ExprOneMan_n_Boolean_Aggr[T, Tpl, [t, tpl <: Tuple] =>> ${ent_n}_ExprOneMan_Boolean_AggrOps[t, tpl]](
+         |    [t, tpl <: Tuple] => (dm: DataModel) => new ${ent_n}_ExprOneMan_Boolean_AggrOps[t, tpl](dm)
+         |  )
          |
+         |class ${ent_n}_ExprOneMan_Boolean_AggrOps[T, Tpl <: Tuple](dm: DataModel)
+         |  extends ${ent_n}_Sort[Tpl](dm)
+         |    with ExprOneMan_n_Boolean_AggrOps[T, ${ent_n}_Sort[Tpl]](
+         |    (dm: DataModel) => new ${ent_n}_Sort[Tpl](dm)
+         |  ) { self: Molecule =>
+         |  override def sortEntity: DataModel => $ent_n[Tpl] = (dm: DataModel) => $ent_n[Tpl](dm)
+         |}
          |
          |class ${ent_0}_ExprOneTac_Boolean[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)

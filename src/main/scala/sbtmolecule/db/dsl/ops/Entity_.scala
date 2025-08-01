@@ -57,19 +57,12 @@ case class Entity_(
        |
        |$entity_Builders
        |
+       |
        |$entity_Expr
        |
        |
        |$entity_Attrs
        |
-       |
-       |trait ${entity}_Sort_1[T] extends Sort[${entity}_1[T]] { self: Molecule =>
-       |  override def sortEntity: DataModel => ${entity}_1[T] = (dm: DataModel) => ${entity}_1[T](dm)
-       |}
-       |
-       |trait ${entity}_Sort_n[Tpl <: Tuple] extends Sort[${entity}_n[Tpl]] { self: Molecule =>
-       |  override def sortEntity: DataModel => ${entity}_n[Tpl] = (dm: DataModel) => ${entity}_n[Tpl](dm)
-       |}
        |""".stripMargin
   }
 }

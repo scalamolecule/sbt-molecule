@@ -27,8 +27,8 @@ object RenderDomain extends TestSuite {
 
       //      validation.printMetaDb
       //      refs.printMetaDb
-      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
-      //      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
+      //      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
+      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
 
