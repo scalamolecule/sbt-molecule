@@ -12,26 +12,12 @@ object Refs extends DomainStructure {
     val s    = oneString
     val bool = oneBoolean
 
-    val a  = one[A]
-    val b  = one[B]
-    val b1 = one[B]
-    val b2 = one[B]
-    val c  = one[C]
-    val d  = one[D]
-
-    val aa = many[A]
-    val bb = many[B]
-    val cc = many[C]
-    val dd = many[D]
-
-    val ownA  = one[A].owner
-    val ownAa = many[A].owner
-
-    val ownB  = one[B].owner
-    val ownBb = many[B].owner
-
-    val ownC  = one[C].owner
-    val ownCc = many[C].owner
+    val a    = manyToOne[A].oneToMany("Aa")
+    val b    = manyToOne[B].oneToMany("Aa")
+    val b1   = manyToOne[B].oneToMany("Aa1")
+    val b2   = manyToOne[B].oneToMany("Aa2")
+    val c    = manyToOne[C].oneToMany("Aa")
+    val d    = manyToOne[D].oneToMany("Aa")
   }
 
   trait B {
@@ -41,19 +27,11 @@ object Refs extends DomainStructure {
     val iMap = mapInt
     val s    = oneString
 
-    val a  = one[A]
-    val b  = one[B]
-    val c  = one[C]
-    val c1 = one[C]
-    val d  = one[D]
-
-    val aa = many[A]
-    val bb = many[B]
-    val cc = many[C]
-    val dd = many[D]
-
-    val ownC  = one[C].owner
-    val ownCc = many[C].owner
+    val a    = manyToOne[A].oneToMany("Bb")
+    val b    = manyToOne[B].oneToMany("Bb")
+    val c    = manyToOne[C].oneToMany("Bb")
+    val c1   = manyToOne[C].oneToMany("Bb1")
+    val d    = manyToOne[D].oneToMany("Bb")
   }
 
   trait C {
@@ -62,46 +40,46 @@ object Refs extends DomainStructure {
     val iSet = setInt
     val iSeq = seqInt
     val iMap = mapInt
-    val a    = one[A]
-    val d    = one[D]
-    val dd   = many[D]
-
-    val ownD  = one[D].owner
-    val ownDd = many[D].owner
+    val a    = manyToOne[A].oneToMany("Cc")
+    val b    = manyToOne[B].oneToMany("Cc")
+    val d    = manyToOne[D].oneToMany("Cc")
   }
 
 
   trait D {
     val i  = oneInt
     val s  = oneString
-    val e  = one[E]
-    val e1 = one[E]
-    val ee = many[E]
+    val a  = manyToOne[A].oneToMany("Dd")
+    val b  = manyToOne[B].oneToMany("Dd")
+    val c  = manyToOne[C].oneToMany("Dd")
+    val e  = manyToOne[E].oneToMany("Dd")
+    val e1 = manyToOne[E].oneToMany("Dd1")
   }
 
   trait E {
-    val i  = oneInt
-    val s  = oneString
-    val f  = one[F]
-    val ff = many[F]
+    val i = oneInt
+    val s = oneString
+    val d = manyToOne[D].oneToMany("Ee")
+    val f = manyToOne[F]
   }
 
   trait F {
-    val i  = oneInt
-    val s  = oneString
-    val g  = one[G]
-    val gg = many[G]
+    val i = oneInt
+    val s = oneString
+    val e = manyToOne[E].oneToMany("Ff")
+    val g = manyToOne[G]
   }
 
   trait G {
-    val i  = oneInt
-    val s  = oneString
-    val h  = one[H]
-    val hh = many[H]
+    val i = oneInt
+    val s = oneString
+    val f = manyToOne[F].oneToMany("Gg")
+    val h = manyToOne[H]
   }
 
   trait H {
     val i = oneInt
     val s = oneString
+    val g = manyToOne[G].oneToMany("Hh")
   }
 }

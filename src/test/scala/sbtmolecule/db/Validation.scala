@@ -7,6 +7,17 @@ import scala.collection.immutable.Seq
 
 object Validation extends DomainStructure {
 
+  //  enum Color:
+  //  case RED, BLUE, GREEN
+
+  // Test various options
+  trait Person {
+    val name   = oneString
+    val `type` = oneString.alias("tpe").descr("Use attr name in SQL and alias in Scala code")
+
+    //    val favoriteColor = oneEnum[Color]("Choose from static enums - basically typed String representations")
+  }
+
   trait Strings {
     val email        = oneString.email
     val emailWithMsg = oneString.email("Please provide a real email")
@@ -16,18 +27,19 @@ object Validation extends DomainStructure {
       "^[a-zA-Z0-9]+$",
       "Username cannot contain special characters."
     )
-    val enums        = many[Enum]
   }
 
-  trait Enum {
+  trait AllowedAttrs {
     val luckyNumber  = oneInt.allowedValues(7, 9, 13)
     val luckyNumber2 = oneInt.allowedValues(
       Seq(7, 9, 13),
       "Lucky number can only be 7, 9 or 13"
     )
+    val strings      = manyToOne[Strings].oneToMany("AllowedAttrs")
+    val tpe          = manyToOne[Tpe].oneToMany("Refs")
   }
 
-  trait Type {
+  trait Tpe {
     val string         = oneString.validate(_ > "b")
     val int            = oneInt.validate(_ > 2)
     val long           = oneLong.validate(_ > 2L)
@@ -50,7 +62,7 @@ object Validation extends DomainStructure {
     val byte           = oneByte.validate(_ > 2)
     val short          = oneShort.validate(_ > 2)
     val char           = oneChar.validate(_ > 'b')
-    val ref            = one[Strings]
+    val ref            = manyToOne[Strings]
 
     val stringSet         = setString.validate(_ > "c")
     val intSet            = setInt.validate(_ > 3)
@@ -74,7 +86,6 @@ object Validation extends DomainStructure {
     val byteSet           = setByte.validate(_ > 3)
     val shortSet          = setShort.validate(_ > 3)
     val charSet           = setChar.validate(_ > 'c')
-    val refs              = many[Strings]
 
     val stringSeq         = seqString.validate(_ > "c")
     val intSeq            = seqInt.validate(_ > 3)
@@ -180,7 +191,7 @@ object Validation extends DomainStructure {
         }                =>
           """Test 4: Number must
             |be odd. Found: $v""".stripMargin
-      }: PartialFunction[Int, String] // Not needed in Scala 2.13 and 3.x
+      }: PartialFunction[Int, String]
     )
 
   }
@@ -189,7 +200,6 @@ object Validation extends DomainStructure {
   trait Variables {
     // Calling `value` is only allowed in validation code
     // val intx = oneInt.value
-
 
     val int        = oneInt
     val noErrorMsg = oneInt.validate(_ > int.value)
@@ -273,7 +283,7 @@ object Validation extends DomainStructure {
         } =>
           """Test 5: Number must
             |be odd. Found: $v""".stripMargin
-      }: PartialFunction[Int, String] // Not needed in Scala 2.13 and 3.x
+      }: PartialFunction[Int, String]
     )
   }
 
@@ -286,25 +296,16 @@ object Validation extends DomainStructure {
 
   trait MandatoryRefAB {
     val i    = oneInt
-    val refA = one[RefA].mandatory
+    val refA = manyToOne[RefA].mandatory
   }
   trait MandatoryRefB {
     val i    = oneInt
-    val refB = one[RefB].mandatory
-  }
-
-  trait MandatoryRefsAB {
-    val i     = oneInt
-    val refsA = many[RefA].mandatory
-  }
-  trait MandatoryRefsB {
-    val i     = oneInt
-    val refsB = many[RefB].mandatory
+    val refB = manyToOne[RefB].mandatory
   }
 
   trait RefA {
     val i    = oneInt
-    val refB = one[RefB].mandatory
+    val refB = manyToOne[RefB].mandatory
   }
   trait RefB {
     val i = oneInt
@@ -345,10 +346,10 @@ object Validation extends DomainStructure {
 
     // Mixed ref/attr
     val int  = oneInt.require(refB)
-    val refB = one[RefB]
+    val refB = manyToOne[RefB].oneToMany("Requires")
 
     // Ref-only tuples
-    val ref1 = one[RefB].require(ref2)
-    val ref2 = one[Enum]
+    val ref1 = manyToOne[RefB].oneToMany("Requires1").require(ref2)
+    val ref2 = manyToOne[AllowedAttrs]
   }
 }

@@ -1,4 +1,4 @@
-package sbtmolecule.test
+package sbtmolecule.render
 
 import sbtmolecule.ParseAndGenerate
 import utest.*

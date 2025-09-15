@@ -1,6 +1,7 @@
 package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbtmolecule.db.sqlDialect.H2
 
 
@@ -89,7 +90,7 @@ case class Db_H2(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
     s"""|// AUTO-GENERATED Molecule boilerplate code
         |package $pkg.$domain.metadb
         |
-        |import molecule.base.metaModel.*
+        |import molecule.core.dataModel.*
         |import molecule.db.common.api.*
         |
         |

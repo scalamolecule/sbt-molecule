@@ -29,15 +29,15 @@ class FormatGraphql(
 
   val attrs = fields.map {
     case FieldDefinition(description, name, args, ofType, _) =>
-      val TypeInfo(card, rawType, baseType, mandatory) = typeInfo(ofType)
+      val TypeInfo(value, rawType, baseType, mandatory) = typeInfo(ofType)
       val args1                                        = args.map {
         case InputValueDefinition(description, arg, ofType, defaultValue, _) =>
-          val TypeInfo(card, rawType, baseType, mandatory) = typeInfo(ofType)
-          Arg(description, arg, card, rawType, baseType, mandatory, defaultValue)
+          val TypeInfo(value, rawType, baseType, mandatory) = typeInfo(ofType)
+          Arg(description, arg, value, rawType, baseType, mandatory, defaultValue)
       }
 
       val attr = Attr(
-        description, name, args1, card, rawType, baseType, mandatory, getRef(rawType)
+        description, name, args1, value, rawType, baseType, mandatory, getRef(rawType)
       )
       if (typeNames.contains(name)) {
         refs = refs :+ attr
@@ -47,15 +47,15 @@ class FormatGraphql(
 
   val attrs2 = fields.map {
     case FieldDefinition(description, name, args, ofType, _) =>
-      val TypeInfo(card, rawType, baseType, mandatory) = typeInfo(ofType)
+      val TypeInfo(value, rawType, baseType, mandatory) = typeInfo(ofType)
       val args1                                        = args.map {
         case InputValueDefinition(description, arg, ofType, defaultValue, _) =>
-          val TypeInfo(card, rawType, baseType, mandatory) = typeInfo(ofType)
-          Arg(description, arg, card, rawType, baseType, mandatory, defaultValue)
+          val TypeInfo(value, rawType, baseType, mandatory) = typeInfo(ofType)
+          Arg(description, arg, value, rawType, baseType, mandatory, defaultValue)
       }
 
       val attr = Attr(
-        description, name, args1, card, rawType, baseType, mandatory, getRef(rawType)
+        description, name, args1, value, rawType, baseType, mandatory, getRef(rawType)
       )
       if (typeNames.contains(name)) {
         refs = refs :+ attr
@@ -75,14 +75,14 @@ class FormatGraphql(
     description: Option[String],
     attr: String,
     args: List[Arg],
-    card: String,
+    value: String,
     rawType: String,
     baseType: String,
     mandatory: Boolean,
     ref: Option[String]
   )
   case class TypeInfo(
-    card: String,
+    value: String,
     rawType: String,
     baseType: String,
     mandatory: Boolean
@@ -90,7 +90,7 @@ class FormatGraphql(
   case class Arg(
     description: Option[String],
     name: String,
-    card: String,
+    value: String,
     rawType: String,
     baseType: String,
     mandatory: Boolean,

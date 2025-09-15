@@ -16,7 +16,7 @@ case class Db_MariaDB(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
     s"""|// AUTO-GENERATED Molecule boilerplate code
         |package $pkg.$domain.metadb
         |
-        |import molecule.base.metaModel.*
+        |import molecule.core.dataModel.*
         |import molecule.db.common.api.*
         |
         |

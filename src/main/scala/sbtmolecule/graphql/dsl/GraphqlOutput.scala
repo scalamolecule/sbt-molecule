@@ -2,6 +2,7 @@ package sbtmolecule.graphql.dsl
 
 import caliban.parsing.adt.Definition.TypeSystemDefinition.TypeDefinition.FieldDefinition
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbtmolecule.Formatting
 
 
@@ -28,9 +29,9 @@ case class GraphqlOutput(
       "molecule.graphql.client.api.*",
     )
     val typeImports = attributes.collect {
-      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _) => "java.util.Date"
-      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _) => "java.util.UUID"
-      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _)  => "java.net.URI"
+      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _, _, _) => "java.util.Date"
+      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _, _, _) => "java.util.UUID"
+      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
     (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
   }
@@ -40,11 +41,11 @@ case class GraphqlOutput(
     val opt = List.newBuilder[String]
 
     attributes.collect {
-      case MetaAttribute(attr, card, tpe, _, _, _, _, _, _, _, _, _) if tpe.nonEmpty =>
+      case MetaAttribute(attr, value, tpe, _, _, _, _, _, _, _, _, _, _, _) if tpe.nonEmpty =>
         val padA    = padAttr(attr)
         val padT0   = padType(tpe)
-        val attrMan = "Attr" + card._marker + "Man" + tpe
-        val attrOpt = "Attr" + card._marker + "Opt" + tpe
+        val attrMan = "Attr" + value._marker + "Man" + tpe
+        val attrOpt = "Attr" + value._marker + "Opt" + tpe
         attrIndex += 1
 
         man += s"""protected lazy val ${attr}_man$padA: $attrMan$padT0 = $attrMan$padT0("$entity", "$attr")"""

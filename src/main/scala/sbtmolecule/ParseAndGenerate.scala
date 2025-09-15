@@ -47,7 +47,7 @@ case class ParseAndGenerate(filePath: String) {
 
   // For testing:
 
-  def metaDomain: GenerateSourceFiles_db = {
+  def generator: GenerateSourceFiles_db = {
     val (domain, _, body, _) = extract
 
     val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain

@@ -5,6 +5,7 @@ import caliban.parsing.adt.Definition.TypeSystemDefinition.TypeDefinition.*
 import caliban.parsing.adt.Type.{ListType, NamedType}
 import caliban.parsing.adt.{Directive, Document, Type}
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbt.*
 import sbtmolecule.graphql.dsl.GraphqlQuery
 
@@ -227,7 +228,7 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
       case NamedType(name, true)             => name
       case ListType(NamedType(ref, _), true) => name
     }
-    MetaEntity(name, attributes, Nil, mandatoryAttrs, Nil, description)
+    MetaEntity(name, attributes, Nil, mandatoryAttrs, Nil, false, description)
   }
 
   private def mkRootMethods(
@@ -244,21 +245,21 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
               case NamedType(tpe, mandatory) =>
                 val ref  = Some(tpe).filter(typeNames.contains)
                 val opts = if (mandatory) List("mandatory") else Nil
-                MetaAttribute(attr, CardOne, getTpe(tpe), Nil, ref, options = opts)
+                MetaAttribute(attr, OneValue, getTpe(tpe), Nil, ref, options = opts)
 
               case ListType(NamedType(tpe, _), mandatory) =>
                 val ref  = Some(tpe).filter(typeNames.contains)
                 val opts = if (mandatory) List("mandatory") else Nil
-                val card = if (isRef(tpe)) CardSet else CardSeq
-                MetaAttribute(attr, card, getTpe(tpe), Nil, ref, options = opts)
+                val value = if (isRef(tpe)) SetValue else SeqValue
+                MetaAttribute(attr, value, getTpe(tpe), Nil, ref, options = opts)
 
               case _ => throw new Exception(s"Unsupported type: $ofType")
             }
 
 
-          //            MetaAttribute(name, CardOne, ofType.toString, description = description)
+          //            MetaAttribute(name, OneValue, ofType.toString, description = description)
         }
-        MetaEntity(name, attrs, List(), Nil, Nil, description)
+        MetaEntity(name, attrs, List(), Nil, Nil, false, description)
     }
   }
 
@@ -271,9 +272,9 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
   ): MetaEntity = {
     val args = fields.map {
       case InputValueDefinition(description, name, ofType, defaultValue, directives) =>
-        MetaAttribute(name, CardOne, ofType.toString, description = description)
+        MetaAttribute(name, OneValue, ofType.toString, description = description)
     }
-    MetaEntity(name, args, Nil, Nil, Nil, description)
+    MetaEntity(name, args, Nil, Nil, Nil, false, description)
   }
 
   private def mkEnum(
@@ -282,8 +283,8 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     directives: List[Directive],
     enumValuesDefinition: List[EnumValueDefinition]
   ): MetaEntity = {
-    val enumValues = enumValuesDefinition.map(e => MetaAttribute(e.enumValue, CardOne, "String"))
-    MetaEntity(name, enumValues, Nil, Nil, Nil, description)
+    val enumValues = enumValuesDefinition.map(e => MetaAttribute(e.enumValue, OneValue, "String"))
+    MetaEntity(name, enumValues, Nil, Nil, Nil, false, description)
   }
 
   private def mkScalar(
@@ -299,7 +300,7 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
       case _ if tpe.toLowerCase.endsWith("id") => "String"
       case unresolved                          => unresolved
     }
-    val attr        = MetaAttribute("", CardOne, guessedType)
+    val attr        = MetaAttribute("", OneValue, guessedType)
     MetaEntity(tpe, List(attr), description = description)
   }
 
@@ -319,14 +320,14 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
         if (isRef(tpe)) addBackRef(entity, tpe)
         val optRef  = Some(tpe).filter(typeNames.contains)
         val opts = if (mandatory) List("mandatory") else Nil
-        MetaAttribute(attr, CardOne, getTpe(tpe), Nil, optRef, options = opts)
+        MetaAttribute(attr, OneValue, getTpe(tpe), Nil, optRef, options = opts)
 
       case ListType(NamedType(tpe, _), mandatory) =>
         if (isRef(tpe)) addBackRef(entity, tpe)
         val optRef  = Some(tpe).filter(typeNames.contains)
         val opts = if (mandatory) List("mandatory") else Nil
-        val card = if (isRef(tpe)) CardSet else CardSeq
-        MetaAttribute(attr, card, getTpe(tpe), Nil, optRef, options = opts)
+        val value = if (isRef(tpe)) SetValue else SeqValue
+        MetaAttribute(attr, value, getTpe(tpe), Nil, optRef, options = opts)
 
       case _ => throw new Exception(s"Unsupported type: $ofType")
     }

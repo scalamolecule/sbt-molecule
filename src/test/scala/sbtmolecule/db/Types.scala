@@ -13,9 +13,8 @@ object Types extends DomainStructure {
     val s    = oneString
     val u    = oneInt.unique
 
-    // Can't test scala 3 enums in 2.12 - tested in test projects
     //    enum Color:
-    //      case White, Red, Green, Blue, Yellow, Black
+    //    case White, Red, Green, Blue, Yellow, Black
     //
     //    val color    = oneEnum[Color]
     //    val colorSet = setEnum[Color]
@@ -45,8 +44,8 @@ object Types extends DomainStructure {
     val short          = oneShort
     val char           = oneChar
 
-    val ref   = one[Ref]
-    val other = one[Other]
+    val ref   = manyToOne[Ref]
+    val other = manyToOne[Other]
 
     // Set
     val stringSet         = setString
@@ -71,8 +70,6 @@ object Types extends DomainStructure {
     val byteSet           = setByte
     val shortSet          = setShort
     val charSet           = setChar
-
-    val refs = many[Ref]
 
     // Seq
     val stringSeq         = seqString
@@ -200,7 +197,7 @@ object Types extends DomainStructure {
     val shortSeq          = seqShort
     val charSeq           = seqChar
 
-    val entities = many[Entity]
+    val entity = manyToOne[Entity].oneToMany("Refs")
   }
 
   trait Other {

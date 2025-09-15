@@ -1,14 +1,15 @@
 package sbtmolecule.db.sqlDialect
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 
 object H2 extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
     if (metaAttribute.attribute == "id")
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else metaAttribute.cardinality match {
-      case _: CardOne => metaAttribute.baseTpe match {
+    else metaAttribute.value match {
+      case _: OneValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "LONGVARCHAR"
         case "Int"            => "INT"
@@ -33,7 +34,7 @@ object H2 extends Dialect {
         case "Short"          => "SMALLINT"
         case "Char"           => "CHAR"
       }
-      case _: CardSeq => metaAttribute.baseTpe match {
+      case _: SeqValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT ARRAY"
         case "String"         => "LONGVARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
@@ -58,7 +59,7 @@ object H2 extends Dialect {
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR ARRAY"
       }
-      case _: CardSet => metaAttribute.baseTpe match {
+      case _: SetValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT ARRAY"
         case "String"         => "LONGVARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
@@ -83,7 +84,7 @@ object H2 extends Dialect {
         case "Short"          => "SMALLINT ARRAY"
         case "Char"           => "CHAR ARRAY"
       }
-      case _: CardMap => "JSON"
+      case _: MapValue => "JSON"
     }
   }
 

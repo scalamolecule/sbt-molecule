@@ -1,6 +1,7 @@
 package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbtmolecule.db.sqlDialect.{Dialect, SQlite}
 import scala.collection.mutable.ListBuffer
 
@@ -14,8 +15,8 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
     def reserved(a: MetaAttribute): Byte =
       if (dialect.reservedKeyWords.contains(a.attribute.toLowerCase)) b1 else b0
     val max = metaEntity.attributes.map {
-      case a if a.cardinality == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a) == b1                          => a.attribute.length + 1
+      case a if a.value == SetValue && a.ref.nonEmpty => 0
+      case a if reserved(a) == b1                     => a.attribute.length + 1
       case a                                               => a.attribute.length
     }.max.max(2)
 
@@ -26,7 +27,7 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
-      case a if a.cardinality == CardSet && a.ref.nonEmpty =>
+      case a if a.value == SetValue && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
         None
 
@@ -69,7 +70,7 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
          |""".stripMargin
 
     val joinTables = metaEntity.attributes.collect {
-      case MetaAttribute(refAttr, CardSet, _, _, Some(ref), _, _, _, _, _, _, _) =>
+      case MetaAttribute(refAttr, SetValue, _, _, Some(ref), _, _, _, _, _, _, _, _, _) =>
         val (id1, id2)     = if (ent == ref) ("1_id", "2_id") else ("id", "id")
         val (l1, l2)       = (ent.length, ref.length)
         val (p1, p2)       = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
@@ -135,7 +136,7 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
     s"""|// AUTO-GENERATED Molecule boilerplate code
         |package $pkg.$domain.metadb
         |
-        |import molecule.base.metaModel.*
+        |import molecule.core.dataModel.*
         |import molecule.db.common.api.*
         |
         |

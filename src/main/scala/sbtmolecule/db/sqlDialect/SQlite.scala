@@ -1,14 +1,15 @@
 package sbtmolecule.db.sqlDialect
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 
 object SQlite extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
     if (metaAttribute.attribute == "id")
       "INTEGER PRIMARY KEY AUTOINCREMENT"
-    else metaAttribute.cardinality match {
-      case _: CardOne => metaAttribute.baseTpe match {
+    else metaAttribute.value match {
+      case OneValue => metaAttribute.baseTpe match {
         case "ID"             => "INTEGER"
         case "String"         => "TEXT"
         case "Int"            => "INTEGER"
@@ -34,7 +35,7 @@ object SQlite extends Dialect {
         case "Char"           => "CHARACTER(1)"
       }
 
-      case _: CardSeq => metaAttribute.baseTpe match {
+      case SeqValue => metaAttribute.baseTpe match {
         case "Byte" => "VARBINARY" // special for byte arrays
         case _      => "JSON"
       }

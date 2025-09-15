@@ -21,7 +21,7 @@ case class GraphqlQuery(
       } else {
         args.map {
           case InputValueDefinition(description, arg, ofType, defaultValue, _) =>
-            val (card, tpe, mandatory) = ofType match {
+            val (value, tpe, mandatory) = ofType match {
               case NamedType(tpe, mandatory)              => ("One", tpe, mandatory)
               case ListType(NamedType(tpe, _), mandatory) => ("Seq", tpe, mandatory)
               case _                                      => throw new Exception(s"Unsupported type: $ofType")
@@ -30,7 +30,7 @@ case class GraphqlQuery(
             val ref     = Some(tpe).filter(typeNames.contains).fold("")(t => s", ref = Some($t)")
             val tpe1    = getTpe(tpe)
             val optType = if (mandatory) tpe1 else s"Option[$tpe1]"
-            (s"$arg: $optType", s"""Attr${card}Tac$tpe1("$name", "$arg", Eq, Seq($arg)$ref)""")
+            (s"$arg: $optType", s"""Attr${value}Tac$tpe1("$name", "$arg", Eq, Seq($arg)$ref)""")
 
         }.unzip
       }
@@ -49,7 +49,7 @@ case class GraphqlQuery(
     s"""// AUTO-GENERATED Molecule boilerplate code
        |package $pkg.$domain
        |
-       |import molecule.base.metaModel.*
+       |import molecule.core.dataModel.*
        |
        |object query extends query
        |

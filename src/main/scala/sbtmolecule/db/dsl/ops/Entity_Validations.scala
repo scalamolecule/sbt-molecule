@@ -1,6 +1,7 @@
 package sbtmolecule.db.dsl.ops
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbtmolecule.Formatting
 
 case class Entity_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
@@ -58,11 +59,11 @@ case class Entity_Validations(metaDomain: MetaDomain, metaEntity: MetaEntity)
 
     val (variablesMeta, variablesValue) = valueAttrs
       .zipWithIndex
-      .map { case ((attr, isCardOne, _, metaAttr, value), i) =>
+      .map { case ((attr, isOneValue, _, metaAttr, value), i) =>
         val pad1 = padS(maxAttr, attr)
         val pad2 = padS(maxMetaAttr, metaAttr)
         val pad3 = padS(maxValue, value)
-        val head = if (isCardOne) ".head" else ""
+        val head = if (isOneValue) ".head" else ""
         (
           s"val $attr$pad1 = _attrs($i).asInstanceOf[$metaAttr$pad2].vs$head",
           s"val $attr$pad1 = _values($i).asInstanceOf[$value$pad3].v"

@@ -1,14 +1,15 @@
 package sbtmolecule.db.sqlDialect
 
-import molecule.base.metaModel.{CardOne, MetaAttribute}
+import molecule.base.metaModel.MetaAttribute
+import molecule.core.dataModel.*
 
 object MSSQLServer extends Dialect {
 
   override def tpe(metaAttribute: MetaAttribute): String = {
     if (metaAttribute.attribute == "id")
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else metaAttribute.cardinality match {
-      case _: CardOne => metaAttribute.baseTpe match {
+    else metaAttribute.value match {
+      case OneValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
         case "String"         => "TEXT"
         case "Int"            => "INT"

@@ -8,7 +8,7 @@ object Person extends DomainStructure {
     trait Character {
       val name   = oneString
       val mood   = oneString.allowedValues("good", "bad")
-      val answer = one[story.Conversation]
+      val answer = manyToOne[story.Conversation]
     }
   }
 
@@ -16,7 +16,7 @@ object Person extends DomainStructure {
     trait Character {
       val name     = oneString
       val mood     = oneString
-      val question = one[story.Conversation]
+      val question = manyToOne[story.Conversation]
     }
   }
 

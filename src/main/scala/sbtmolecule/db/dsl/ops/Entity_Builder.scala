@@ -1,6 +1,7 @@
 package sbtmolecule.db.dsl.ops
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbtmolecule.Formatting
 
 case class Entity_Builder(
@@ -24,14 +25,14 @@ case class Entity_Builder(
   private var seqCount     = 0
 
   private val maxLength = {
-    attributes.map(a => a.cardinality match {
-      case _: CardOne =>
+    attributes.map(a => a.value match {
+      case _: OneValue =>
         hasOne = true
         getTpe(a.baseTpe).length // Account for "ID" type being String
-      case _: CardSet =>
+      case _: SetValue =>
         hasSet = true
         s"Set[${getTpe(a.baseTpe)}]".length
-      case _: CardSeq =>
+      case _: SeqValue =>
         hasSeq = true
         if (a.baseTpe == "Byte") {
           hasByteArray = true
@@ -40,13 +41,12 @@ case class Entity_Builder(
           seqCount += 1
           s"Seq[${a.baseTpe}]".length
         }
-      case _: CardMap =>
+      case _: MapValue =>
         hasMap = true
         s"Map[String, ${a.baseTpe}]".length
     }).max
   }
 
-  private val hasEnum    = attributes.exists(_.enumTpe.isDefined)
   private val pOne       = (t: String) => " " * (maxLength - t.length)
   private val pSet       = (t: String) => " " * (maxLength - 5 - t.length)
   private val pSeq       = (t: String) => " " * (maxLength - 5 - t.length)
@@ -54,21 +54,21 @@ case class Entity_Builder(
   private val pByteArray = (t: String) => " " * (maxLength - 7 - t.length)
 
   attributes.foreach {
-    case MetaAttribute(attr, card, baseType0, _, optRef, optEnum, _, optAlias, _, _, _, _) =>
-      val cleanAttr   = optAlias.getOrElse(attr)
-      val isByteArray = card == CardSeq && baseType0 == "Byte"
-      val c           = if (isByteArray) "BAr" else card._marker
+    case MetaAttribute(attr, value, baseType0, _, optRef, _, _, optEnum, _, optAlias, _, _, _, _) =>
+      val cleanAttr   = firstLow(optAlias.getOrElse(attr))
+      val isByteArray = value == SeqValue && baseType0 == "Byte"
+      val c           = if (isByteArray) "BAr" else value._marker
       val baseType    = getTpe(baseType0)
       val baseType1   = optEnum.getOrElse(baseType)
       val isEnum      = optEnum.isDefined
       val padA        = padAttr(cleanAttr)
       val pad1        = padType1(baseType1)
-      val pad2        = card match {
-        case _: CardOne                       => baseType + pOne(baseType)
-        case _: CardSet                       => s"Set[$baseType]" + pSet(baseType)
-        case _: CardSeq if baseType == "Byte" => s"Array[Byte]" + pByteArray("Byte")
-        case _: CardSeq                       => s"Seq[$baseType]" + pSeq(baseType)
-        case _: CardMap                       => s"Map[String, $baseType]" + pMap(baseType)
+      val pad2        = value match {
+        case _: OneValue                       => baseType + pOne(baseType)
+        case _: SetValue                       => s"Set[$baseType]" + pSet(baseType)
+        case _: SeqValue if baseType == "Byte" => s"Array[Byte]" + pByteArray("Byte")
+        case _: SeqValue                       => s"Seq[$baseType]" + pSeq(baseType)
+        case _: MapValue                       => s"Map[String, $baseType]" + pMap(baseType)
       }
       val pad3        = " " * maxLength
 
@@ -90,7 +90,7 @@ case class Entity_Builder(
             (
               s"$baseType1$pad1, Tpl :* $pad2        ",
               s"$baseType1$pad1, Tpl :* Option[$pad2]",
-              s"$baseType1$pad1, Tpl        $pad3 "
+              s"$baseType1$pad1, Tpl           $pad3 "
             )
         }
       }
@@ -99,7 +99,7 @@ case class Entity_Builder(
       lazy val elemsO = s"dataModel.add(${cleanAttr}_opt$padA)"
       lazy val elemsT = s"dataModel.add(${cleanAttr}_tac$padA)"
 
-      val subType = if (card == CardOne && attr != "id" && optRef.isEmpty) baseType match {
+      val subType = if (value == OneValue && attr != "id" && optRef.isEmpty) baseType match {
         case _ if isEnum                                  => "_Enum   "
         case "String"                                     => "_String "
         case "Int" | "Long" | "BigInt" | "Byte" | "Short" => "_Integer"
@@ -126,10 +126,12 @@ case class Entity_Builder(
   }
 
 
-  private val hasRefOne  = refs.exists(_.cardinality == CardOne)
-  private val hasRefMany = refs.exists(_.cardinality == CardSet)
+  private val hasRefOne  = refs.exists(_.value == OneValue)
+  private val hasRefMany = refs.exists(_.value == SetValue)
+  private val hasRef     = hasRefOne || hasRefMany
+
   refs.collect {
-    case MetaAttribute(attr, card, _, _, Some(ref0), _, options, optAlias, _, _, _, _) =>
+    case MetaAttribute(attr, value, _, _, Some(ref0), optReverseRef, optRel, _, _, optAlias, _, _, _, _) =>
       val cleanAttr      = optAlias.getOrElse(attr)
       val refName        = camel(cleanAttr)
       val pRefAttr       = padRefAttr(cleanAttr)
@@ -138,16 +140,20 @@ case class Entity_Builder(
       val nsIndex        = entityList.indexOf(entity)
       val refAttrIndex   = attrList.indexOf(entity + "." + attr)
       val refEntityIndex = entityList.indexOf(ref0)
-      val isOwner        = options.contains("owner")
-      val owner          = s"$isOwner" + (if (isOwner) " " else "") // align true/false
       val coord          = s"List($nsIndex, $refAttrIndex, $refEntityIndex)"
-      val refObj         = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $card, $owner, $coord)"""
+      val relationship   = optRel.head
+      val reverseRefAttr = optReverseRef match {
+        case _ if relationship == "ManyToMany" => "None"
+        case Some(refAttr)                     => s"""Some("$refAttr")"""
+        case None                              => "None"
+      }
+      val refObj         = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $relationship, $coord, $reverseRefAttr)"""
       val tpl            = arity match {
         case 0 => ""
         case 1 => "[T]"
         case _ => "[Tpl]"
       }
-      if (card == CardOne) {
+      if (value == OneValue) {
         ref += s"""object $refName$pRefAttr extends $ref_X$pRef$tpl(dataModel.add($refObj)) with OptRefInit"""
       } else {
         ref += s"""object $refName$pRefAttr extends $ref_X$pRef$tpl(dataModel.add($refObj)) with NestedInit"""
@@ -158,7 +164,7 @@ case class Entity_Builder(
   private val optAttrs = opt.result().mkString("", "\n  ", "\n\n  ")
   private val tacAttrs = tac.result().mkString("\n  ")
 
-  private val optRefInit = if (hasRefOne) {
+  private val optRefInit = if (hasRef) {
     val (t1, t2) = arity match {
       case 0 => ("Option[OptRefT  ]", "Option[OptRefTpl]")
       case 1 => ("(T, Option[OptRefT  ])", "(T, Option[OptRefTpl])")
@@ -176,7 +182,7 @@ case class Entity_Builder(
       case 1 => ("(T, Seq[NestedT])", "(T, Seq[NestedTpl])")
       case _ => ("Tpl :* Seq[NestedT]", "Tpl :* Seq[NestedTpl]")
     }
-    s"""trait NestedInit { self: Molecule =>
+    s"""trait NestedInit extends OptRefInit { self: Molecule =>
        |    def * [NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addNested(self, nested))
        |    def *?[NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addOptNested(self, nested))
        |

@@ -1,6 +1,7 @@
 package sbtmolecule.db.resolvers
 
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import molecule.base.util.{BaseHelpers, RegexMatching}
 import sbtmolecule.db.sqlDialect.{Dialect, PostgreSQL}
 import scala.collection.mutable.ListBuffer
@@ -28,8 +29,8 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
     def reserved(a: MetaAttribute): Byte =
       if (dialect.reservedKeyWords.contains(a.attribute.toLowerCase)) b1 else b0
     val max = metaEntity.attributes.map {
-      case a if a.cardinality == CardSet && a.ref.nonEmpty => 0
-      case a if reserved(a) == b1                          => a.attribute.length + 1
+      case a if a.value == SetValue && a.ref.nonEmpty => 0
+      case a if reserved(a) == b1                     => a.attribute.length + 1
       case a                                               => a.attribute.length
     }.max.max(2)
 
@@ -40,7 +41,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
         reservedAttrs = reservedAttrs :+ b0
         Some("id" + padS(max, "id") + " " + dialect.tpe(a))
 
-      case a if a.cardinality == CardSet && a.ref.nonEmpty =>
+      case a if a.value == SetValue && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
         None
 
@@ -66,7 +67,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
          |""".stripMargin
 
     val joinTables = metaEntity.attributes.collect {
-      case MetaAttribute(refAttr, CardSet, _, _, Some(ref), _, _, _, _, _, _, _) =>
+      case MetaAttribute(refAttr, SetValue, _, _, Some(ref), _, _, _, _, _, _, _, _, _) =>
         val joinTable  = s"${entity}_${refAttr}_$ref"
         val (id1, id2) = if (entity == ref) ("1_id", "2_id") else ("id", "id")
         val (l1, l2)   = (entity.length, ref.length)

@@ -2,6 +2,7 @@ package sbtmolecule
 
 import java.io.File
 import molecule.base.metaModel.*
+import molecule.core.dataModel.*
 import sbt.*
 import sbtmolecule.db.dsl.Entity
 import sbtmolecule.db.dsl.ops.*
@@ -31,7 +32,7 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     val segmentsWithoutEnums = segments.filter {
       case MetaSegment("_enums", entities) =>
         entities.foreach {
-          case MetaEntity(enumTpe, attributes, _, _, _, _) =>
+          case MetaEntity(enumTpe, attributes, _, _, _, _, _) =>
             val enumCode =
               s"""// AUTO-GENERATED Molecule boilerplate code
                  |package $pkg.dsl.$domain

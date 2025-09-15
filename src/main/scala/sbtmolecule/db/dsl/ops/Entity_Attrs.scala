@@ -1,5 +1,6 @@
 package sbtmolecule.db.dsl.ops
 
+import molecule.core.dataModel.*
 import molecule.base.metaModel.*
 import sbtmolecule.Formatting
 
@@ -27,21 +28,21 @@ case class Entity_Attrs(
     val padAttrIndex = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
 
     attributes.collect {
-      case MetaAttribute(attr, card, tpe, _, optRef, _, _, optAlias, _, valueAttrs, validations, _) =>
+      case MetaAttribute(attr, value, tpe, _, optRef, _, _, _, _, optAlias, _, valueAttrs, validations, _) =>
         val cleanAttr = optAlias.getOrElse(attr)
         val valids    = if (validations.nonEmpty) {
           val valueAttrMetas = attributes.collect {
-            case MetaAttribute(attr1, card1, tpe1, _, _, _, _, _, _, _, _, _)
+            case MetaAttribute(attr1, value1, tpe1, _, _, _, _, _, _, _, _, _, _, _)
               if valueAttrs.contains(attr1) =>
-              val isCardOne = card1.isInstanceOf[CardOne.type]
-              val fullTpe   = card1 match {
-                case CardOne                   => tpe1
-                case CardSet                   => s"Set[$tpe1]"
-                case CardSeq if tpe1 == "Byte" => s"Array[Byte]"
-                case CardSeq                   => s"Seq[$tpe1]"
-                case CardMap                   => s"Map[String, $tpe1]"
+              val isOneValue = value1.isInstanceOf[OneValue.type]
+              val fullTpe    = value1 match {
+                case OneValue                   => tpe1
+                case SetValue                   => s"Set[$tpe1]"
+                case SeqValue if tpe1 == "Byte" => s"Array[Byte]"
+                case SeqValue                   => s"Seq[$tpe1]"
+                case MapValue                   => s"Map[String, $tpe1]"
               }
-              (attr1, isCardOne, fullTpe, s"Attr${card1._marker}Man$tpe1", s"${card1._marker}$tpe1")
+              (attr1, isOneValue, fullTpe, s"Attr${value1._marker}Man$tpe1", s"${value1._marker}$tpe1")
           }.sortBy(_._1)
           vas += validationExtractor.validationMethod(attr, cleanAttr, tpe, validations, valueAttrMetas)
           if (valueAttrs.isEmpty) {
@@ -64,9 +65,9 @@ case class Entity_Attrs(
           s""", coord = List($nsIndex, $attrIndex$padAI, $refIndex$padRNI)"""
         }
         val ref1      = optRef.fold("")(ref => s""", ref = Some("$ref")""")
-        val attrMan   = "Attr" + card._marker + "Man" + tpe
-        val attrOpt   = "Attr" + card._marker + "Opt" + tpe
-        val attrTac   = "Attr" + card._marker + "Tac" + tpe
+        val attrMan   = "Attr" + value._marker + "Man" + tpe
+        val attrOpt   = "Attr" + value._marker + "Opt" + tpe
+        val attrTac   = "Attr" + value._marker + "Tac" + tpe
         attrIndex += 1
 
         man += s"""protected def ${cleanAttr}_man$padA = $attrMan$padT0("$entity", "$attr"$padB$coord$ref1$valids)"""

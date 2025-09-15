@@ -17,6 +17,7 @@ object Uniques extends DomainStructure {
     val boolean        = oneBoolean.unique
     val bigInt         = oneBigInt.unique
     val bigDecimal     = oneBigDecimal.unique
+    val date           = oneDate.unique
     val duration       = oneDuration.unique
     val instant        = oneInstant.unique
     val localDate      = oneLocalDate.unique
@@ -25,24 +26,24 @@ object Uniques extends DomainStructure {
     val offsetTime     = oneOffsetTime.unique
     val offsetDateTime = oneOffsetDateTime.unique
     val zonedDateTime  = oneZonedDateTime.unique
-    val date           = oneDate.unique
     val uuid           = oneUUID.unique
     val uri            = oneURI.unique
     val byte           = oneByte.unique
     val short          = oneShort.unique
     val char           = oneChar.unique
 
-    // Cardinality many (Set)
-    val ints = setInt.unique
+    val intSet = setInt.unique
+    val intSeq = seqInt.unique
+    val intMap = mapInt.unique
 
-    val ref  = one[Ref]
-    val refs = many[Ref]
+    val ref = manyToOne[Ref]
   }
 
   trait Ref {
-    val i   = oneInt
-    val s   = oneString
-    val int = oneInt.unique
+    val i       = oneInt
+    val s       = oneString
+    val int     = oneInt.unique
+    val uniques = manyToOne[Uniques].oneToMany("Refs")
   }
 
   trait Other {

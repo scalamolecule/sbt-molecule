@@ -1,4 +1,4 @@
-package sbtmolecule.test
+package sbtmolecule.render
 
 import sbtmolecule.ParseAndGenerate
 import utest.*
@@ -12,13 +12,12 @@ object RenderDomain extends TestSuite {
 
   //  lazy val cardinalities = ParseAndGenerate(basePath + "Cardinalities.scala").generate.get
   //  lazy val starwars      = ParseAndGenerate(basePath + "Starwars.scala").generate.get
-  lazy val types      = ParseAndGenerate(basePath + "Types.scala").metaDomain
-  lazy val refs       = ParseAndGenerate(basePath + "Refs.scala").metaDomain
+  lazy val types      = ParseAndGenerate(basePath + "Types.scala").generator
+  lazy val refs       = ParseAndGenerate(basePath + "Refs.scala").generator
   //  lazy val refs       = ParseDomainStructure(basePath + "Types.scala", "sbtmolecule.db", "Refs", 3, body).getMetaDomain
   //  lazy val unique        = ParseAndGenerate(basePath + "Uniques.scala").generate.get
-  lazy val validation = ParseAndGenerate(basePath + "Validation.scala").metaDomain
-  //  lazy val scopes        = ParseAndGenerate(basePath + "Scopes.scala").generate.get
-  //  lazy val segments      = ParseAndGenerate(basePath + "Segments.scala").generate.get
+  lazy val validation = ParseAndGenerate(basePath + "Validation.scala").generator
+  lazy val segments   = ParseAndGenerate(basePath + "Segments.scala").generator
 
 
   override def tests: Tests = Tests {
@@ -28,7 +27,14 @@ object RenderDomain extends TestSuite {
       //      validation.printMetaDb
       //      refs.printMetaDb
       //      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
-      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
+//      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
+
+//      segments.printEntityBuilder(segments.metaDomain.segments.head.entities(1)) // gen_Person
+
+//      segments.printMetaDb
+
+      println(segments)
+      segments.printEntityBuilder(segments.metaDomain.segments(1).entities.head) // lit_Book
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
 
@@ -42,7 +48,6 @@ object RenderDomain extends TestSuite {
       //      Dsl(types, "", types.segments.head.ents(2)).get ==> "check" // Other
       //      Dsl(validation, "", validation.segments.head.ents(11)).get ==> "check"
       //      Dsl(refs, "", refs.segments.head.ents(0)).get ==> "check"
-      //      Dsl(scopes, "", scopes.segments(0).ents(0)).get ==> "check"
       //      Dsl(segments, "", segments.segments(0).ents(0)).get ==> "check"
       //      Dsl(unique, "", unique.segments(0).ents(0)).get ==> "check"
       //      Dsl(validation, "", validation.segments(0).ents(0)).get ==> "check"

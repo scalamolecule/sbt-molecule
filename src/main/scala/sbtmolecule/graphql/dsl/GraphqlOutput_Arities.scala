@@ -1,6 +1,7 @@
 //package sbtmolecule.graphql.dsl
 //
 //import molecule.base.metaModel.*
+//import molecule.core.dataModel.*
 //import sbtmolecule.Formatting
 //
 //
@@ -24,16 +25,16 @@
 //
 //  private val ptMax = {
 //    attributes.collect {
-//      case MetaAttribute(_, CardOne, baseTpe, _, _, _, _, _, _, _, _, _) =>
+//      case MetaAttribute(_, OneValue, baseTpe, _, _, _, _, _, _, _, _, _) =>
 //        hasOne = true
 //        getTpe(baseTpe).length // Account for "ID" type being String
 //
-//      case MetaAttribute(_, CardSeq, "Byte", _, _, _, _, _, _, _, _, _) =>
+//      case MetaAttribute(_, SeqValue, "Byte", _, _, _, _, _, _, _, _, _) =>
 //        hasSeq = true
 //        hasByteArray = true
 //        7 + 4 // "Byte".length
 //
-//      case MetaAttribute(_, CardSeq, baseTpe, _, _, _, _, _, _, _, _, _) =>
+//      case MetaAttribute(_, SeqValue, baseTpe, _, _, _, _, _, _, _, _, _) =>
 //        hasSeq = true
 //        seqCount += 1
 //        5 + baseTpe.length
@@ -47,17 +48,17 @@
 //  private val ptByteArray = " " * (ptMax - 7 - 4)
 //
 //  attributes.foreach {
-//    case MetaAttribute(attr, card, baseType, _, _,_, _, _, _, _, _, _) =>
+//    case MetaAttribute(attr, value, baseType, _, _,_, _, _, _, _, _, _) =>
 //      val tpe  = getTpe(baseType)
 //      val padA = padAttr(attr)
 //      val pad1 = padType(tpe)
 //
-//      val (tM, tO) = card match {
-//        case _: CardOne                       => (tpe + ptOne(tpe), s"Option[$tpe]" + ptOne(tpe))
-//        case _: CardSet                       => (s"Set[$tpe]" + ptSet(tpe), s"Option[Set[$tpe]]" + ptSet(tpe))
-//        case _: CardSeq if baseType == "Byte" => (s"Array[$tpe]" + ptByteArray, s"Option[Array[$tpe]]" + ptByteArray)
-//        case _: CardSeq                       => (s"Seq[$tpe]" + ptSeq(tpe), s"Option[Seq[$tpe]]" + ptSeq(tpe))
-//        case _: CardMap                       => (s"Map[String, $tpe]" + ptMap(tpe), s"Option[Map[String, $tpe]]" + ptMap(tpe))
+//      val (tM, tO) = value match {
+//        case _: OneValue                       => (tpe + ptOne(tpe), s"Option[$tpe]" + ptOne(tpe))
+//        case _: SetValue                       => (s"Set[$tpe]" + ptSet(tpe), s"Option[Set[$tpe]]" + ptSet(tpe))
+//        case _: SeqValue if baseType == "Byte" => (s"Array[$tpe]" + ptByteArray, s"Option[Array[$tpe]]" + ptByteArray)
+//        case _: SeqValue                       => (s"Seq[$tpe]" + ptSeq(tpe), s"Option[Seq[$tpe]]" + ptSeq(tpe))
+//        case _: MapValue                       => (s"Map[String, $tpe]" + ptMap(tpe), s"Option[Map[String, $tpe]]" + ptMap(tpe))
 //      }
 //
 //      lazy val tpesM = s"${`A..V, `}$tM        , $tpe$pad1"
@@ -67,23 +68,23 @@
 //      lazy val elemsO = s"dataModel.add(${attr}_opt$padA)"
 //
 //      if (!last && baseType.nonEmpty) {
-//        man += s"""lazy val $attr  $padA = new $ent_1[$tpesM]($elemsM) with $card"""
+//        man += s"""lazy val $attr  $padA = new $ent_1[$tpesM]($elemsM) with $value"""
 //        if (attr != "id")
-//          opt += s"""lazy val ${attr}_?$padA = new $ent_1[$tpesO]($elemsO) with $card"""
+//          opt += s"""lazy val ${attr}_?$padA = new $ent_1[$tpesO]($elemsO) with $value"""
 //      }
 //  }
 //
-//  private val hasRefOne  = refs.exists(_.cardinality == CardOne)
-//  private val hasRefMany = refs.exists(_.cardinality == CardSet)
+//  private val hasRefOne  = refs.exists(_.valueinality == OneValue)
+//  private val hasRefMany = refs.exists(_.valueinality == SetValue)
 //  refs.collect {
-//    case MetaAttribute(attr, card, _, _, Some(ref0), _, _, _, _, _, _, _) =>
+//    case MetaAttribute(attr, value, _, _, Some(ref0), _, _, _, _, _, _, _) =>
 //      val refName  = camel(attr)
 //      val pRefAttr = padRefAttr(attr)
 //      val pRef     = padRefEntity(ref0)
-//      val refObj   = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $card)"""
+//      val refObj   = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $value)"""
 //      if (arity == maxArity) {
 //        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj))"""
-//      } else if (card == CardOne) {
+//      } else if (value == OneValue) {
 //        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj)) with OptRefInit"""
 //      } else {
 //        ref += s"""object $refName$pRefAttr extends $ref0${_0}$pRef[${`A..V, `}t](dataModel.add($refObj)) with NestedInit"""
