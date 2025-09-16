@@ -28,7 +28,7 @@ class Formatting(
 
 
   val allAttributes = metaEntity.attributes
-  val attributes    = allAttributes.filterNot(_.relationship.contains("OneToMany"))
+  val attributes    = allAttributes.filterNot(a => a.relationship.contains(OneToMany) || a.relationship.contains(ManyToMany))
   val refs          = allAttributes.filter(_.ref.nonEmpty)
   val backRefs      = metaEntity.backRefs
 
@@ -44,12 +44,18 @@ class Formatting(
   lazy val maxBaseTpe   = attributes.map(a => getTpe(a.baseTpe).length).max
   lazy val maxBaseTpe1  = attributes.map(a => a.enumTpe.getOrElse(getTpe(a.baseTpe)).length).max
   lazy val maxRefAttr   = allAttributes.filter(_.ref.isDefined).map(entity => entity.attribute.length).max
-  lazy val maxRefEntity = allAttributes.flatMap(_.ref.map(_.length)).max
 
-  lazy val padAttr      = (s: String) => padS(maxAttr, s)
-  lazy val padAttrClean = (s: String) => padS(maxAttrClean, s)
-  lazy val padType      = (s: String) => padS(maxBaseTpe, s)
-  lazy val padType1     = (s: String) => padS(maxBaseTpe1, s)
-  lazy val padRefAttr   = (s: String) => padS(maxRefAttr, s)
-  lazy val padRefEntity = (s: String) => padS(maxRefEntity, s)
+  lazy val maxRefEntity  = allAttributes.flatMap(_.ref.map(_.length)).max
+  lazy val maxRefEntity1 = allAttributes.flatMap {
+    case a if a.relationship.contains(ManyToMany) => a.reverseRef.map(_.length)
+    case a                                        => a.ref.map(_.length)
+  }.max
+
+  lazy val padAttr       = (s: String) => padS(maxAttr, s)
+  lazy val padAttrClean  = (s: String) => padS(maxAttrClean, s)
+  lazy val padType       = (s: String) => padS(maxBaseTpe, s)
+  lazy val padType1      = (s: String) => padS(maxBaseTpe1, s)
+  lazy val padRefAttr    = (s: String) => padS(maxRefAttr, s)
+  lazy val padRefEntity  = (s: String) => padS(maxRefEntity, s)
+  lazy val padRefEntity1 = (s: String) => padS(maxRefEntity1, s)
 }

@@ -9,61 +9,27 @@ import utest.*
 
 object Company extends DomainStructure {
 
-  trait Employee {
+  trait Department {
     val name = oneString
+    // .Employees (plural of Employee)
+  }
 
-    // Developer.name.Assignments.role
-    // Developer.name.Assignments.role.Project.title
-    // Developer.name.Assignments.*(Assignment.role.Project.title)
-
-
-    // Possible future sugar bridges (no access to join table properties)
-
-    // Developer.name.Projects.title
-    // Developer.name.Projects.*(Project.title)
+  trait Employee {
+    val name       = oneString
+    val department = manyToOne[Department]
+    // .Projects via Assignment
   }
 
   trait Project {
-    val title   = oneString
-
-    // Project.title.Assignments.role // title/role (titles repeat redundantly)
-    // Project.title.Assignments.*(Assignment.role) // roles
-
-    // Project.title.Assignments.role.Employee.name
-    // Project.title.Assignments.*(Assignment.role.Employee.name)
-
-
-    // Possible future sugar bridges (no access to join table properties)
-
-    // Project.title.Employees.name
-    // Project.title.Employees.*(Employee.name)
+    val name      = oneString
+    val budget    = oneInt
   }
-//  trait Zzz {
-//    val name = oneString
-//  }
 
   trait Assignment extends Join {
-//    val zzz  = manyToOne[Zzz]
-    val employee = manyToOne[Employee]
+    val employee = manyToOne[Employee]// .oneToMany("Xxx")
     val project  = manyToOne[Project]
     val role     = oneString
-
-    // Assignment.employee.project.role.insert(
-    //   (1, 7, "Manager"),
-    //   (2, 7, "Support"),
-    // ).transact
   }
-//  trait Assignment2 extends Join {
-//    val zzz  = manyToOne[Zzz]
-//    val employee = manyToOne[Employee]
-//    val project  = manyToOne[Project]
-//    val role     = oneString
-//
-//    // Assignment.employee.project.role.insert(
-//    //   (1, 7, "Manager"),
-//    //   (2, 7, "Support"),
-//    // ).transact
-//  }
 }
 
 
@@ -77,34 +43,41 @@ object manyToMany extends TestSuite {
       generator.metaDomain ==>
         MetaDomain("sbtmolecule.parse", "Company", List(
           MetaSegment("", List(
+            MetaEntity("Department", List(
+              MetaAttribute("id"       , OneValue, "ID"    , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("name"     , OneValue, "String", Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("Employees", SetValue, "ID"    , Nil, Some("Employee"), Some("department"), Some(OneToMany), None, Nil, None, Nil, Nil, Nil, None)
+            ), List("Employee"), List(), List(), false, None),
+
             MetaEntity("Employee", List(
               MetaAttribute("id"         , OneValue, "ID"    , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
               MetaAttribute("name"       , OneValue, "String", Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("Assignments", SetValue, "ID"    , Nil, Some("Assignment"), Some("employee"), Some("OneToMany"), None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("Projects"   , SetValue, "ID"    , Nil, Some("Assignment"), Some("Project"), Some("ManyToMany"), None, Nil, None, Nil, Nil, Nil, None)
+              MetaAttribute("department" , OneValue, "ID"    , Nil, Some("Department"), Some("Employees"), Some(ManyToOne), None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("Assignments", SetValue, "ID"    , Nil, Some("Assignment"), Some("employee"), Some(OneToMany), None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("Projects"   , SetValue, "ID"    , Nil, Some("Project"), Some("Employee-Assignments-Assignment-employee-project-Project"), Some(ManyToMany), None, Nil, None, Nil, Nil, Nil, None)
             ), List("Assignment"), List(), List(), false, None),
 
             MetaEntity("Project", List(
               MetaAttribute("id"         , OneValue, "ID"    , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("title"      , OneValue, "String", Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("Assignments", SetValue, "ID"    , Nil, Some("Assignment"), Some("project"), Some("OneToMany"), None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("Employees"  , SetValue, "ID"    , Nil, Some("Assignment"), Some("Employee"), Some("ManyToMany"), None, Nil, None, Nil, Nil, Nil, None)
+              MetaAttribute("name"       , OneValue, "String", Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("budget"     , OneValue, "Int"   , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("Assignments", SetValue, "ID"    , Nil, Some("Assignment"), Some("project"), Some(OneToMany), None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("Employees"  , SetValue, "ID"    , Nil, Some("Employee"), Some("Project-Assignments-Assignment-project-employee-Employee"), Some(ManyToMany), None, Nil, None, Nil, Nil, Nil, None)
             ), List("Assignment"), List(), List(), false, None),
 
             MetaEntity("Assignment", List(
               MetaAttribute("id"      , OneValue, "ID"    , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("employee", OneValue, "ID"    , Nil, Some("Employee"), Some("Assignments"), Some("ManyToOne"), None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("project" , OneValue, "ID"    , Nil, Some("Project"), Some("Assignments"), Some("ManyToOne"), None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("employee", OneValue, "ID"    , Nil, Some("Employee"), Some("Assignments"), Some(ManyToOne), None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("project" , OneValue, "ID"    , Nil, Some("Project"), Some("Assignments"), Some(ManyToOne), None, Nil, None, Nil, Nil, Nil, None),
               MetaAttribute("role"    , OneValue, "String", Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None)
             ), List(), List(), List(), true, None)
           ))
         ))
 
-
       //      generator.printEntity(generator.metaDomain.segments.head.entities(1))
-      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(0))
+//      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(0))
       generator.printEntityBuilder(generator.metaDomain.segments.head.entities(1))
-      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(2))
+//      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(2))
     }
   }
 }

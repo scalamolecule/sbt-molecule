@@ -126,38 +126,46 @@ case class Entity_Builder(
   }
 
 
-  private val hasRefOne  = refs.exists(_.value == OneValue)
-  private val hasRefMany = refs.exists(_.value == SetValue)
-  private val hasRef     = hasRefOne || hasRefMany
+  private val hasRefOne     = refs.exists(_.value == OneValue)
+  private val hasRefMany    = refs.exists(_.value == SetValue)
+  private val hasRef        = hasRefOne || hasRefMany
+  private val hasManyToMany = refs.exists(_.relationship.get == ManyToMany)
 
   refs.collect {
-    case MetaAttribute(attr, value, _, _, Some(ref0), optReverseRef, optRel, _, _, optAlias, _, _, _, _) =>
+    case MetaAttribute(attr, value, _, _, Some(ref0), Some(reverseRef), Some(relationship), _, _, optAlias, _, _, _, _) =>
       val cleanAttr      = optAlias.getOrElse(attr)
       val refName        = camel(cleanAttr)
       val pRefAttr       = padRefAttr(cleanAttr)
-      val pRef           = padRefEntity(ref0)
       val ref_X          = ref0 + cur
       val nsIndex        = entityList.indexOf(entity)
       val refAttrIndex   = attrList.indexOf(entity + "." + attr)
       val refEntityIndex = entityList.indexOf(ref0)
+      val pRef0          = padRefEntity(ref0)
       val coord          = s"List($nsIndex, $refAttrIndex, $refEntityIndex)"
-      val relationship   = optRel.head
-      val reverseRefAttr = optReverseRef match {
-        case _ if relationship == "ManyToMany" => "None"
-        case Some(refAttr)                     => s"""Some("$refAttr")"""
-        case None                              => "None"
-      }
-      val refObj         = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef, $relationship, $coord, $reverseRefAttr)"""
       val tpl            = arity match {
         case 0 => ""
         case 1 => "[T]"
         case _ => "[Tpl]"
       }
-      if (value == OneValue) {
-        ref += s"""object $refName$pRefAttr extends $ref_X$pRef$tpl(dataModel.add($refObj)) with OptRefInit"""
+      if (relationship == ManyToMany) {
+        val List(ent, revRef, joinTable, attr, refAttr2, targetRef) = reverseRef.split('-').toList
+        val dummyCoord                                              = "List(0, 0, 0)"
+        ref +=
+          s"""object $refName$pRefAttr extends $ref_X$pRef0$tpl(dataModel
+             |    .add(_dm.Ref("$ent", "$revRef", "$joinTable", OneToMany, $dummyCoord, Some("$attr")))
+             |    .add(_dm.Ref("$joinTable", "$refAttr2", "$targetRef", ManyToOne, $dummyCoord, Some("$revRef")))
+             |  ) with NestedInitJoin""".stripMargin
       } else {
-        ref += s"""object $refName$pRefAttr extends $ref_X$pRef$tpl(dataModel.add($refObj)) with NestedInit"""
+        val pRef1  = padRefEntity(ref0)
+        val refObj = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef1, $relationship , $coord, Some("$reverseRef"))"""
+        if (value == OneValue) {
+          ref += s"""object $refName$pRefAttr extends $ref_X$pRef0$tpl(dataModel.add($refObj)) with OptRefInit"""
+        } else {
+          ref += s"""object $refName$pRefAttr extends $ref_X$pRef0$tpl(dataModel.add($refObj)) with NestedInit"""
+        }
       }
+
+    case other => throw new Exception("Unexpected ref definition: " + other)
   }
 
   private val manAttrs = man.result().mkString("", "\n  ", "\n\n  ")
@@ -177,18 +185,29 @@ case class Entity_Builder(
   } else ""
 
   private val nestedInit = if (hasRefMany) {
-    val (t1, t2) = arity match {
+    val (t1, t2)       = arity match {
       case 0 => ("Seq[NestedT]", "Seq[NestedTpl]")
       case 1 => ("(T, Seq[NestedT])", "(T, Seq[NestedTpl])")
       case _ => ("Tpl :* Seq[NestedT]", "Tpl :* Seq[NestedTpl]")
     }
+    val nestedInitJoin = if (hasManyToMany)
+      s"""
+         |
+         |  trait NestedInitJoin extends OptRefInit { self: Molecule =>
+         |    def * [NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addNestedJoin(self, nested))
+         |    def *?[NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addOptNestedJoin(self, nested))
+         |
+         |    def * [NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addNestedJoin(self, nested))
+         |    def *?[NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addOptNestedJoin(self, nested))
+         |  }""".stripMargin else ""
+
     s"""trait NestedInit extends OptRefInit { self: Molecule =>
        |    def * [NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addNested(self, nested))
        |    def *?[NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addOptNested(self, nested))
        |
        |    def * [NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addNested(self, nested))
        |    def *?[NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addOptNested(self, nested))
-       |  }""".stripMargin
+       |  }$nestedInitJoin""".stripMargin
   } else ""
 
   private val refResult = ref.result()

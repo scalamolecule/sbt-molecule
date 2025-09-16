@@ -88,7 +88,7 @@ case class MetaAttribute(
   arguments: List[MetaArgument] = Nil,
   ref: Option[String] = None,
   reverseRef: Option[String] = None,
-  relationship: Option[String] = None,
+  relationship: Option[Relationship] = None,
   enumTpe: Option[String] = None,
   options: List[String] = Nil,
   alias: Option[String] = None,

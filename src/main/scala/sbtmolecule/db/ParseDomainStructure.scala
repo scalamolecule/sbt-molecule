@@ -44,7 +44,7 @@ case class ParseDomainStructure(
   private var backRefs       = Map.empty[String, List[String]]
   private var reverseRefs    = Map.empty[String, List[MetaAttribute]]
   private var ent2joinTables = Map.empty[String, List[String]]
-  private var joinTable2refs = Map.empty[String, List[String]]
+  private var joinTable2refs = Map.empty[String, List[(String, String, String)]]
   private val valueAttrs     = ListBuffer.empty[String]
 
   private def noMix() = throw new Exception(
@@ -163,11 +163,22 @@ case class ParseDomainStructure(
   private def addBridges(segments: Seq[MetaSegment]): List[MetaSegment] = {
     segments.map { segment =>
       val entities1 = segment.entities.map { entity =>
+        val ent        = entity.entity
         val curAttrs   = entity.attributes
-        val joinTables = ent2joinTables.getOrElse(entity.entity, Nil).distinct.sorted
+        val joinTables = ent2joinTables.getOrElse(ent, Nil).distinct.sorted
         val bridges    = joinTables.flatMap { joinTable =>
-          joinTable2refs.getOrElse(joinTable, Nil).distinct.filterNot(_ == entity.entity).sorted.map { ref =>
-            MetaAttribute(English.plural(ref), SetValue, "ID", Nil, Some(joinTable), Some(ref), options = List("ManyToMany"))
+          val refCoordinates             = joinTable2refs.getOrElse(joinTable, Nil).distinct
+          val Some((attr, ref1, revRef)) = refCoordinates.find(_._2 == ent)
+          //          println("==========================")
+          //          println(joinTable)
+          //          println(ent)
+          //          println((attr, ref1, revRef))
+          refCoordinates.filterNot(_._2 == ent).sorted.map {
+            case (refAttr2, targetRef, _) =>
+              //              println(s"----- 1 -----   $ent    $revRef  $joinTable  $attr")
+              //              println(s"----- 2 -----   $joinTable  $refAttr2      $targetRef     $revRef")
+              val refData = s"$ent-$revRef-$joinTable-$attr-$refAttr2-$targetRef"
+              MetaAttribute(English.plural(targetRef), SetValue, "ID", Nil, Some(targetRef), Some(refData), Some(ManyToMany))
           }
         }
         entity.copy(attributes = curAttrs ++ bridges)
@@ -341,35 +352,39 @@ case class ParseDomainStructure(
 
       // Relationships ................................................
 
-      case q"manyToOne[$refEnt0]" =>
-        val refEnt = formatEntityName(refEnt0)
-        addBackRef(segmentPrefix, entity, refEnt)
-        val reverseRefName = English.plural(entity)
-        val ent            = fullEntity(segmentPrefix, entity)
-        val reverseRef     = MetaAttribute(reverseRefName, SetValue, "ID", Nil, Some(ent), Some(a.attribute), relationship = Some("OneToMany"))
-        addReverseRef(fullEntity(segmentPrefix, refEnt), reverseRef)
+      case q"manyToOne[$ref0]" =>
+        val ref = formatEntityName(ref0)
+        addBackRef(segmentPrefix, entity, ref)
+        val reverseRef      = English.plural(entity)
+        val fullEnt         = fullEntity(segmentPrefix, entity)
+        val fullRef         = fullEntity(segmentPrefix, ref)
+        val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany))
+        addReverseRef(fullRef, reverseMetaAttr)
         if (isJoinTable) {
-          addManyToManyBridges(ent, fullEntity(segmentPrefix, refEnt))
+          //          println(s"   $fullEnt  ${a.attribute}  $fullRef  $reverseRef")
+          addManyToManyBridges(fullEnt, a.attribute, fullRef, reverseRef)
         }
-        a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullEntity(segmentPrefix, refEnt)), reverseRef = Some(reverseRefName), relationship = Some("ManyToOne"))
+        a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
 
 
-      case q"manyToOne[$refEnt0].oneToMany(${Lit.String(reverseRefName0)})" =>
-        val reverseRefName = reverseRefName0 match {
+      case q"manyToOne[$ref0].oneToMany(${Lit.String(reverseRef0)})" =>
+        val reverseRef = reverseRef0 match {
           case r"([A-Z][a-zA-Z0-9]*)$ref" => ref
           case other                      => err(
             s"""oneToMany name should start with capital letter and contain only english letters and digits. Found: "$other""""
           )
         }
-        val refEnt = formatEntityName(refEnt0)
-        addBackRef(segmentPrefix, entity, refEnt)
-        val ent        = fullEntity(segmentPrefix, entity)
-        val reverseRef = MetaAttribute(reverseRefName, SetValue, "ID", Nil, Some(ent), Some(a.attribute), Some("OneToMany"))
-        addReverseRef(fullEntity(segmentPrefix, refEnt), reverseRef)
+        val ref = formatEntityName(ref0)
+        addBackRef(segmentPrefix, entity, ref)
+        val fullEnt         = fullEntity(segmentPrefix, entity)
+        val fullRef         = fullEntity(segmentPrefix, ref)
+        val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany))
+        addReverseRef(fullRef, reverseMetaAttr)
         if (isJoinTable) {
-          addManyToManyBridges(ent, fullEntity(segmentPrefix, refEnt))
+          //          println(s"   $fullEnt  ${a.attribute}  $fullRef  $reverseRef")
+          addManyToManyBridges(fullEnt, a.attribute, fullRef, reverseRef)
         }
-        a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullEntity(segmentPrefix, refEnt)), reverseRef = Some(reverseRefName), relationship = Some("ManyToOne"))
+        a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
 
 
       // Enums ................................................
@@ -679,11 +694,11 @@ case class ParseDomainStructure(
     reverseRefs = reverseRefs + (reverseEntity -> (curReverseEntities :+ reverseRef))
   }
 
-  private def addManyToManyBridges(joinTable: String, ref: String): Unit = {
+  private def addManyToManyBridges(joinTable: String, refAttr: String, ref: String, reverseRef: String): Unit = {
     val curJoinTables = ent2joinTables.getOrElse(joinTable, Nil)
     ent2joinTables = ent2joinTables + (ref -> (curJoinTables :+ joinTable))
     val curRefs = joinTable2refs.getOrElse(joinTable, Nil)
-    joinTable2refs = joinTable2refs + (joinTable -> (curRefs :+ ref))
+    joinTable2refs = joinTable2refs + (joinTable -> (curRefs :+ (refAttr, ref, reverseRef)))
   }
 
   private def handleValidationCases(
