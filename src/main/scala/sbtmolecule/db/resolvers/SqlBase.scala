@@ -102,7 +102,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
       case _: PostgreSQL.type => ""
       case _                  => "`"
     }
-    val foreignKeys = if (refs.isEmpty) Nil else {
+    val extras = if (refs.isEmpty) Nil else {
       var m1 = 0
       var m2 = 0
       var m3 = 0
@@ -115,8 +115,8 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           m4 = ((clean(dialect, refAttr) + quote).length + 2).max(m4)
       }
 
-      val constraints = ListBuffer.empty[String]
-      List(refs.map {
+      val constraints                 = ListBuffer.empty[String]
+      val (constraintStrs, indexStrs) = refs.map {
         case (ent, refAttr, ref, isOwner) =>
           constraints += refAttr
           val ent1            = clean(dialect, ent)
@@ -129,15 +129,19 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           val refAttr2        = refAttr1 + (if (count == 1) quote else "_" + count + quote)
           val constraint      = s"${quote}_$refAttr2" + padS(m4, refAttr2)
           val onDeleteCascade = if (isOwner) " ON DELETE CASCADE" else ""
-          s"ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id)$onDeleteCascade;"
-      }.mkString(
-        "-- Constraints to preserve referential integrity.\n-- After table definitions to have all tables available.\n",
-        "\n",
-        "\n"
-      ))
+          (
+            s"ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id)$onDeleteCascade;",
+            s"CREATE INDEX IF NOT EXISTS _${ent1}_$refAttr1 ON $ent1 ($key);"
+          )
+      }.unzip
+
+      List(
+        constraintStrs.mkString("", "\n", "\n"),
+        indexStrs.mkString("", "\n", "\n")
+      )
     }
 
-    (tableDefinitions ++ foreignKeys).mkString("\n")
+    (tableDefinitions ++ extras).mkString("\n")
   }
 
   protected def getReserved = if (hasReserved) {
