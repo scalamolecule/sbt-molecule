@@ -20,7 +20,7 @@ object Accounting extends DomainStructure {
     val invoice   = manyToOne[Invoice].oneToMany("Lines").owner
     val qty       = oneInt
     val product   = oneString
-    val unitPrice = oneInt
+    val unitPrice = oneInt.index
     val lineTotal = oneInt
   }
 }
@@ -49,7 +49,7 @@ object AccountingTest extends TestSuite {
               MetaAttribute("invoice"  , OneValue, "ID"    , Nil, Some("Invoice"), Some("Lines"), Some(ManyToOne), None, List("owner"), None, Nil, Nil, Nil, None),
               MetaAttribute("qty"      , OneValue, "Int"   , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
               MetaAttribute("product"  , OneValue, "String", Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
-              MetaAttribute("unitPrice", OneValue, "Int"   , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None),
+              MetaAttribute("unitPrice", OneValue, "Int"   , Nil, None, None, None, None, List("index"), None, Nil, Nil, Nil, None),
               MetaAttribute("lineTotal", OneValue, "Int"   , Nil, None, None, None, None, Nil, None, Nil, Nil, Nil, None)
             ), List(), List(), List(), false, None)
           ))

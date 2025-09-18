@@ -16,6 +16,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
   protected var reservedAttrs       = Array.empty[Byte]
   protected var reservedEntityAttrs = Array.empty[String]
   protected val refs                = ListBuffer.empty[(String, String, String, Boolean)] // entity, refAttr, ref, isOwner
+  protected val indexes             = ListBuffer.empty[String]
 
   val pkg    = metaDomain.pkg + ".dsl"
   val domain = metaDomain.domain
@@ -59,6 +60,9 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           refs += ((entity, a.attribute, refEntity, a.options.contains("owner")))
         }
 
+        if (a.options.contains("index"))
+          indexes += s"CREATE INDEX IF NOT EXISTS _${entity}_$column ON $entity ($column);"
+
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }.mkString(s",\n  ")
 
@@ -98,11 +102,13 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
       result
     }
 
-    val quote       = dialect match {
+    val customIndexes = if (indexes.isEmpty) Nil else List(indexes.mkString("-- Column indexes\n", "\n", "\n"))
+
+    val quote  = dialect match {
       case _: PostgreSQL.type => ""
       case _                  => "`"
     }
-    val extras = if (refs.isEmpty) Nil else {
+    val extras = if (refs.isEmpty) customIndexes else {
       var m1 = 0
       var m2 = 0
       var m3 = 0
@@ -135,10 +141,11 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           )
       }.unzip
 
+
       List(
-        constraintStrs.mkString("", "\n", "\n"),
-        indexStrs.mkString("", "\n", "\n")
-      )
+        constraintStrs.mkString("-- Foreign key constraints\n", "\n", "\n"),
+        indexStrs.mkString("-- Foreign key indexes\n", "\n", "\n")
+      ) ++ customIndexes
     }
 
     (tableDefinitions ++ extras).mkString("\n")
