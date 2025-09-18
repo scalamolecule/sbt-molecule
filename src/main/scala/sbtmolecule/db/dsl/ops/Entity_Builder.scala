@@ -132,7 +132,7 @@ case class Entity_Builder(
   private val hasManyToMany = refs.exists(_.relationship.get == ManyToMany)
 
   refs.collect {
-    case MetaAttribute(attr, value, _, _, Some(ref0), Some(reverseRef), Some(relationship), _, _, optAlias, _, _, _, _) =>
+    case MetaAttribute(attr, value, _, _, Some(ref0), Some(reverseRef), Some(relationship), _, options, optAlias, _, _, _, _) =>
       val cleanAttr      = optAlias.getOrElse(attr)
       val refName        = camel(cleanAttr)
       val pRefAttr       = padRefAttr(cleanAttr)
@@ -157,7 +157,8 @@ case class Entity_Builder(
              |  ) with NestedInitJoin""".stripMargin
       } else {
         val pRef1  = padRefEntity(ref0)
-        val refObj = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef1, $relationship , $coord, Some("$reverseRef"))"""
+        val owner  = if (options.contains("owned")) ", true" else ""
+        val refObj = s"""_dm.Ref("$entity", "$attr"$pRefAttr, "$ref0"$pRef1, $relationship , $coord, Some("$reverseRef")$owner)"""
         if (value == OneValue) {
           ref += s"""object $refName$pRefAttr extends $ref_X$pRef0$tpl(dataModel.add($refObj)) with OptRefInit"""
         } else {
@@ -194,11 +195,11 @@ case class Entity_Builder(
       s"""
          |
          |  trait NestedInitJoin extends OptRefInit { self: Molecule =>
-         |    def * [NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addNestedJoin(self, nested))
-         |    def *?[NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addOptNestedJoin(self, nested))
+         |    def ** [NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addNestedJoin(self, nested))
+         |    def **?[NestedT](nested: Molecule_1[NestedT]) = new $entB[$t1](addOptNestedJoin(self, nested))
          |
-         |    def * [NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addNestedJoin(self, nested))
-         |    def *?[NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addOptNestedJoin(self, nested))
+         |    def ** [NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addNestedJoin(self, nested))
+         |    def **?[NestedTpl <: Tuple](nested: Molecule_n[NestedTpl]) = new $entB[$t2](addOptNestedJoin(self, nested))
          |  }""".stripMargin else ""
 
     s"""trait NestedInit extends OptRefInit { self: Molecule =>

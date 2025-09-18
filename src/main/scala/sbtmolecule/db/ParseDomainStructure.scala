@@ -326,11 +326,12 @@ case class ParseDomainStructure(
 
       case q"$prev.index"     => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "index"), isJoinTable)
       case q"$prev.unique"    => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "unique"), isJoinTable)
+      case q"$prev.owner"     => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "owner"), isJoinTable)
       case q"$prev.mandatory" => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "mandatory"), isJoinTable)
 
       case q"$prev.index(${Lit.String(s)})"     => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "index"), isJoinTable)
       case q"$prev.unique(${Lit.String(s)})"    => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "unique"), isJoinTable)
-
+      case q"$prev.owner(${Lit.String(s)})"     => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "owner"), isJoinTable)
       case q"$prev.mandatory(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "mandatory"), isJoinTable)
 
       case q"$prev.descr(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
@@ -358,7 +359,8 @@ case class ParseDomainStructure(
         val reverseRef      = English.plural(entity)
         val fullEnt         = fullEntity(segmentPrefix, entity)
         val fullRef         = fullEntity(segmentPrefix, ref)
-        val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany))
+        val options         = if (a.options.contains("owner")) List("owned") else Nil
+        val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany), options = options)
         addReverseRef(fullRef, reverseMetaAttr)
         if (isJoinTable) {
           //          println(s"   $fullEnt  ${a.attribute}  $fullRef  $reverseRef")
@@ -378,7 +380,8 @@ case class ParseDomainStructure(
         addBackRef(segmentPrefix, entity, ref)
         val fullEnt         = fullEntity(segmentPrefix, entity)
         val fullRef         = fullEntity(segmentPrefix, ref)
-        val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany))
+        val options         = if (a.options.contains("owner")) List("owned") else Nil
+        val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany), options = options)
         addReverseRef(fullRef, reverseMetaAttr)
         if (isJoinTable) {
           //          println(s"   $fullEnt  ${a.attribute}  $fullRef  $reverseRef")

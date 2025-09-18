@@ -15,7 +15,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
   protected var reservedEntities    = Array.empty[Byte]
   protected var reservedAttrs       = Array.empty[Byte]
   protected var reservedEntityAttrs = Array.empty[String]
-  protected val refs                = ListBuffer.empty[(String, String, String)] // entity, refAttr, ref
+  protected val refs                = ListBuffer.empty[(String, String, String, Boolean)] // entity, refAttr, ref, isOwner
 
   val pkg    = metaDomain.pkg + ".dsl"
   val domain = metaDomain.domain
@@ -31,7 +31,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
     val max = metaEntity.attributes.map {
       case a if a.value == SetValue && a.ref.nonEmpty => 0
       case a if reserved(a) == b1                     => a.attribute.length + 1
-      case a                                               => a.attribute.length
+      case a                                          => a.attribute.length
     }.max.max(2)
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(entity.toLowerCase)) "_" else ""
@@ -55,7 +55,9 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           a.attribute
         }
         // Add foreign key references
-        a.ref.foreach(refEntity => refs += ((entity, a.attribute, refEntity)))
+        a.ref.foreach { refEntity =>
+          refs += ((entity, a.attribute, refEntity, a.options.contains("owner")))
+        }
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }.mkString(s",\n  ")
@@ -66,26 +68,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
          |);
          |""".stripMargin
 
-    val joinTables = metaEntity.attributes.collect {
-      case MetaAttribute(refAttr, SetValue, _, _, Some(ref), _, _, _, _, _, _, _, _, _) =>
-        val joinTable  = s"${entity}_${refAttr}_$ref"
-        val (id1, id2) = if (entity == ref) ("1_id", "2_id") else ("id", "id")
-        val (l1, l2)   = (entity.length, ref.length)
-        val (p1, p2)   = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
-        val ref1       = s"${entity}_$id1$p1"
-        val ref2       = s"${ref}_$id2$p2"
-        refs ++= List(
-          (joinTable, s"${entity}_$id1", entity),
-          (joinTable, s"${ref}_$id2", ref),
-        )
-        s"""CREATE TABLE IF NOT EXISTS $joinTable (
-           |  $ref1 BIGINT,
-           |  $ref2 BIGINT
-           |);
-           |""".stripMargin
-    }
-
-    table +: joinTables
+    List(table)
   }
 
   protected def clean(dialect: Dialect, s: String) = {
@@ -125,7 +108,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
       var m3 = 0
       var m4 = 0
       refs.foreach {
-        case (ent, refAttr, ref) =>
+        case (ent, refAttr, ref, _) =>
           m1 = clean(dialect, ent).length.max(m1)
           m2 = clean(dialect, refAttr).length.max(m2)
           m3 = clean(dialect, ref).length.max(m3)
@@ -134,20 +117,21 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
 
       val constraints = ListBuffer.empty[String]
       List(refs.map {
-        case (ent, refAttr, ref) =>
+        case (ent, refAttr, ref, isOwner) =>
           constraints += refAttr
-          val ent1       = clean(dialect, ent)
-          val table      = ent1 + padS(m1, ent1)
-          val refAttr1   = clean(dialect, refAttr)
-          val key        = refAttr1 + padS(m2, refAttr1)
-          val refEnt1    = clean(dialect, ref)
-          val ref1       = refEnt1 + padS(m3, refEnt1)
-          val count      = constraints.count(_ == refAttr)
-          val refAttr2   = refAttr1 + (if (count == 1) quote else "_" + count + quote)
-          val constraint = s"${quote}_$refAttr2" + padS(m4, refAttr2)
-          s"-- ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id);"
+          val ent1            = clean(dialect, ent)
+          val table           = ent1 + padS(m1, ent1)
+          val refAttr1        = clean(dialect, refAttr)
+          val key             = refAttr1 + padS(m2, refAttr1)
+          val refEnt1         = clean(dialect, ref)
+          val ref1            = refEnt1 + padS(m3, refEnt1)
+          val count           = constraints.count(_ == refAttr)
+          val refAttr2        = refAttr1 + (if (count == 1) quote else "_" + count + quote)
+          val constraint      = s"${quote}_$refAttr2" + padS(m4, refAttr2)
+          val onDeleteCascade = if (isOwner) " ON DELETE CASCADE" else ""
+          s"ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id)$onDeleteCascade;"
       }.mkString(
-        "-- Optional reference constraints to avoid orphan relationships (add manually)\n",
+        "-- Constraints to preserve referential integrity.\n-- After table definitions to have all tables available.\n",
         "\n",
         "\n"
       ))

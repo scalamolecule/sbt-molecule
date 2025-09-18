@@ -384,6 +384,8 @@ abstract class DomainStructure {
 
     lazy val mandatory: Self = ???
 
+    lazy val owner: Self = ???
+
     // Tupled attributes
     def require(attrs: Requierable*): Self = ???
   }
