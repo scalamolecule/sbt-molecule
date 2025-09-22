@@ -3,7 +3,7 @@ package sbtmolecule.db.resolvers
 import molecule.base.metaModel.*
 import molecule.core.dataModel.*
 import molecule.base.util.{BaseHelpers, RegexMatching}
-import sbtmolecule.db.sqlDialect.{Dialect, PostgreSQL}
+import sbtmolecule.db.sqlDialect.{Dialect, MySQL, PostgreSQL}
 import scala.collection.mutable.ListBuffer
 
 
@@ -60,8 +60,10 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           refs += ((entity, a.attribute, refEntity, a.options.contains("owner")))
         }
 
-        if (a.options.contains("index"))
-          indexes += s"CREATE INDEX IF NOT EXISTS _${entity}_$column ON $entity ($column);"
+        if (a.options.contains("index")) {
+          val ifNotExists = if (dialect == MySQL) "" else " IF NOT EXISTS"
+          indexes += s"CREATE INDEX$ifNotExists _${entity}_$column ON $entity ($column);"
+        }
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }.mkString(s",\n  ")
@@ -135,9 +137,10 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           val refAttr2        = refAttr1 + (if (count == 1) quote else "_" + count + quote)
           val constraint      = s"${quote}_$refAttr2" + padS(m4, refAttr2)
           val onDeleteCascade = if (isOwner) " ON DELETE CASCADE" else ""
+          val ifNotExists = if (dialect == MySQL) "" else " IF NOT EXISTS"
           (
             s"ALTER TABLE $table ADD CONSTRAINT $constraint FOREIGN KEY ($key) REFERENCES $ref1 (id)$onDeleteCascade;",
-            s"CREATE INDEX IF NOT EXISTS _${ent1}_$refAttr1 ON $ent1 ($key);"
+            s"CREATE INDEX$ifNotExists _${ent1}_$refAttr1 ON $ent1 ($key);"
           )
       }.unzip
 

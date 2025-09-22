@@ -3,7 +3,7 @@ package sbtmolecule.parse
 import molecule.DomainStructure
 import molecule.base.metaModel.*
 import molecule.core.dataModel.*
-import sbtmolecule.db.resolvers.Db_H2
+import sbtmolecule.db.resolvers.{Db_H2, Db_SQlite}
 import sbtmolecule.render.RenderDomain.types
 import sbtmolecule.{GenerateSourceFiles_db, ParseAndGenerate}
 import utest.*
@@ -56,11 +56,12 @@ object AccountingTest extends TestSuite {
         ))
 
       //      generator.printEntity(generator.metaDomain.segments.head.entities(1))
-      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(0))
-      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(1))
+//      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(0))
+//      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(1))
       //      generator.printEntityBuilder(generator.metaDomain.segments.head.entities(2))
 
-      println(Db_H2(generator.metaDomain).getSQL)
+//      println(Db_H2(generator.metaDomain).getSQL)
+      println(Db_SQlite(generator.metaDomain).getSQL)
     }
   }
 }

@@ -8,16 +8,16 @@ import scala.collection.mutable.ListBuffer
 
 case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
 
-  private val refs2 = ListBuffer.empty[(String, String)] // refAttr, ref
+  private val refs2 = ListBuffer.empty[(String, String, Boolean)] // refAttr, ref, isOwner
 
-  protected def createTable(metaEntity: MetaEntity, dialect: Dialect): Seq[String] = {
+  protected def createTable(metaEntity: MetaEntity, dialect: Dialect): String = {
     val ent = metaEntity.entity
     def reserved(a: MetaAttribute): Byte =
       if (dialect.reservedKeyWords.contains(a.attribute.toLowerCase)) b1 else b0
     val max = metaEntity.attributes.map {
       case a if a.value == SetValue && a.ref.nonEmpty => 0
       case a if reserved(a) == b1                     => a.attribute.length + 1
-      case a                                               => a.attribute.length
+      case a                                          => a.attribute.length
     }.max.max(2)
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(ent.toLowerCase)) "_" else ""
@@ -40,8 +40,16 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
           reservedAttrs = reservedAttrs :+ b0
           a.attribute
         }
-        // Add foreign key reference
-        a.ref.foreach(refEntity => refs2 += ((a.attribute, refEntity)))
+        // Add foreign key reference (with owner flag)
+        a.ref.foreach(refEntity => refs2 += ((a.attribute, refEntity, a.options.contains("owner"))))
+
+        // Add index if requested
+        if (a.options.contains("index"))
+          indexes += s"CREATE INDEX IF NOT EXISTS _${ent}_$column ON $ent ($column);"
+
+        // Add index if requested
+        if (a.ref.nonEmpty)
+          indexes += s"CREATE INDEX IF NOT EXISTS _${ent}_$column ON $ent ($column);"
 
         Some(column + padS(max, column) + " " + dialect.tpe(a))
     }
@@ -49,46 +57,25 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
     val foreignKeys = if (refs2.isEmpty) Nil else {
       val maxRefAttr   = refs2.map(r => clean(dialect, r._1).length).max
       val maxRefEntity = refs2.map(r => clean(dialect, r._2).length).max
-      refs2.map { case (refAttr, ref) =>
-        val refAttr1 = clean(dialect, refAttr)
-        val key      = refAttr1 + padS(maxRefAttr, refAttr1)
-        val refEnt1  = clean(dialect, ref)
-        val ref1     = refEnt1 + padS(maxRefEntity, refEnt1)
-        s"-- CONSTRAINT _$key FOREIGN KEY ($key) REFERENCES $ref1 (id)"
+      refs2.map { case (refAttr, ref, isOwner) =>
+        val refAttr1        = clean(dialect, refAttr)
+        val key             = refAttr1 + padS(maxRefAttr, refAttr1)
+        val refEnt1         = clean(dialect, ref)
+        val ref1            = refEnt1 + padS(maxRefEntity, refEnt1)
+        val onDeleteCascade = if (isOwner) " ON DELETE CASCADE" else ""
+        s"CONSTRAINT _$key FOREIGN KEY ($key) REFERENCES $ref1 (id)$onDeleteCascade"
       }
     }
 
     val optForeignKeys = if (foreignKeys.isEmpty) "" else
-      foreignKeys.mkString("\n  ", s",\n  ", "")
+      foreignKeys.mkString(",\n  ", s",\n  ", "")
 
     val columns = fields.mkString(s",\n  ") + optForeignKeys
 
-    val table =
-      s"""CREATE TABLE IF NOT EXISTS $ent$tableSuffix (
-         |  $columns
-         |);
-         |""".stripMargin
-
-    val joinTables = metaEntity.attributes.collect {
-      case MetaAttribute(refAttr, SetValue, _, _, Some(ref), _, _, _, _, _, _, _, _, _) =>
-        val (id1, id2)     = if (ent == ref) ("1_id", "2_id") else ("id", "id")
-        val (l1, l2)       = (ent.length, ref.length)
-        val (p1, p2)       = if (l1 > l2) ("", " " * (l1 - l2)) else (" " * (l2 - l1), "")
-        val key1           = s"${ent}_$id1$p1"
-        val key2           = s"${ref}_$id2$p2"
-        val cleanEntity    = clean(dialect, ent)
-        val cleanRefEntity = clean(dialect, ref)
-
-        s"""CREATE TABLE IF NOT EXISTS ${ent}_${refAttr}_$ref (
-           |  $key1 BIGINT,
-           |  $key2 BIGINT
-           |  -- CONSTRAINT _$key1 FOREIGN KEY ($key1) REFERENCES $cleanEntity (id),
-           |  -- CONSTRAINT _$key2 FOREIGN KEY ($key2) REFERENCES $cleanRefEntity (id)
-           |);
-           |""".stripMargin
-    }
-
-    table +: joinTables
+    s"""CREATE TABLE IF NOT EXISTS $ent$tableSuffix (
+       |  $columns
+       |);
+       |""".stripMargin
   }
 
   override protected def getTables(dialect: Dialect): String = {
@@ -97,11 +84,9 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
     reservedAttrs = Array.empty[Byte]
     reservedEntityAttrs = Array.empty[String]
     var hasRefs            = false
-
-    val entityMax = entities.map(_.entity.length).max
-    val pEntity   = (ent: String) => " " * (entityMax - ent.length)
-
-    val tables             = entities.flatMap { entity =>
+    val entityMax          = entities.map(_.entity.length).max
+    val pEntity            = (ent: String) => " " * (entityMax - ent.length)
+    val tables             = entities.map { entity =>
       refs2.clear() // foreign key constraints per table
       val reservedEntity: Byte =
         if (dialect.reservedKeyWords.contains(entity.entity.toLowerCase)) b1 else b0
@@ -118,11 +103,13 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
       result
     }
     val enforceForeignKeys = if (hasRefs)
-      """-- PRAGMA foreign_keys = 1;
+      """PRAGMA foreign_keys = 1;
         |
         |""".stripMargin
     else ""
-    tables.mkString(enforceForeignKeys, "\n", "")
+
+    val customIndexes = if (indexes.isEmpty) "" else indexes.mkString("-- Column indexes\n", "\n", "\n")
+    tables.mkString(enforceForeignKeys, "\n", "") + (if (customIndexes.isEmpty) "" else s"\n$customIndexes")
   }
 
   val tables = getTables(SQlite)
