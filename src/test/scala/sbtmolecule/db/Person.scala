@@ -1,4 +1,4 @@
-package app.domain
+package sbtmolecule.db
 
 import molecule.DomainStructure
 

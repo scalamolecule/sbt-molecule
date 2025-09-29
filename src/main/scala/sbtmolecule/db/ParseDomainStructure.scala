@@ -334,7 +334,7 @@ case class ParseDomainStructure(
       case q"$prev.owner(${Lit.String(s)})"     => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "owner"), isJoinTable)
       case q"$prev.mandatory(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "mandatory"), isJoinTable)
 
-      case q"$prev.descr(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
+      case q"$prev.description(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
       case q"$prev.apply(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
 
       case q"$prev.alias(${Lit.String(s)})" =>
@@ -356,21 +356,20 @@ case class ParseDomainStructure(
       case q"manyToOne[$ref0]" =>
         val ref = formatEntityName(ref0)
         addBackRef(segmentPrefix, entity, ref)
-        val reverseRef      = English.plural(entity)
+        val reverseRef      = fullEntity(segmentPrefix, English.plural(entity))
         val fullEnt         = fullEntity(segmentPrefix, entity)
         val fullRef         = fullEntity(segmentPrefix, ref)
         val options         = if (a.options.contains("owner")) List("owned") else Nil
         val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany), options = options)
         addReverseRef(fullRef, reverseMetaAttr)
         if (isJoinTable) {
-          //          println(s"   $fullEnt  ${a.attribute}  $fullRef  $reverseRef")
           addManyToManyBridges(fullEnt, a.attribute, fullRef, reverseRef)
         }
         a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
 
 
       case q"manyToOne[$ref0].oneToMany(${Lit.String(reverseRef0)})" =>
-        val reverseRef = reverseRef0 match {
+        val reverseRef1 = reverseRef0 match {
           case r"([A-Z][a-zA-Z0-9]*)$ref" => ref
           case other                      => err(
             s"""oneToMany name should start with capital letter and contain only english letters and digits. Found: "$other""""
@@ -378,13 +377,13 @@ case class ParseDomainStructure(
         }
         val ref = formatEntityName(ref0)
         addBackRef(segmentPrefix, entity, ref)
+        val reverseRef      = fullEntity(segmentPrefix, reverseRef1)
         val fullEnt         = fullEntity(segmentPrefix, entity)
         val fullRef         = fullEntity(segmentPrefix, ref)
         val options         = if (a.options.contains("owner")) List("owned") else Nil
         val reverseMetaAttr = MetaAttribute(reverseRef, SetValue, "ID", Nil, Some(fullEnt), Some(a.attribute), Some(OneToMany), options = options)
         addReverseRef(fullRef, reverseMetaAttr)
         if (isJoinTable) {
-          //          println(s"   $fullEnt  ${a.attribute}  $fullRef  $reverseRef")
           addManyToManyBridges(fullEnt, a.attribute, fullRef, reverseRef)
         }
         a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))

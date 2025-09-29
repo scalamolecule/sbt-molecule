@@ -306,7 +306,7 @@ abstract class DomainStructure {
      * @param description
      * @return
      */
-    def descr(description: String): Self = ???
+    def description(description: String): Self = ???
     def apply(description: String): Self = ???
 
     // Allowed values (like enumerations)
