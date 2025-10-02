@@ -1,6 +1,6 @@
 
 name := "test-project7-graphql"
-version := "1.21.0"
+version := "1.21.1"
 organization := "org.scalamolecule"
 scalaVersion := "3.7.3"
 libraryDependencies ++= Seq(

@@ -134,7 +134,7 @@ case class Entity_Builder(
   refs.collect {
     case MetaAttribute(attr, value, _, _, Some(ref0), Some(reverseRef), Some(relationship), _, options, optAlias, _, _, _, _) =>
       val cleanAttr      = optAlias.getOrElse(attr)
-      val refName        = camel(cleanAttr)
+      val refName        = if (cleanAttr.contains("_")) cleanAttr else camel(cleanAttr)
       val pRefAttr       = padRefAttr(cleanAttr)
       val ref_X          = ref0 + cur
       val nsIndex        = entityList.indexOf(entity)

@@ -3,7 +3,7 @@ name := "test-project5-cross-pure"
 
 inThisBuild(
   List(
-    version := "1.21.0",
+    version := "1.21.1",
     organization := "org.scalamolecule",
     scalaVersion := "3.7.3",
     libraryDependencies ++= Seq(
