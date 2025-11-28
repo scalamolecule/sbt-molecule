@@ -29,9 +29,9 @@ case class GraphqlOutput(
       "molecule.graphql.client.api.*",
     )
     val typeImports = attributes.collect {
-      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _, _, _) => "java.util.Date"
-      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _, _, _) => "java.util.UUID"
-      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _, _, _)  => "java.net.URI"
+      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => "java.util.Date"
+      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => "java.util.UUID"
+      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)  => "java.net.URI"
     }.distinct
     (baseImports ++ typeImports).sorted.mkString("import ", "\nimport ", "")
   }
@@ -41,7 +41,7 @@ case class GraphqlOutput(
     val opt = List.newBuilder[String]
 
     attributes.collect {
-      case MetaAttribute(attr, value, tpe, _, _, _, _, _, _, _, _, _, _, _) if tpe.nonEmpty =>
+      case MetaAttribute(attr, value, tpe, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) if tpe.nonEmpty =>
         val padA    = padAttr(attr)
         val padT0   = padType(tpe)
         val attrMan = "Attr" + value._marker + "Man" + tpe

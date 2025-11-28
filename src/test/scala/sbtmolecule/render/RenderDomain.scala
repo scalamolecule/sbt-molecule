@@ -19,6 +19,7 @@ object RenderDomain extends TestSuite {
   lazy val validation = ParseAndGenerate(basePath + "Validation.scala").generator
   lazy val segments   = ParseAndGenerate(basePath + "Segments.scala").generator
   lazy val person   = ParseAndGenerate(basePath + "Person.scala").generator
+  lazy val social   = ParseAndGenerate(basePath + "SocialApp.scala").generator
 
 
   override def tests: Tests = Tests {
@@ -37,8 +38,11 @@ object RenderDomain extends TestSuite {
 //      println(segments)
 //      segments.printEntityBuilder(segments.metaDomain.segments(1).entities.head) // lit_Book
 
-      println(person)
-      person.printEntityBuilder(person.metaDomain.segments(2).entities.head)
+//      println(person)
+//      person.printEntityBuilder(person.metaDomain.segments(2).entities.head)
+
+//      println(ParseAndGenerate(basePath + "SocialApp.scala"))
+      social.printMetaDb
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
 

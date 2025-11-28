@@ -12,7 +12,7 @@ object Test extends TestSuite {
 
   given JdbcConn_JVM = {
     val url = "jdbc:h2:mem:test"
-    Class.forName("org.h2.Driver")
+//    Class.forName("org.h2.Driver")
     val proxy   = JdbcProxy(url, Person_h2())
     val sqlConn = DriverManager.getConnection(url)
     JdbcHandler_JVM.recreateDb(proxy, sqlConn)

@@ -28,11 +28,11 @@ case class Entity_Attrs(
     val padAttrIndex = (attrIndex: Int) => padS(maxAttrIndex, attrIndex.toString)
 
     attributes.collect {
-      case MetaAttribute(attr, value, tpe, _, optRef, _, _, _, _, optAlias, _, valueAttrs, validations, _) =>
+      case MetaAttribute(attr, value, tpe, _, optRef, _, _, _, _, optAlias, _, valueAttrs, validations, _, _, _, _, _) =>
         val cleanAttr = optAlias.getOrElse(attr)
         val valids    = if (validations.nonEmpty) {
           val valueAttrMetas = attributes.collect {
-            case MetaAttribute(attr1, value1, tpe1, _, _, _, _, _, _, _, _, _, _, _)
+            case MetaAttribute(attr1, value1, tpe1, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)
               if valueAttrs.contains(attr1) =>
               val isOneValue = value1.isInstanceOf[OneValue.type]
               val fullTpe    = value1 match {

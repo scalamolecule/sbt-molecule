@@ -13,7 +13,7 @@ case class ParseAndGenerate(filePath: String) {
   private val dialect     = dialects.Scala3(virtualFile)
   private val tree        = dialect.parse[Source].get
 
-  private val (pkg, afterPkg) = tree.children.collectFirst {
+  private val (pkg, afterPkg) = if (tree.children.isEmpty) ("", Nil) else tree.children.collectFirst {
     case Pkg(pkg, afterPkg) => (pkg.toString, afterPkg)
   }.getOrElse(throw new Exception(s"Missing package definition in file $filePath:\n" + tree))
 

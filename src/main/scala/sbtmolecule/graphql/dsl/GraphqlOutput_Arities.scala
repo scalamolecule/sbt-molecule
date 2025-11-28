@@ -25,16 +25,16 @@
 //
 //  private val ptMax = {
 //    attributes.collect {
-//      case MetaAttribute(_, OneValue, baseTpe, _, _, _, _, _, _, _, _, _) =>
+//      case MetaAttribute(_, OneValue, baseTpe, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
 //        hasOne = true
 //        getTpe(baseTpe).length // Account for "ID" type being String
 //
-//      case MetaAttribute(_, SeqValue, "Byte", _, _, _, _, _, _, _, _, _) =>
+//      case MetaAttribute(_, SeqValue, "Byte", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
 //        hasSeq = true
 //        hasByteArray = true
 //        7 + 4 // "Byte".length
 //
-//      case MetaAttribute(_, SeqValue, baseTpe, _, _, _, _, _, _, _, _, _) =>
+//      case MetaAttribute(_, SeqValue, baseTpe, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
 //        hasSeq = true
 //        seqCount += 1
 //        5 + baseTpe.length
@@ -48,7 +48,7 @@
 //  private val ptByteArray = " " * (ptMax - 7 - 4)
 //
 //  attributes.foreach {
-//    case MetaAttribute(attr, value, baseType, _, _,_, _, _, _, _, _, _) =>
+//    case MetaAttribute(attr, value, baseType, _, _,_, _, _, _, _, _, _, _, _, _, _, _, _) =>
 //      val tpe  = getTpe(baseType)
 //      val padA = padAttr(attr)
 //      val pad1 = padType(tpe)
@@ -77,7 +77,7 @@
 //  private val hasRefOne  = refs.exists(_.valueinality == OneValue)
 //  private val hasRefMany = refs.exists(_.valueinality == SetValue)
 //  refs.collect {
-//    case MetaAttribute(attr, value, _, _, Some(ref0), _, _, _, _, _, _, _) =>
+//    case MetaAttribute(attr, value, _, _, Some(ref0), _, _, _, _, _, _, _, _, _, _, _, _, _) =>
 //      val refName  = camel(attr)
 //      val pRefAttr = padRefAttr(attr)
 //      val pRef     = padRefEntity(ref0)
