@@ -1,12 +1,18 @@
 package sbtmolecule.db
 
+import scala.collection.mutable.ListBuffer
+import scala.meta.*
 import molecule.base.metaModel.*
 import molecule.base.util.BaseHelpers
 import molecule.core.dataModel.*
-import scala.annotation.tailrec
-import scala.collection.mutable.ListBuffer
-import scala.meta.*
 import org.atteo.evo.inflector.English
+
+/*
+Hack for reformatting code (IntelliJ bug): replace manually:
+(case\s+(?:q|init|t|r))\s+"
+$1"
+
+ */
 
 case class ParseDomainStructure(
   filePath: String,
@@ -38,8 +44,13 @@ case class ParseDomainStructure(
     "macro", "match", "new", "null", "object", "override", "package", "private",
     "protected", "return", "sealed", "super", "this", "throw", "trait", "try",
     "true", "type", "val", "var", "while", "with", "yield",
-    "_", ":", "=", "=>", "<-", "<:", "<%", ">:","#", "@"
+    "_", ":", "=", "=>", "<-", "<:", "<%", ">:", "#", "@"
   )
+
+  private val allActions = List("query", "subscribe", "save", "insert", "update", "delete")
+  private val read       = List("query", "subscribe")
+  private val write      = List("save", "insert", "update", "delete")
+
 
   private var backRefs       = Map.empty[String, List[String]]
   private var reverseRefs    = Map.empty[String, List[MetaAttribute]]
@@ -76,7 +87,7 @@ case class ParseDomainStructure(
       case q"trait $roleName extends Role with ..$actions" =>
         val roleActions = extractActions(actions.toList)
         roles = roles :+ MetaRole(roleName.toString, roleActions)
-      case _ => // Ignore non-role definitions
+      case _                                                => // Ignore non-role definitions
     }
   }
 
@@ -86,7 +97,7 @@ case class ParseDomainStructure(
 
     val hasSegements = body.exists {
       case q"object $_ { ..$_ }" => true
-      case _                     => false
+      case _                      => false
     }
     val segments     = if (hasSegements) {
       body.flatMap {
@@ -94,8 +105,8 @@ case class ParseDomainStructure(
           Some(MetaSegment(segment.toString, getEntities(segment.toString + "_", entities.toList)))
 
         case Defn.Enum.After_4_6_0(_, name, _, _, templ) => parseEnum[MetaSegment](name, templ)
-        case q"trait $_ extends Role with ..$_"          => None // Skip role definitions in entity parsing
-        case q"trait $entity $template"                  => noMix()
+        case q"trait $_ extends Role with ..$_"         => None // Skip role definitions in entity parsing
+        case q"trait $entity $template"                 => noMix()
       }
     } else {
       // No segments - parse entities directly, but skip role definitions
@@ -169,7 +180,7 @@ case class ParseDomainStructure(
   private def addReverseRefs(segments: Seq[MetaSegment]): List[MetaSegment] = {
     segments.map { segment =>
       val entities1 = segment.entities.map { entity =>
-        val curAttrs = entity.attributes
+        val curAttrs        = entity.attributes
         val reverseRefAttrs = reverseRefs.getOrElse(entity.entity, Nil).distinct.sortBy(_.attribute)
         entity.copy(attributes = curAttrs ++ reverseRefAttrs)
       }
@@ -215,18 +226,26 @@ case class ParseDomainStructure(
                |- in lower case not be a Scala keyword: ${marked(reservedScalaKeywords, entity).mkString(", ")}
                |""".stripMargin
           clean(entity.toLowerCase, msg)
-          val (entityRoles, isAuthenticated) = extractEntityRoles(template)
-          val entityActions = entityRoles.flatMap(roleName => roles.find(_.role == roleName).map(_.actions).getOrElse(Nil)).distinct.sorted
-          Some(getEntity(segmentPrefix, entityTpe, attrs.toList, isJoinTable, entityRoles, entityActions, isAuthenticated))
-        case other                         =>
+          val (entityRoles, entityUpdatingGrants, entityDeletingGrants) = extractEntityRoles(template)
+          val entityActions                                             = entityRoles.flatMap(roleName => roles.find(_.role == roleName).map(_.actions).getOrElse(Nil)).distinct.sorted
+
+          // Validate entity has access to all 6 actions through its roles (Layer 1)
+          validateEntityActionCoverage(entity, entityRoles, entityActions)
+
+          // Validate entity-level grants (Layer 2)
+          validateEntityGrants(entity, entityRoles, entityUpdatingGrants, "updating")
+          validateEntityGrants(entity, entityRoles, entityDeletingGrants, "deleting")
+
+          Some(getEntity(segmentPrefix, entityTpe, attrs.toList, isJoinTable, entityRoles, entityActions, entityUpdatingGrants, entityDeletingGrants))
+        case other                          =>
           err("Entity trait name should match [A-Z][a-zA-Z0-9]*_? - found: " + other)
       }
     }
 
     def isRoleDefinition(template: Template): Boolean = {
       template.inits.exists {
-        case Init.After_4_6_0(Type.Name("Role"), _, _) => true
-        case _ => false
+        case init"Role" => true
+        case _           => false
       }
     }
 
@@ -237,14 +256,14 @@ case class ParseDomainStructure(
           None
         } else {
           val isJoinTable = template.inits.exists {
-            case Init.After_4_6_0(Type.Name("Join"), _, _) => true
-            case _ => false
+            case init"Join" => true
+            case _           => false
           }
           parseEntity(entityTpe, template, stats, isJoinTable)
         }
-      case Defn.Enum.After_4_6_0(_, name, _, _, templ)   => parseEnum[MetaEntity](name, templ)
-      case q"object $o { ..$_ }"                         => noMix()
-      case other                                         => unexpected(other)
+      case Defn.Enum.After_4_6_0(_, name, _, _, templ)                                                  => parseEnum[MetaEntity](name, templ)
+      case q"object $o { ..$_ }"                                                                       => noMix()
+      case other                                                                                        => unexpected(other)
     }
   }.toList
 
@@ -255,7 +274,8 @@ case class ParseDomainStructure(
     isJoinTable: Boolean,
     entityRoles: List[String] = Nil,
     entityActions: List[String] = Nil,
-    isAuthenticated: Boolean = false
+    entityUpdatingGrants: List[String] = Nil,
+    entityDeletingGrants: List[String] = Nil
   ): MetaEntity = {
     val entity = entityTpe.toString
     if (entity.head.isLower) {
@@ -264,7 +284,17 @@ case class ParseDomainStructure(
     if (attrs.isEmpty) {
       err(s"Please define attribute(s) in entity $entity")
     }
-    val metaAttrs      = getAttrs(segmentPrefix, entity, attrs, isJoinTable)
+    val metaAttrs = getAttrs(segmentPrefix, entity, attrs, isJoinTable)
+
+    // Validate attribute-level authorization (Layers 3 & 4)
+    metaAttrs.foreach { attr =>
+      // Validate Layer 3: Attribute role restrictions
+      validateAttributeRoleRestrictions(entity, attr.attribute, entityRoles, attr.onlyRoles, attr.excludedRoles)
+
+      // Validate Layer 4: Attribute update grants
+      validateAttributeUpdateGrants(entity, attr.attribute, entityRoles, attr.attrUpdatingGrants, attr.onlyRoles, attr.excludedRoles)
+    }
+
     val mandatoryAttrs = metaAttrs.collect {
       case a if a.ref.isEmpty && a.options.contains("mandatory") => a.attribute
     }
@@ -294,10 +324,10 @@ case class ParseDomainStructure(
       } else a
     }
 
-    MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs, isJoinTable, None, entityRoles, entityActions, isAuthenticated)
+    MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs, isJoinTable, None, entityRoles, entityActions, entityUpdatingGrants, entityDeletingGrants)
   }
 
-  def marked(keywords: Seq[String], keyword: String) = keywords.map{
+  def marked(keywords: Seq[String], keyword: String) = keywords.map {
     case `keyword` => s"\u001b[41;37;1m $keyword \u001b[0m" // red background + white text + bold
     case other     => other
   }
@@ -361,13 +391,16 @@ case class ParseDomainStructure(
     }
   }
 
-  @tailrec
+  //  @tailrec
   private def acc(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    accOptions(segmentPrefix, entity, t, a, isJoinTable)
+  }
+
+  // Chained pattern matching methods to avoid method size limits ................................................
+
+  private def accOptions(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
     val attr = entity + "." + a.attribute
     t match {
-
-      // Options ................................................
-
       case q"$prev.index"     => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "index"), isJoinTable)
       case q"$prev.unique"    => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "unique"), isJoinTable)
       case q"$prev.owner"     => acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "owner"), isJoinTable)
@@ -379,7 +412,7 @@ case class ParseDomainStructure(
       case q"$prev.mandatory(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable); acc(segmentPrefix, entity, prev, a.copy(options = a.options :+ "mandatory"), isJoinTable)
 
       case q"$prev.description(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
-      case q"$prev.apply(${Lit.String(s)})" => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
+      case q"$prev.apply(${Lit.String(s)})"       => saveDescr(segmentPrefix, entity, prev, a, attr, s, isJoinTable)
 
       case q"$prev.alias(${Lit.String(s)})" =>
         def msg(alias: String): String =
@@ -394,9 +427,12 @@ case class ParseDomainStructure(
           case other                         => err(msg(other))
         }
 
+      case _ => accRelationships(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
-      // Relationships ................................................
-
+  private def accRelationships(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
       case q"manyToOne[$ref0]" =>
         val ref = formatEntityName(ref0)
         addBackRef(segmentPrefix, entity, ref)
@@ -411,15 +447,14 @@ case class ParseDomainStructure(
         }
         a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
 
-
-      case q"manyToOne[$ref0].oneToMany(${Lit.String(reverseRef0)})" =>
+      case q"manyToOne[$ref0].oneToMany(${Lit.String(reverseRef0)})" => {
         val reverseRef1 = reverseRef0 match {
           case r"([A-Z][a-zA-Z0-9]*)$ref" => ref
-          case other                      => err(
+          case other                       => err(
             s"""oneToMany name should start with capital letter and contain only english letters and digits. Found: "$other""""
           )
         }
-        val ref = formatEntityName(ref0)
+        val ref         = formatEntityName(ref0)
         addBackRef(segmentPrefix, entity, ref)
         val reverseRef      = fullEntity(segmentPrefix, reverseRef1)
         val fullEnt         = fullEntity(segmentPrefix, entity)
@@ -431,10 +466,14 @@ case class ParseDomainStructure(
           addManyToManyBridges(fullEnt, a.attribute, fullRef, reverseRef)
         }
         a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
+      }
 
+      case _ => accEnums(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
-      // Enums ................................................
-
+  private def accEnums(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
       case q"oneEnum[$enumTpe]" => a.copy(value = OneValue, baseTpe = "String", enumTpe = Some(enumTpe.toString))
       case q"setEnum[$enumTpe]" => a.copy(value = SetValue, baseTpe = "String", enumTpe = Some(enumTpe.toString))
       case q"seqEnum[$enumTpe]" => a.copy(value = SeqValue, baseTpe = "String", enumTpe = Some(enumTpe.toString))
@@ -443,9 +482,12 @@ case class ParseDomainStructure(
       case q"setEnum[$enumTpe](${Lit.String(s)})" => a.copy(value = SetValue, baseTpe = "String", enumTpe = Some(enumTpe.toString), description = Some(s))
       case q"seqEnum[$enumTpe](${Lit.String(s)})" => a.copy(value = SeqValue, baseTpe = "String", enumTpe = Some(enumTpe.toString), description = Some(s))
 
+      case _ => accAttributesOne(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
-      // Attributes ................................................
-
+  private def accAttributesOne(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
       case q"oneString"         => a.copy(value = OneValue, baseTpe = "String")
       case q"oneInt"            => a.copy(value = OneValue, baseTpe = "Int")
       case q"oneLong"           => a.copy(value = OneValue, baseTpe = "Long")
@@ -498,7 +540,12 @@ case class ParseDomainStructure(
       case q"oneShort(${Lit.String(s)})"          => a.copy(value = OneValue, baseTpe = "Short", description = Some(s))
       case q"oneChar(${Lit.String(s)})"           => a.copy(value = OneValue, baseTpe = "Char", description = Some(s))
 
+      case _ => accAttributesSet(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
+  private def accAttributesSet(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
       case q"setString"         => a.copy(value = SetValue, baseTpe = "String")
       case q"setInt"            => a.copy(value = SetValue, baseTpe = "Int")
       case q"setLong"           => a.copy(value = SetValue, baseTpe = "Long")
@@ -545,7 +592,12 @@ case class ParseDomainStructure(
       case q"setShort(${Lit.String(s)})"          => a.copy(value = SetValue, baseTpe = "Short", description = Some(s))
       case q"setChar(${Lit.String(s)})"           => a.copy(value = SetValue, baseTpe = "Char", description = Some(s))
 
+      case _ => accAttributesSeq(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
+  private def accAttributesSeq(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
       case q"seqString"         => a.copy(value = SeqValue, baseTpe = "String")
       case q"seqInt"            => a.copy(value = SeqValue, baseTpe = "Int")
       case q"seqLong"           => a.copy(value = SeqValue, baseTpe = "Long")
@@ -592,7 +644,12 @@ case class ParseDomainStructure(
       case q"seqShort(${Lit.String(s)})"          => a.copy(value = SeqValue, baseTpe = "Short", description = Some(s))
       case q"seqChar(${Lit.String(s)})"           => a.copy(value = SeqValue, baseTpe = "Char", description = Some(s))
 
+      case _ => accAttributesMap(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
+  private def accAttributesMap(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
       case q"mapString"         => a.copy(value = MapValue, baseTpe = "String")
       case q"mapInt"            => a.copy(value = MapValue, baseTpe = "Int")
       case q"mapLong"           => a.copy(value = MapValue, baseTpe = "Long")
@@ -639,20 +696,45 @@ case class ParseDomainStructure(
       case q"mapShort(${Lit.String(s)})"          => a.copy(value = MapValue, baseTpe = "Short", description = Some(s))
       case q"mapChar(${Lit.String(s)})"           => a.copy(value = MapValue, baseTpe = "Char", description = Some(s))
 
+      case _ => accValidations(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
-      // Validations ................................................
+  private def accValidations(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    val attr = entity + "." + a.attribute
+    t match {
 
       case q"$prev.validate { ..case $cases }" =>
         handleValidationCases(prev, segmentPrefix, entity, a, cases.toList, attr, isJoinTable)
 
       case q"$prev.validate($test)" =>
-        handleValidateTest(prev, segmentPrefix, entity, a, test, attr, isJoinTable)
+        test match {
+          case q"{ ..case $cases }: PartialFunction[$_, $_]" =>
+            handleValidationCases(prev, segmentPrefix, entity, a, cases.toList, attr, isJoinTable)
+          case _                                              =>
+            oneValidationCall(entity, a)
+            val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
+            val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
+            val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
+            val validations1 = List(indent(test.toString()) -> "")
+            acc(segmentPrefix, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1), isJoinTable)
+        }
 
       case q"$prev.validate($test, ${Lit.String(error)})" =>
-        handleValidateTestWithError(prev, segmentPrefix, entity, a, test, error, attr, isJoinTable)
+        oneValidationCall(entity, a)
+        val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
+        val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
+        val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
+        val validations1 = List(indent(test.toString()) -> error)
+        acc(segmentPrefix, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1), isJoinTable)
 
       case q"$prev.validate($test, ${Term.Select(Lit.String(multilineMsg), Term.Name("stripMargin"))})" =>
-        handleValidateTestWithMultilineError(prev, segmentPrefix, entity, a, test, multilineMsg, attr, isJoinTable)
+        oneValidationCall(entity, a)
+        val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
+        val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
+        val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
+        val validations1 = List(indent(test.toString()) -> multilineMsg)
+        acc(segmentPrefix, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1), isJoinTable)
 
       case q"$prev.validate($test, ${Term.Interpolate(Term.Name("s"), _, _)})" =>
         err(
@@ -661,22 +743,37 @@ case class ParseDomainStructure(
         )
 
       case q"$prev.email" =>
-        handleEmail(prev, segmentPrefix, entity, a, isJoinTable)
+        oneValidationCall(entity, a)
+        val test  = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
+        val error = s"""`$$v` is not a valid email"""
+        acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
 
       case q"$prev.email(${Lit.String(error)})" =>
-        handleEmailWithError(prev, segmentPrefix, entity, a, error, isJoinTable)
+        oneValidationCall(entity, a)
+        val test = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
+        acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
 
       case q"$prev.regex(${Lit.String(regex)})" =>
-        handleRegex(prev, segmentPrefix, entity, a, regex, isJoinTable)
+        oneValidationCall(entity, a)
+        val test  = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
+        val error = s"""\"$$v\" doesn't match regex pattern: ${regex.replace("$", "$$")}"""
+        acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
 
       case q"$prev.regex(${Lit.String(regex)}, ${Lit.String(error)})" =>
-        handleRegexWithError(prev, segmentPrefix, entity, a, regex, error, isJoinTable)
+        oneValidationCall(entity, a)
+        val test = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
+        acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
 
       case q"$prev.allowedValues(Seq(..$vs), ${Lit.String(error)})" =>
-        handleAllowedValuesWithError(prev, segmentPrefix, entity, a, vs, error, isJoinTable)
+        oneValidationCall(entity, a)
+        val test = s"""v => Seq$vs.contains(v)"""
+        acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
 
       case q"$prev.allowedValues(..$vs)" =>
-        handleAllowedValues(prev, segmentPrefix, entity, a, vs, isJoinTable)
+        oneValidationCall(entity, a)
+        val test  = s"""v => Seq$vs.contains(v)"""
+        val error = s"""Value `$$v` is not one of the allowed values in Seq$vs"""
+        acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
 
       case q"$prev.require(..$otherAttrs)" =>
         val reqAttrs1 = a.attribute +: otherAttrs.toList.map(_.toString)
@@ -686,232 +783,70 @@ case class ParseDomainStructure(
         s"Calling `value` on attribute `$attr` is only allowed in validations code of other attributes."
       )
 
+      case _ => accAccessControl(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
-      // Access Control ................................................
+  private def accAccessControl(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
+      // New access control model - Scala 3 patterns (with using)
+      // Layer 3: Attribute role restrictions
+      case q"$prev.exclude[$roleType](using $_)" =>
+        val roles = extractRolesFromType(roleType)
+        if (a.onlyRoles.nonEmpty) {
+          err(s"Cannot use both .only and .exclude on same attribute $entity.${a.attribute}")
+        }
+        acc(segmentPrefix, entity, prev, a.copy(excludedRoles = roles), isJoinTable)
 
-      case q"$prev.authenticated" =>
-        handleAuthenticated(segmentPrefix, entity, prev, a, isJoinTable)
+      case q"$prev.only[$roleType](using $_)" =>
+        val roles = extractRolesFromType(roleType)
+        if (a.excludedRoles.nonEmpty) {
+          err(s"Cannot use both .only and .exclude on same attribute $entity.${a.attribute}")
+        }
+        acc(segmentPrefix, entity, prev, a.copy(onlyRoles = roles), isJoinTable)
 
-      // Scala 3 version (with using)
-      case q"$prev.allowRoles[$roleType](using $_)" =>
-        handleAllowRoles(segmentPrefix, entity, prev, a, roleType, isJoinTable)
+      // Layer 4: Attribute update grants
+      case q"$prev.updating[$roleType](using $_)" =>
+        val roles = extractRolesFromType(roleType)
+        acc(segmentPrefix, entity, prev, a.copy(attrUpdatingGrants = roles), isJoinTable)
 
-      case q"$prev.allowActions[$actionType](using $_)" =>
-        handleAllowActions(segmentPrefix, entity, prev, a, actionType, isJoinTable)
+      case _ => accAccessControlScala2(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
 
-      case q"$prev.allowRoleActions[$roleType, $actionType](using $_, $_)" =>
-        handleAllowRoleActions(segmentPrefix, entity, prev, a, roleType, actionType, isJoinTable)
+  private def accAccessControlScala2(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
+      // New access control model - Scala 2 compatible patterns
+      // Layer 3: Attribute role restrictions
+      case q"$prev.exclude[$roleType]" =>
+        val roles = extractRolesFromType(roleType)
+        if (a.onlyRoles.nonEmpty) {
+          err(s"Cannot use both .only and .exclude on same attribute $entity.${a.attribute}")
+        }
+        acc(segmentPrefix, entity, prev, a.copy(excludedRoles = roles), isJoinTable)
 
+      case q"$prev.only[$roleType]" =>
+        val roles = extractRolesFromType(roleType)
+        if (a.excludedRoles.nonEmpty) {
+          err(s"Cannot use both .only and .exclude on same attribute $entity.${a.attribute}")
+        }
+        acc(segmentPrefix, entity, prev, a.copy(onlyRoles = roles), isJoinTable)
 
-      // Scala 2.12 version (without using)
-      case q"$prev.allowRoles[$roleType]" =>
-        handleAllowRoles(segmentPrefix, entity, prev, a, roleType, isJoinTable)
+      // Layer 4: Attribute update grants
+      case q"$prev.updating[$roleType]" =>
+        val roles = extractRolesFromType(roleType)
+        acc(segmentPrefix, entity, prev, a.copy(attrUpdatingGrants = roles), isJoinTable)
 
-      case q"$prev.allowActions[$actionType]" =>
-        handleAllowActions(segmentPrefix, entity, prev, a, actionType, isJoinTable)
-
-      case q"$prev.allowRoleActions[$roleType, $actionType]" =>
-        handleAllowRoleActions(segmentPrefix, entity, prev, a, roleType, actionType, isJoinTable)
-
-
+      // End of chain!
       case other =>
         println("UNEXPECTED TREE STRUCTURE:\n" + other + "\n\n" + other.structure)
         unexpected(other)
     }
   }
 
-  // Access Control Handler Methods ................................................
+  // Refactored Handler Methods for Method Size Reduction ................................................
 
-  private def handleAuthenticated(
-    segmentPrefix: String,
-    entity: String,
-    prev: Tree,
-    a: MetaAttribute,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    acc(segmentPrefix, entity, prev, a.copy(isAuthenticated = true), isJoinTable)
-  }
-
-  private def handleAllowRoles(
-    segmentPrefix: String,
-    entity: String,
-    prev: Tree,
-    a: MetaAttribute,
-    roleType: Type,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    val roles = extractRolesFromType(roleType)
-    acc(segmentPrefix, entity, prev, a.copy(allowRoles = roles), isJoinTable)
-  }
-
-  private def handleAllowActions(
-    segmentPrefix: String,
-    entity: String,
-    prev: Tree,
-    a: MetaAttribute,
-    actionType: Type,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    val actions = extractActionsFromType(actionType)
-    acc(segmentPrefix, entity, prev, a.copy(allowActions = actions), isJoinTable)
-  }
-
-  private def handleAllowRoleActions(
-    segmentPrefix: String,
-    entity: String,
-    prev: Tree,
-    a: MetaAttribute,
-    roleType: Type,
-    actionType: Type,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    val roles = extractRolesFromType(roleType)
-    val actions = extractActionsFromType(actionType)
-    val newRoleActions = a.allowRoleActions :+ (roles, actions)
-    acc(segmentPrefix, entity, prev, a.copy(allowRoleActions = newRoleActions), isJoinTable)
-  }
-
-  // Validation Handler Methods ................................................
-
-  private def handleValidateTest(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    test: Tree,
-    attr: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    test match {
-      case q"{ ..case $cases }: PartialFunction[$_, $_]" =>
-        handleValidationCases(prev, segmentPrefix, entity, a, cases.toList, attr, isJoinTable)
-      case _ =>
-        oneValidationCall(entity, a)
-        val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
-        val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
-        val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
-        val validations1 = List(indent(test.toString()) -> "")
-        acc(segmentPrefix, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1), isJoinTable)
-    }
-  }
-
-  private def handleValidateTestWithError(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    test: Tree,
-    error: String,
-    attr: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
-    val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
-    val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
-    val validations1 = List(indent(test.toString()) -> error)
-    acc(segmentPrefix, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1), isJoinTable)
-  }
-
-  private def handleValidateTestWithMultilineError(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    test: Tree,
-    multilineMsg: String,
-    attr: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
-    val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
-    val reqAttrs1    = a.requiredAttrs ++ valueAttrs2
-    val validations1 = List(indent(test.toString()) -> multilineMsg)
-    acc(segmentPrefix, entity, prev, a.copy(requiredAttrs = reqAttrs1, valueAttrs = valueAttrs1, validations = validations1), isJoinTable)
-  }
-
-  private def handleEmail(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val test  = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
-    val error = s"""`$$v` is not a valid email"""
-    acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
-  }
-
-  private def handleEmailWithError(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    error: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val test = "(s: String) => emailRegex.findFirstMatchIn(s).isDefined"
-    acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
-  }
-
-  private def handleRegex(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    regex: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val test  = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
-    val error = s"""\"$$v\" doesn't match regex pattern: ${regex.replace("$", "$$")}"""
-    acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
-  }
-
-  private def handleRegexWithError(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    regex: String,
-    error: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val test = s"""(s: String) => "$regex".r.findFirstMatchIn(s).isDefined"""
-    acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
-  }
-
-  private def handleAllowedValuesWithError(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    vs: Seq[Term],
-    error: String,
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val test = s"""v => Seq$vs.contains(v)"""
-    acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
-  }
-
-  private def handleAllowedValues(
-    prev: Tree,
-    segmentPrefix: String,
-    entity: String,
-    a: MetaAttribute,
-    vs: Seq[Term],
-    isJoinTable: Boolean
-  ): MetaAttribute = {
-    oneValidationCall(entity, a)
-    val test  = s"""v => Seq$vs.contains(v)"""
-    val error = s"""Value `$$v` is not one of the allowed values in Seq$vs"""
-    acc(segmentPrefix, entity, prev, a.copy(validations = List(test -> error)), isJoinTable)
-  }
+  // Helper methods ................................................
 
   private def addBackRef(segmentPrefix: String, backRefEntity: String, entity: String): Unit = {
     val fullEntityName     = fullEntity(segmentPrefix, entity)
@@ -1011,57 +946,216 @@ case class ParseDomainStructure(
   /** Extract action names from role definition traits */
   private def extractActions(actionTraits: List[Init]): List[String] = {
     actionTraits.flatMap {
-      case Init.After_4_6_0(Type.Name("all"), _, _) =>
-        List("query", "subscribe", "save", "insertMany", "update", "delete")
-      case Init.After_4_6_0(Type.Name("read"), _, _) =>
-        List("query", "subscribe")
-      case Init.After_4_6_0(Type.Name("write"), _, _) =>
-        List("save", "insertMany", "update", "delete")
-      case Init.After_4_6_0(Type.Name(action), _, _) if List("query", "subscribe", "save", "insertMany", "update", "delete").contains(action) =>
-        List(action)
-      case _ => Nil
+      case init"all"                                             => allActions
+      case init"read"                                            => read
+      case init"write"                                           => write
+      case init"$action" if allActions.contains(action.toString) => List(action.toString)
+      case _                                                      => Nil
     }.distinct.sorted
   }
 
-  /** Extract roles and authentication status from entity trait definition */
-  private def extractEntityRoles(template: Template): (List[String], Boolean) = {
-    val inits = template.inits
-    var entityRoles = List.empty[String]
-    var isAuthenticated = false
+  /** Extract roles, updating grants, deleting grants from entity trait definition */
+  private def extractEntityRoles(template: Template): (List[String], List[String], List[String]) = {
+    val inits                = template.inits
+    var entityRoles          = List.empty[String]
+    var entityUpdatingGrants = List.empty[String]
+    var entityDeletingGrants = List.empty[String]
 
     inits.foreach {
-      case Init.After_4_6_0(Type.Name("Role"), _, _) => // Entity is itself a role
-      case Init.After_4_6_0(Type.Name("Authenticated"), _, _) =>
-        isAuthenticated = true
-      case Init.After_4_6_0(Type.Name("Join"), _, _) => // Join table marker
-      case Init.After_4_6_0(Type.Name(roleName), _, _) if roles.exists(_.role == roleName) =>
+      case init"Role" => // Entity is itself a role
+      case init"Join" => // Join table marker
+
+      // Extract updating[R] marker traits
+      case init"updating[$roleType]" =>
+        entityUpdatingGrants = entityUpdatingGrants ++ extractRolesFromType(roleType)
+
+      // Extract deleting[R] marker traits
+      case init"deleting[$roleType]" =>
+        entityDeletingGrants = entityDeletingGrants ++ extractRolesFromType(roleType)
+
+      case init"$roleName" if roles.exists(_.role == roleName.toString) =>
         // Entity extends a defined role
-        entityRoles = entityRoles :+ roleName
-      case _ => // Regular entity or unknown trait
+        entityRoles = entityRoles :+ roleName.toString
+      case _                                                             => // Regular entity or unknown trait
     }
 
-    (entityRoles.distinct.sorted, isAuthenticated)
+    (entityRoles.distinct.sorted, entityUpdatingGrants.distinct.sorted, entityDeletingGrants.distinct.sorted)
   }
 
   /** Extract roles from type parameter (handles single role and tuple of roles) */
   private def extractRolesFromType(tpe: Type): List[String] = tpe match {
     case Type.Name(roleName) => List(roleName)
-    case Type.Tuple(types) => types.flatMap(extractRolesFromType)
-    case _ => Nil
+    case Type.Tuple(types)   => types.flatMap(extractRolesFromType)
+    case _                   => Nil
   }
 
   /** Extract actions from type parameter (handles single action and tuple of actions) */
-  private def extractActionsFromType(tpe: Type): List[String] = tpe match {
-    case Type.Name("all") =>
-      List("query", "subscribe", "save", "insertMany", "update", "delete")
-    case Type.Name("read") =>
-      List("query", "subscribe")
-    case Type.Name("write") =>
-      List("save", "insertMany", "update", "delete")
-    case Type.Name(action) if List("query", "subscribe", "save", "insertMany", "update", "delete").contains(action) =>
-      List(action)
-    case Type.Tuple(types) => types.flatMap(extractActionsFromType)
-    case _ => Nil
+  private def extractActionsFromType(tpe: Type): List[String] = {
+    tpe match {
+      case Type.Name("all")                                 => allActions
+      case Type.Name("read")                                => read
+      case Type.Name("write")                               => write
+      case Type.Name(action) if allActions.contains(action) => List(action)
+      case Type.Tuple(types)                                => types.flatMap(extractActionsFromType)
+      case _                                                => Nil
+    }
+  }
+
+  // Authorization Validation Methods ................................................
+
+  /** Validate entity has access to all 6 actions through its roles (Layer 1)
+    * Only applies to role-restricted entities. Public entities (no roles) skip all validation.
+    */
+  private def validateEntityActionCoverage(entity: String, entityRoles: List[String], entityActions: List[String]): Unit = {
+    // Public entities (no roles) are unrestricted - skip validation
+    if (entityRoles.isEmpty) {
+      return
+    }
+
+    // Role-restricted entities must have all 6 actions available
+    val missingActions = allActions.filterNot(entityActions.contains)
+    if (missingActions.nonEmpty) {
+      val roleDetails = entityRoles.map { roleName =>
+        val role = roles.find(_.role == roleName).get
+        s"  - $roleName: ${role.actions.mkString(", ")}"
+      }.mkString("\n")
+
+      err(
+        s"""Authorization error in entity '$entity':
+           |Entity roles do not provide access to all 6 required actions.
+           |Missing actions: ${missingActions.mkString(", ")}
+           |Available actions from roles: ${if (entityActions.isEmpty) "(none)" else entityActions.mkString(", ")}
+           |
+           |Entity roles and their actions:
+           |$roleDetails
+           |
+           |To fix: Add role(s) that provide the missing actions. For example:
+           |  - Add a role with 'all' actions, OR
+           |  - Add combination of roles with 'read' and 'write' actions, OR
+           |  - Add individual roles for each missing action
+           |
+           |Example fix:
+           |  trait $entity extends ${(entityRoles :+ "Admin").distinct.sorted.mkString(" with ")}  // assuming Admin has 'all' actions
+           |""".stripMargin
+      )
+    }
+  }
+
+  /** Validate entity-level grants (Layer 2) */
+  private def validateEntityGrants(entity: String, entityRoles: List[String], grants: List[String], grantType: String): Unit = {
+    grants.foreach { roleName =>
+      if (!entityRoles.contains(roleName)) {
+        err(
+          s"""Authorization error in entity '$entity':
+             |Role '$roleName' in '$grantType[$roleName]' grant is not in the entity roles.
+             |Entity roles: ${if (entityRoles.isEmpty) "(public entity)" else entityRoles.mkString(", ")}
+             |
+             |To fix: Add '$roleName' to entity definition:
+             |  trait $entity extends ${(entityRoles :+ roleName).distinct.sorted.mkString(" with ")} with $grantType[$roleName]
+             |""".stripMargin
+        )
+      }
+    }
+  }
+
+  /** Validate attribute-level role restrictions (Layer 3) */
+  private def validateAttributeRoleRestrictions(entity: String, attr: String, entityRoles: List[String],
+                                                onlyRoles: List[String], excludedRoles: List[String]): Unit = {
+    // Check only[R] roles are in entity roles
+    onlyRoles.foreach { roleName =>
+      if (!entityRoles.contains(roleName)) {
+        err(
+          s"""Authorization error in attribute '$entity.$attr':
+             |Role '$roleName' in '.only[$roleName]' is not in the entity roles.
+             |Entity roles: ${if (entityRoles.isEmpty) "(public entity)" else entityRoles.mkString(", ")}
+             |
+             |To fix: Add '$roleName' to entity definition:
+             |  trait $entity extends ${(entityRoles :+ roleName).distinct.sorted.mkString(" with ")}
+             |""".stripMargin
+        )
+      }
+    }
+
+    // Check exclude[R] roles are in entity roles
+    excludedRoles.foreach { roleName =>
+      if (!entityRoles.contains(roleName)) {
+        err(
+          s"""Authorization error in attribute '$entity.$attr':
+             |Role '$roleName' in '.exclude[$roleName]' is not in the entity roles.
+             |Entity roles: ${if (entityRoles.isEmpty) "(public entity)" else entityRoles.mkString(", ")}
+             |
+             |To fix: Add '$roleName' to entity definition:
+             |  trait $entity extends ${(entityRoles :+ roleName).distinct.sorted.mkString(" with ")}
+             |""".stripMargin
+        )
+      }
+    }
+
+    // Check if using only[R] results in empty role set
+    if (onlyRoles.nonEmpty && onlyRoles.forall(!entityRoles.contains(_))) {
+      err(
+        s"""Authorization error in attribute '$entity.$attr':
+           |'.only[${onlyRoles.mkString(", ")}]' would result in no roles having access.
+           |None of the specified roles are in entity roles: ${if (entityRoles.isEmpty) "(public entity)" else entityRoles.mkString(", ")}
+           |""".stripMargin
+      )
+    }
+
+    // Check if using exclude[R] results in empty role set
+    if (excludedRoles.nonEmpty && entityRoles.nonEmpty && entityRoles.forall(excludedRoles.contains)) {
+      err(
+        s"""Authorization error in attribute '$entity.$attr':
+           |'.exclude[${excludedRoles.mkString(", ")}]' would result in no roles having access.
+           |All entity roles are being excluded.
+           |""".stripMargin
+      )
+    }
+  }
+
+  /** Validate attribute-level update grants (Layer 4) */
+  private def validateAttributeUpdateGrants(entity: String, attr: String, entityRoles: List[String],
+                                            attrUpdatingGrants: List[String], onlyRoles: List[String],
+                                            excludedRoles: List[String]): Unit = {
+    attrUpdatingGrants.foreach { roleName =>
+      // Check if role is in entity roles
+      if (!entityRoles.contains(roleName)) {
+        err(
+          s"""Authorization error in attribute '$entity.$attr':
+             |Role '$roleName' in '.updating[$roleName]' is not in the entity roles.
+             |Entity roles: ${if (entityRoles.isEmpty) "(public entity)" else entityRoles.mkString(", ")}
+             |
+             |To fix: Add '$roleName' to entity definition:
+             |  trait $entity extends ${(entityRoles :+ roleName).distinct.sorted.mkString(" with ")}
+             |""".stripMargin
+        )
+      }
+
+      // Determine effective roles after restrictions
+      val effectiveRoles = if (onlyRoles.nonEmpty) {
+        onlyRoles
+      } else if (excludedRoles.nonEmpty) {
+        entityRoles.filterNot(excludedRoles.contains)
+      } else {
+        entityRoles
+      }
+
+      // Warn if grant is given to a role that doesn't pass restrictions
+      if (!effectiveRoles.contains(roleName)) {
+        val restrictionMsg = if (onlyRoles.nonEmpty) {
+          s"'.only[${onlyRoles.mkString(", ")}]'"
+        } else {
+          s"'.exclude[${excludedRoles.mkString(", ")}]'"
+        }
+        err(
+          s"""Authorization error in attribute '$entity.$attr':
+             |'.updating[$roleName]' grant is ineffective because role '$roleName' is excluded by $restrictionMsg
+             |Effective roles after restrictions: ${effectiveRoles.mkString(", ")}
+             |
+             |The update grant will have no effect because '$roleName' cannot access this attribute.
+             |""".stripMargin
+        )
+      }
+    }
   }
 }
 

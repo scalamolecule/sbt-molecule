@@ -7,7 +7,7 @@ case class MetaDomain(
   pkg: String,
   domain: String,
   segments: List[MetaSegment],
-  roles: List[MetaRole] = Nil  // Role definitions
+  roles: List[MetaRole] = Nil // Role definitions
 ) {
   def render(tabs: Int = 0): String = {
     val p           = indent(tabs)
@@ -48,9 +48,10 @@ case class MetaEntity(
   isJoinTable: Boolean = false,
   description: Option[String] = None,
   // Access control
-  entityRoles: List[String] = Nil,          // Roles this entity extends (empty = public)
-  entityActions: List[String] = Nil,        // Actions from role definitions
-  isAuthenticated: Boolean = false          // Whether entity extends Authenticated
+  entityRoles: List[String] = Nil, // Layer 1: Roles this entity extends (empty = public)
+  entityActions: List[String] = Nil, // Actions from role definitions
+  entityUpdatingGrants: List[String] = Nil, // Layer 2: entity-level update grants via `with updating[R]`
+  entityDeletingGrants: List[String] = Nil, // Layer 2: entity-level delete grants via `with deleting[R]`
 ) {
   def render(tabs: Int): String = {
     val attrsStr          = if (attributes.isEmpty) "" else {
@@ -59,29 +60,24 @@ case class MetaEntity(
       val p       = indent(tabs)
       val pad     = s"\n$p  "
       attributes.map { attr =>
-        val attr1         = "\"" + attr.attribute + "\"" + padS(maxAttr, attr.attribute)
-        val value         = attr.value
-        val tpe           = "\"" + attr.baseTpe + "\"" + padS(maxTpe, attr.baseTpe)
-        val args          = list(attr.arguments)
-        val ref           = o(attr.ref)
-        val reverseRef    = o(attr.reverseRef)
-        val relationship  = o(attr.relationship)
-        val enumTpe       = o(attr.enumTpe)
-        val options       = list(attr.options)
-        val descr         = o(attr.description)
-        val alias         = o(attr.alias)
-        val requiredAttrs = list(attr.requiredAttrs)
-        val valueAttrs    = list(attr.valueAttrs)
-        val validations1  = renderValidations(attr.validations)
-        val allowRoles1   = list(attr.allowRoles)
-        val allowActions1 = list(attr.allowActions)
-        val allowRoleActions1 = if (attr.allowRoleActions.isEmpty) "Nil" else {
-          attr.allowRoleActions.map { case (roles, actions) =>
-            s"(${list(roles)}, ${list(actions)})"
-          }.mkString("List(", ", ", ")")
-        }
-        val isAuth        = attr.isAuthenticated
-        s"""MetaAttribute($attr1, $value, $tpe, $args, $ref, $reverseRef, $relationship, $enumTpe, $options, $alias, $requiredAttrs, $valueAttrs, $validations1, $descr, $allowRoles1, $allowActions1, $allowRoleActions1, $isAuth)"""
+        val attr1             = "\"" + attr.attribute + "\"" + padS(maxAttr, attr.attribute)
+        val value             = attr.value
+        val tpe               = "\"" + attr.baseTpe + "\"" + padS(maxTpe, attr.baseTpe)
+        val args              = list(attr.arguments)
+        val ref               = o(attr.ref)
+        val reverseRef        = o(attr.reverseRef)
+        val relationship      = o(attr.relationship)
+        val enumTpe           = o(attr.enumTpe)
+        val options           = list(attr.options)
+        val descr             = o(attr.description)
+        val alias             = o(attr.alias)
+        val requiredAttrs     = list(attr.requiredAttrs)
+        val valueAttrs        = list(attr.valueAttrs)
+        val validations1      = renderValidations(attr.validations)
+        val onlyRoles1        = list(attr.onlyRoles)
+        val excludedRoles1    = list(attr.excludedRoles)
+        val attrUpdatingGrants1 = list(attr.attrUpdatingGrants)
+        s"""MetaAttribute($attr1, $value, $tpe, $args, $ref, $reverseRef, $relationship, $enumTpe, $options, $alias, $requiredAttrs, $valueAttrs, $validations1, $descr, $onlyRoles1, $excludedRoles1, $attrUpdatingGrants1)"""
       }.mkString(pad, s",$pad", s"\n$p")
     }
     val backRefs1         = if (backRefs.isEmpty) "" else backRefs.mkString("\"", "\", \"", "\"")
@@ -91,7 +87,9 @@ case class MetaEntity(
     }.mkString(", ")
     val entityRolesStr    = if (entityRoles.isEmpty) "" else entityRoles.mkString("\"", "\", \"", "\"")
     val entityActionsStr  = if (entityActions.isEmpty) "" else entityActions.mkString("\"", "\", \"", "\"")
-    s"""MetaEntity("$entity", List($attrsStr), List($backRefs1), List($mandatoryAttrsStr), List($mandatoryRefsStr), $isJoinTable, ${o(description)}, List($entityRolesStr), List($entityActionsStr), $isAuthenticated)"""
+    val entityUpdatingGrantsStr = if (entityUpdatingGrants.isEmpty) "" else entityUpdatingGrants.mkString("\"", "\", \"", "\"")
+    val entityDeletingGrantsStr = if (entityDeletingGrants.isEmpty) "" else entityDeletingGrants.mkString("\"", "\", \"", "\"")
+    s"""MetaEntity("$entity", List($attrsStr), List($backRefs1), List($mandatoryAttrsStr), List($mandatoryRefsStr), $isJoinTable, ${o(description)}, List($entityRolesStr), List($entityActionsStr), List($entityUpdatingGrantsStr), List($entityDeletingGrantsStr))"""
   }
 
   override def toString: String = render(0)
@@ -113,25 +111,17 @@ case class MetaAttribute(
   valueAttrs: List[String] = Nil,
   validations: List[(String, String)] = Nil,
   description: Option[String] = None,
-  // Access control
-  allowRoles: List[String] = Nil,                          // Roles specified via .allowRoles
-  allowActions: List[String] = Nil,                        // Actions specified via .allowActions
-  allowRoleActions: List[(List[String], List[String])] = Nil,  // (roles, actions) specified via .allowRoleActions
-  isAuthenticated: Boolean = false                         // Whether .authenticated was called
+  // Access control - New model (Layer 3 & 4)
+  onlyRoles: List[String] = Nil, // Layer 3: .only[R] - restrict attribute to only these roles
+  excludedRoles: List[String] = Nil, // Layer 3: .exclude[R] - exclude these roles from attribute
+  attrUpdatingGrants: List[String] = Nil, // Layer 4: .updating[R] - grant update permission at attribute level
 ) {
   override def toString: String = {
-    val validations1 = renderValidations(validations)
-    val allowRolesStr = if (allowRoles.isEmpty) "" else allowRoles.mkString("\"", "\", \"", "\"")
-    val allowActionsStr = if (allowActions.isEmpty) "" else allowActions.mkString("\"", "\", \"", "\"")
-    val allowRoleActionsStr = if (allowRoleActions.isEmpty) "" else {
-      allowRoleActions.map { case (roles, actions) =>
-        val rolesStr = roles.mkString("List(\"", "\", \"", "\")")
-        val actionsStr = actions.mkString("List(\"", "\", \"", "\")")
-        s"($rolesStr, $actionsStr)"
-      }.mkString("List(", ", ", ")")
-    }
-    val allowRoleActionsOutput = if (allowRoleActions.isEmpty) "Nil" else allowRoleActionsStr
-    s"""MetaAttribute("$attribute", $value, "$baseTpe", ${list(arguments)}, ${o(ref)}, ${o(reverseRef)}, ${o(relationship)}, ${o(enumTpe)}, ${list(options)}, ${o(alias)}, ${list(requiredAttrs)}, ${list(valueAttrs)}, $validations1, ${o(description)}, List($allowRolesStr), List($allowActionsStr), $allowRoleActionsOutput, $isAuthenticated)"""
+    val validations1           = renderValidations(validations)
+    val onlyRolesStr           = if (onlyRoles.isEmpty) "" else onlyRoles.mkString("\"", "\", \"", "\"")
+    val excludedRolesStr       = if (excludedRoles.isEmpty) "" else excludedRoles.mkString("\"", "\", \"", "\"")
+    val attrUpdatingGrantsStr  = if (attrUpdatingGrants.isEmpty) "" else attrUpdatingGrants.mkString("\"", "\", \"", "\"")
+    s"""MetaAttribute("$attribute", $value, "$baseTpe", ${list(arguments)}, ${o(ref)}, ${o(reverseRef)}, ${o(relationship)}, ${o(enumTpe)}, ${list(options)}, ${o(alias)}, ${list(requiredAttrs)}, ${list(valueAttrs)}, $validations1, ${o(description)}, List($onlyRolesStr), List($excludedRolesStr), List($attrUpdatingGrantsStr))"""
   }
 }
 
@@ -151,7 +141,7 @@ case class MetaArgument(
 /** Role definition with associated actions */
 case class MetaRole(
   role: String,
-  actions: List[String] = Nil  // Actions this role has (query, subscribe, save, etc.)
+  actions: List[String] = Nil // Actions this role has (query, subscribe, save, etc.)
 ) {
   override def toString: String = {
     val actionsStr = if (actions.isEmpty) "" else actions.mkString("\"", "\", \"", "\"")

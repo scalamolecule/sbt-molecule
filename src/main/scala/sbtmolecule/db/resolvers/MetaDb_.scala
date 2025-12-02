@@ -116,7 +116,9 @@ case class MetaDb_(metaDomain: MetaDomain) {
       } yield entity
 
       val entityBitmasks = entities.map { entity =>
-        (entity.entity, calculateEntityBitmask(entity, roleMap, roles))
+        // Entity bitmask = permissions from entity trait inheritance, filtered by query action
+        val entityBitmask = filterEntityRolesByAction(entity, "query", roleMap, roles)
+        (entity.entity, entityBitmask)
       }
 
       val p = indent(1)
@@ -130,7 +132,130 @@ case class MetaDb_(metaDomain: MetaDomain) {
     }
   }
 
-  def queryAccessAttributes: String = {
+  def queryAccessAttributes: String = generateAccessAttributes("query")
+  def subscribeAccessAttributes: String = generateAccessAttributes("subscribe")
+  def saveAccessAttributes: String = generateAccessAttributes("save")
+  def insertAccessAttributes: String = generateAccessAttributes("insert")
+  def updateAccessAttributes: String = generateAccessAttributes("update")
+  def deleteAccessAttributes: String = generateDeleteAccessAttributes()
+
+  def entityAttributesNoId: String = {
+    val p = indent(1)
+    val pad = s"\n$p  "
+
+    // Collect all entities in definition order
+    val entities = for {
+      segment <- metaDomain.segments
+      entity <- segment.entities
+    } yield entity
+
+    // For each entity, collect attribute indices (excluding 'id')
+    var globalAttrIndex = 0
+    val entityAttrIndices = entities.map { entity =>
+      val attrIndices = entity.attributes.flatMap { attr =>
+        val currentIndex = globalAttrIndex
+        globalAttrIndex += 1
+        // Exclude 'id' attributes from permission checks
+        if (attr.attribute == "id") None else Some(currentIndex)
+      }
+      (entity.entity, attrIndices)
+    }
+
+    val maxEntity = if (entityAttrIndices.isEmpty) 0 else entityAttrIndices.map(_._1.length).max
+
+    val lines = entityAttrIndices.map { case (entityName, attrIndices) =>
+      if (attrIndices.isEmpty) {
+        s"/* ${entityName.padTo(maxEntity, ' ')} */ IArray.empty[Int]"
+      } else {
+        s"/* ${entityName.padTo(maxEntity, ' ')} */ IArray(${attrIndices.mkString(", ")})"
+      }
+    }
+
+    val indicesStr = if (lines.isEmpty) "" else lines.mkString(pad, s",$pad", s"\n$p")
+    s"IArray($indicesStr)"
+  }
+
+  def attrNames: String = {
+    val p = indent(1)
+    val pad = s"\n$p  "
+
+    // Collect all attributes in definition order
+    val attrNames = for {
+      segment <- metaDomain.segments
+      entity <- segment.entities
+      attr <- entity.attributes
+    } yield {
+      s""""${entity.entity}.${attr.attribute}""""
+    }
+
+    val namesStr = if (attrNames.isEmpty) "" else attrNames.mkString(pad, s",$pad", s"\n$p")
+    s"IArray($namesStr)"
+  }
+
+  def subscribeAccessEntities: String = generateAccessEntities("subscribe")
+  def saveAccessEntities: String = generateAccessEntities("save")
+  def insertAccessEntities: String = generateAccessEntities("insert")
+  def updateAccessEntities: String = generateAccessEntities("update")
+  def deleteAccessEntities: String = generateAccessEntities("delete")
+
+  // Role action bitmasks - which roles have which actions
+  // Used to check authenticated user's permissions on public entities (-1)
+  def roleQueryAction: String = generateRoleActionBitmask("query")
+  def roleSubscribeAction: String = generateRoleActionBitmask("subscribe")
+  def roleSaveAction: String = generateRoleActionBitmask("save")
+  def roleInsertAction: String = generateRoleActionBitmask("insert")
+  def roleUpdateAction: String = generateRoleActionBitmask("update")
+  def roleDeleteAction: String = generateRoleActionBitmask("delete")
+
+  private def generateAccessEntities(action: String): String = {
+    val roles = metaDomain.roles
+    if (roles.isEmpty) {
+      "IArray.empty[Int]"
+    } else {
+      val roleMap = roles.sortBy(_.role).zipWithIndex.map { case (role, index) => role.role -> index }.toMap
+      val entities = for {
+        segment <- metaDomain.segments
+        entity <- segment.entities
+      } yield entity
+
+      val entityBitmasks = entities.map { entity =>
+        // Calculate attribute bitmasks based on role and action tuning
+        val attrBitmasks = entity.attributes.map { attr =>
+          calculateAttributeBitmask(entity, attr, action, roleMap, roles)
+        }
+
+        // Entity-level bitmask should be the union of all attribute bitmasks
+        // This allows access if ANY attribute is accessible for this action
+        val combinedAttrBitmask = if (attrBitmasks.isEmpty) 0 else attrBitmasks.reduce(_ | _)
+
+        val entityBitmask = if (action == "delete") {
+          // For delete action: roles with delete action + entity deleting grants
+          if (entity.entityRoles.nonEmpty) {
+            calculateEntityBitmask(entity, action, roleMap, roles)
+          } else {
+            // Public entity
+            -1
+          }
+        } else {
+          // For other actions: use combined attribute bitmask
+          // This allows entity access if ANY attribute is accessible for this action
+          combinedAttrBitmask
+        }
+        (entity.entity, entityBitmask)
+      }
+
+      val p = indent(1)
+      val pad = s"\n$p  "
+      val maxEntity = if (entityBitmasks.isEmpty) 0 else entityBitmasks.map(_._1.length).max
+      val bitmaskStr = entityBitmasks.map { case (entityName, bitmask) =>
+        s"/* ${entityName.padTo(maxEntity, ' ')} */ $bitmask"
+      }
+      val masksStr = if (bitmaskStr.isEmpty) "" else bitmaskStr.mkString(pad, s",$pad", s"\n$p")
+      s"IArray($masksStr)"
+    }
+  }
+
+  private def generateAccessAttributes(action: String): String = {
     val roles = metaDomain.roles
     if (roles.isEmpty) {
       "IArray.empty[Int]"
@@ -143,7 +268,7 @@ case class MetaDb_(metaDomain: MetaDomain) {
         entity <- segment.entities
       } yield {
         val attrs = entity.attributes.map { attr =>
-          calculateAttributeBitmask(entity, attr, roleMap, roles)
+          calculateAttributeBitmask(entity, attr, action, roleMap, roles)
         }
         (entity.entity, attrs)
       }).toList
@@ -167,111 +292,229 @@ case class MetaDb_(metaDomain: MetaDomain) {
     }
   }
 
+  private def generateDeleteAccessAttributes(): String = {
+    val roles = metaDomain.roles
+    if (roles.isEmpty) {
+      "IArray.empty[Int]"
+    } else {
+      val roleMap = roles.sortBy(_.role).zipWithIndex.map { case (role, index) => role.role -> index }.toMap
+
+      // For delete, all attributes of an entity should have the same permissions as the entity
+      val attributesByEntity = (for {
+        segment <- metaDomain.segments
+        entity <- segment.entities
+      } yield {
+        // Entity delete permission = roles with delete action + entity deleting grants
+        val entityDeleteBitmask = if (entity.entityRoles.nonEmpty) {
+          calculateEntityBitmask(entity, "delete", roleMap, roles)
+        } else {
+          // Public entity
+          -1
+        }
+
+        // All attributes get the same entity-level permission
+        val attrs = entity.attributes.map(_ => entityDeleteBitmask)
+        (entity.entity, attrs)
+      }).toList
+
+      val p = indent(1)
+      val pad = s"\n$p  "
+
+      val maxEntity = if (attributesByEntity.isEmpty) 0 else attributesByEntity.map(_._1.length).max
+
+      val lines = attributesByEntity.flatMap { case (entityName, attrBitmasks) =>
+        if (attrBitmasks.isEmpty) {
+          Nil
+        } else {
+          List(s"/* ${entityName.padTo(maxEntity, ' ')} */ ${attrBitmasks.mkString(", ")}")
+        }
+      }
+
+      val masksStr = if (lines.isEmpty) "" else lines.mkString(pad, s",$pad", s"\n$p")
+      s"IArray($masksStr)"
+    }
+  }
+
   // Helper methods for bitmask calculation ................................................
 
-  private def calculateEntityBitmask(entity: MetaEntity, roleMap: Map[String, Int], roles: List[MetaRole]): Int = {
-    // Public entity (no roles, not authenticated) = all bits set
-    if (entity.entityRoles.isEmpty && !entity.isAuthenticated) {
-      0xFFFFFFFF // All bits set = public
+  private def generateRoleActionBitmask(action: String): String = {
+    val roles = metaDomain.roles
+    if (roles.isEmpty) {
+      "0"
+    } else {
+      // Roles are sorted alphabetically (same order as role indices)
+      val sortedRoles = roles.sortBy(_.role)
+      val bitmask = sortedRoles.zipWithIndex.foldLeft(0) { case (mask, (role, index)) =>
+        if (role.actions.contains(action)) {
+          mask | (1 << index)
+        } else {
+          mask
+        }
+      }
+      bitmask.toString
     }
-    // Authenticated entity = all defined role bits set
-    else if (entity.isAuthenticated) {
-      allRoleBits(roleMap)
+  }
+
+  private def calculateEntityBitmask(entity: MetaEntity, action: String, roleMap: Map[String, Int], roles: List[MetaRole]): Int = {
+    // Public entity (no roles defined) = -1 (special marker for unauthenticated-only access)
+    // Authenticated users must still follow their role's action permissions
+    if (entity.entityRoles.isEmpty) {
+      -1 // -1 = public (unauthenticated access allowed, authenticated users follow role permissions)
     }
-    // Entity with specific roles
+    // Entity with specific roles - filter by action + grants
     else {
-      entity.entityRoles.foldLeft(0) { (bitmask, roleName) =>
+      // Calculate base bitmask from roles that have this action
+      val baseBitmask = entity.entityRoles.foldLeft(0) { (bitmask, roleName) =>
         roleMap.get(roleName) match {
-          case Some(index) => bitmask | (1 << index)
+          case Some(index) =>
+            val role = roles.find(_.role == roleName).getOrElse(
+              throw new Exception(s"Role '$roleName' not found in role definitions")
+            )
+            if (role.actions.contains(action)) {
+              bitmask | (1 << index)
+            } else {
+              bitmask
+            }
           case None =>
             throw new Exception(s"Role '$roleName' used in entity '${entity.entity}' is not defined. Available roles: ${roleMap.keys.mkString(", ")}")
         }
       }
+
+      // Add grants for this action
+      val grantsBitmask = if (action == "update") {
+        entity.entityUpdatingGrants.foldLeft(0) { (bitmask, roleName) =>
+          roleMap.get(roleName).map(index => bitmask | (1 << index)).getOrElse(bitmask)
+        }
+      } else if (action == "delete") {
+        entity.entityDeletingGrants.foldLeft(0) { (bitmask, roleName) =>
+          roleMap.get(roleName).map(index => bitmask | (1 << index)).getOrElse(bitmask)
+        }
+      } else {
+        0
+      }
+
+      baseBitmask | grantsBitmask
     }
   }
 
   private def calculateAttributeBitmask(
     entity: MetaEntity,
     attr: MetaAttribute,
+    action: String,
     roleMap: Map[String, Int],
     roles: List[MetaRole]
   ): Int = {
-    // Priority order (first match wins):
-    // 1. .allowRoles[R] - explicit role override
-    // 2. .allowRoleActions[R, A] - role + action combination (can be chained, uses OR)
-    // 3. .allowActions[A] - action-based filtering of entity roles
-    // 4. .authenticated - any authenticated user
-    // 5. Inherit from entity default
 
-    // 1. Explicit role override
-    if (attr.allowRoles.nonEmpty) {
-      attr.allowRoles.foldLeft(0) { (bitmask, roleName) =>
+    // New Authorization Model: 4 Layers
+    // Layer 1: Entity roles (who can access entity)
+    // Layer 2: Entity action grants (updating[R], deleting[R] at entity level)
+    // Layer 3: Attribute role restrictions (.only[R], .exclude[R])
+    // Layer 4: Attribute update grants (.updating[R] at attribute level)
+
+    // Step 1: Determine effective roles for this attribute after restrictions (Layer 3)
+    val effectiveRoles = if (attr.onlyRoles.nonEmpty) {
+      // .only[R] - restrict to only these roles
+      attr.onlyRoles
+    } else if (attr.excludedRoles.nonEmpty) {
+      // .exclude[R] - all entity roles except these
+      entity.entityRoles.filterNot(attr.excludedRoles.contains)
+    } else {
+      // No restrictions - use entity roles
+      entity.entityRoles
+    }
+
+    // Step 2: Calculate base permissions from role actions
+    val baseBitmask = if (effectiveRoles.isEmpty) {
+      // Public entity/attribute (no roles defined) = -1 (unauthenticated access only)
+      -1
+    } else {
+      // Filter effective roles by those that have this action
+      effectiveRoles.foldLeft(0) { (bitmask, roleName) =>
         roleMap.get(roleName) match {
-          case Some(index) => bitmask | (1 << index)
+          case Some(index) =>
+            val role = roles.find(_.role == roleName).getOrElse(
+              throw new Exception(s"Role '$roleName' not found in role definitions")
+            )
+            if (role.actions.contains(action)) {
+              bitmask | (1 << index)
+            } else {
+              bitmask
+            }
           case None =>
-            throw new Exception(s"Role '$roleName' used in attribute '${entity.entity}.${attr.attribute}' is not defined. Available roles: ${roleMap.keys.mkString(", ")}")
+            throw new Exception(s"Role '$roleName' used in entity/attribute '${entity.entity}.${attr.attribute}' is not defined. Available roles: ${roleMap.keys.mkString(", ")}")
         }
       }
     }
-    // 2. Chained allowRoleActions (bitwise OR of all chains)
-    else if (attr.allowRoleActions.nonEmpty) {
-      attr.allowRoleActions.foldLeft(0) { (bitmask, roleActionPair) =>
-        val (roleNames, actionNames) = roleActionPair
-        val chainBitmask = filterRolesByActions(roleNames, actionNames, roleMap, roles, entity, attr)
-        bitmask | chainBitmask
+
+    // Step 3: Apply grants (Layer 2 & 4)
+    // IMPORTANT: Grants are ADDITIVE and apply to roles in effectiveRoles
+    // (after attribute restrictions are applied)
+    val grantsBitmask = if (action == "update") {
+      // For update action: combine entity and attribute update grants
+      // Entity grants apply to all attributes, attribute grants are attribute-specific
+      val entityGrantBitmask = entity.entityUpdatingGrants.foldLeft(0) { (bitmask, roleName) =>
+        roleMap.get(roleName) match {
+          // Grant applies if role passes attribute restrictions (is in effectiveRoles)
+          case Some(index) if effectiveRoles.contains(roleName) => bitmask | (1 << index)
+          case _ => bitmask
+        }
       }
-    }
-    // 3. Action-based filtering
-    else if (attr.allowActions.nonEmpty) {
-      val entityRoleNames = if (entity.isAuthenticated) {
-        roleMap.keys.toList
-      } else if (entity.entityRoles.isEmpty) {
-        roleMap.keys.toList // Public entity
-      } else {
-        entity.entityRoles
+      val attrGrantBitmask = attr.attrUpdatingGrants.foldLeft(0) { (bitmask, roleName) =>
+        roleMap.get(roleName) match {
+          // Grant applies if role passes attribute restrictions (is in effectiveRoles)
+          case Some(index) if effectiveRoles.contains(roleName) => bitmask | (1 << index)
+          case _ => bitmask
+        }
       }
-      filterRolesByActions(entityRoleNames, attr.allowActions, roleMap, roles, entity, attr)
+      entityGrantBitmask | attrGrantBitmask
+    } else if (action == "delete") {
+      // For delete action: entity-level delete grants apply to ALL attributes
+      // (deleting an entity deletes all its attributes, so attribute restrictions don't apply)
+      entity.entityDeletingGrants.foldLeft(0) { (bitmask, roleName) =>
+        roleMap.get(roleName) match {
+          // Grant applies to all attributes regardless of attribute-level restrictions
+          case Some(index) => bitmask | (1 << index)
+          case _ => bitmask
+        }
+      }
+    } else {
+      0 // No grants for other actions (query, subscribe, save, insert)
     }
-    // 4. Authenticated attribute
-    else if (attr.isAuthenticated) {
-      allRoleBits(roleMap)
-    }
-    // 5. Inherit from entity
-    else {
-      calculateEntityBitmask(entity, roleMap, roles)
-    }
+
+    // Step 4: Combine base permissions with grants
+    baseBitmask | grantsBitmask
   }
 
-  private def filterRolesByActions(
-    roleNames: List[String],
-    actionNames: List[String],
-    roleMap: Map[String, Int],
-    roles: List[MetaRole],
+
+  private def filterEntityRolesByAction(
     entity: MetaEntity,
-    attr: MetaAttribute
+    action: String,
+    roleMap: Map[String, Int],
+    roles: List[MetaRole]
   ): Int = {
-    roleNames.foldLeft(0) { (bitmask, roleName) =>
-      roleMap.get(roleName) match {
-        case Some(index) =>
-          // Check if this role has ALL the specified actions
-          val role = roles.find(_.role == roleName).getOrElse(
-            throw new Exception(s"Role '$roleName' not found in role definitions")
-          )
-          val hasAllActions = actionNames.forall(action => role.actions.contains(action))
-          if (hasAllActions) {
-            bitmask | (1 << index)
-          } else {
-            bitmask
-          }
-        case None =>
-          throw new Exception(s"Role '$roleName' used in attribute '${entity.entity}.${attr.attribute}' is not defined. Available roles: ${roleMap.keys.mkString(", ")}")
-      }
+    // If entity is public (no roles defined), allow public access for all actions
+    if (entity.entityRoles.isEmpty) {
+      // Public entity - all actions are public (-1 = unauthenticated access allowed)
+      -1
     }
-  }
-
-  private def allRoleBits(roleMap: Map[String, Int]): Int = {
-    roleMap.values.foldLeft(0) { (bitmask, index) =>
-      bitmask | (1 << index)
+    // If entity has specific roles, only those roles with this action can access
+    else {
+      entity.entityRoles.foldLeft(0) { (bitmask, roleName) =>
+        roleMap.get(roleName) match {
+          case Some(index) =>
+            // Check if this role has the action
+            val role = roles.find(_.role == roleName).getOrElse(
+              throw new Exception(s"Role '$roleName' not found in role definitions")
+            )
+            if (role.actions.contains(action)) {
+              bitmask | (1 << index)
+            } else {
+              bitmask
+            }
+          case None =>
+            throw new Exception(s"Role '$roleName' used in entity '${entity.entity}' is not defined. Available roles: ${roleMap.keys.mkString(", ")}")
+        }
+      }
     }
   }
 
@@ -303,10 +546,79 @@ case class MetaDb_(metaDomain: MetaDomain) {
         |  /** Role name to bit index (0-31) */
         |  override val roleIndex: Map[String, Int] = $roleIndex
         |
+        |  /** Bitmask of roles that have query action */
+        |  override val roleQueryAction: Int = $roleQueryAction
+        |
+        |  /** Bitmask of roles that have subscribe action */
+        |  override val roleSubscribeAction: Int = $roleSubscribeAction
+        |
+        |  /** Bitmask of roles that have save action */
+        |  override val roleSaveAction: Int = $roleSaveAction
+        |
+        |  /** Bitmask of roles that have insert action */
+        |  override val roleInsertAction: Int = $roleInsertAction
+        |
+        |  /** Bitmask of roles that have update action */
+        |  override val roleUpdateAction: Int = $roleUpdateAction
+        |
+        |  /** Bitmask of roles that have delete action */
+        |  override val roleDeleteAction: Int = $roleDeleteAction
+        |
         |  /** Bitwise role access for entities on query action */
         |  override val queryAccessEntities: IArray[Int] = $queryAccessEntities
         |
         |  /** Bitwise role access for attributes on query action */
         |  override val queryAccessAttributes: IArray[Int] = $queryAccessAttributes
+        |
+        |  /** Bitwise role access for entities on subscribe action */
+        |  override val subscribeAccessEntities: IArray[Int] = $subscribeAccessEntities
+        |
+        |  /** Bitwise role access for attributes on subscribe action */
+        |  override val subscribeAccessAttributes: IArray[Int] = $subscribeAccessAttributes
+        |
+        |  /** Bitwise role access for entities on save action */
+        |  override val saveAccessEntities: IArray[Int] = $saveAccessEntities
+        |
+        |  /** Bitwise role access for attributes on save action */
+        |  override val saveAccessAttributes: IArray[Int] = $saveAccessAttributes
+        |
+        |  /** Bitwise role access for entities on insert action */
+        |  override val insertAccessEntities: IArray[Int] = $insertAccessEntities
+        |
+        |  /** Bitwise role access for attributes on insert action */
+        |  override val insertAccessAttributes: IArray[Int] = $insertAccessAttributes
+        |
+        |  /** Bitwise role access for entities on update action */
+        |  override val updateAccessEntities: IArray[Int] = $updateAccessEntities
+        |
+        |  /** Bitwise role access for attributes on update action */
+        |  override val updateAccessAttributes: IArray[Int] = $updateAccessAttributes
+        |
+        |  /** Bitwise role access for entities on delete action */
+        |  override val deleteAccessEntities: IArray[Int] = $deleteAccessEntities
+        |
+        |  /** Bitwise role access for attributes on delete action */
+        |  override val deleteAccessAttributes: IArray[Int] = $deleteAccessAttributes
+        |
+        |
+        |  // Coordinate-based lookups -----------------------------------------------
+        |
+        |  /**
+        |   * Maps each entity index to the list of attribute indices belonging to that entity.
+        |   * Excludes 'id' attributes since they are not checked during permission validation.
+        |   *
+        |   * Index: entity coordinate (coord(0))
+        |   * Value: array of attribute coordinates (coord(1)) for that entity, excluding id
+        |   */
+        |  override val entityAttributesNoId: IArray[IArray[Int]] = $entityAttributesNoId
+        |
+        |  /**
+        |   * Maps attribute index to attribute name for error messages.
+        |   * Index: attribute coordinate (coord(1))
+        |   * Value: "EntityName.attributeName"
+        |   *
+        |   * This is only used for generating human-readable error messages.
+        |   */
+        |  override val attrNames: IArray[String] = $attrNames
         |}""".stripMargin
 }

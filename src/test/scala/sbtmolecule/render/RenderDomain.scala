@@ -43,6 +43,7 @@ object RenderDomain extends TestSuite {
 
 //      println(ParseAndGenerate(basePath + "SocialApp.scala"))
       social.printMetaDb
+//      social.printEntityBuilder(social.metaDomain.segments.head.entities.head)
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
 

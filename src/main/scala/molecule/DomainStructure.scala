@@ -270,20 +270,17 @@ abstract class DomainStructure {
   // User-defined roles need to extend this
   trait Role
 
-  // Entity-level authentication requirement
-  trait Authenticated
-
   sealed trait Action
   trait query extends Action
   trait subscribe extends Action
   trait save extends Action
-  trait insertMany extends Action
+  trait insert extends Action
   trait update extends Action
   trait delete extends Action
 
   // Convenience action collections
   trait read extends query with subscribe
-  trait write extends save with insertMany with update with delete
+  trait write extends save with insert with update with delete
   trait all extends read with write
 
   /** Evidence that A is either a single Role or tuple of Roles */
@@ -301,6 +298,17 @@ abstract class DomainStructure {
   //  given empty: ActionsOnly[EmptyTuple] = new ActionsOnly[EmptyTuple] {}
   //  given tuple[H <: Action, T <: Tuple](using ActionsOnly[T]): ActionsOnly[H *: T] =
   //    new ActionsOnly[H *: T] {}
+
+  // Scala 2.12 compatible markers to allow testing in this 2.12 project
+  trait deleting[R]
+  trait updating[R]
+
+  // Real marker traits in the molecule library:
+  //  // used for entity-level grant only
+  //  trait deleting[R](using RolesOnly[R])
+  //
+  //  // used for both entity- and attribute-level grants
+  //  trait updating[R](using RolesOnly[R])
 
 
   // Enums .....................................................................
@@ -388,29 +396,17 @@ abstract class DomainStructure {
 
     // Access Control Methods
 
-    // Restrict to specific role(s)
-    //    def allowRoles[R](using RolesOnly[R]): Self = ???
-    //
-    //    // Restrict to specific action(s) (all entity roles)
-    //    def allowActions[A](using ActionsOnly[A]): Self = ???
-    //
-    //    // Restrict to specific role(s) AND action(s)
-    //    def allowRoleActions[R, A](using RolesOnly[R], ActionsOnly[A]): Self = ???
+    // OBS: Scala 2.12-compatible simplified to allow testing in 2.12
+    // See real DomainStructure in molecule library
 
-    // Restrict to specific role(s)
-    def allowRoles[R]: Self = ???
+    def exclude[R]: Self = ???
+    def only[R]: Self = ???
+    def updating[R]: Self = ???
 
-    // Restrict to specific action(s) (all entity roles)
-    def allowActions[A]: Self = ???
-
-    // Restrict to specific role(s) AND action(s)
-    def allowRoleActions[R, A]: Self = ???
-
-    // Attribute constraints
-    def authenticated: Self = ???
-
-    // Use validation dsl as authorization conditions
-    def authorizeIf(condition: Validated*): Self = ???
+    // Real methods in molecule.DomainStructure:
+    //    def exclude[R](using RolesOnly[R]): Self = ???
+    //    def only[R](using RolesOnly[R]): Self = ???
+    //    def updating[R](using RolesOnly[R]): Self = ???
   }
 
   trait Validated

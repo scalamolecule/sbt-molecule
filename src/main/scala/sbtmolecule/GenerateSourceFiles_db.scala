@@ -32,7 +32,7 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     val segmentsWithoutEnums = segments.filter {
       case MetaSegment("_enums", entities) =>
         entities.foreach {
-          case MetaEntity(enumTpe, attributes, _, _, _, _, _, _, _, _) =>
+          case MetaEntity(enumTpe, attributes, _, _, _, _, _, _, _, _, _) =>
             val enumCode =
               s"""// AUTO-GENERATED Molecule boilerplate code
                  |package $pkg.dsl.$domain

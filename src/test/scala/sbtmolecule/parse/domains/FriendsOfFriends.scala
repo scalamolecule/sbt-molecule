@@ -17,7 +17,7 @@ object FriendsOfFriends extends DomainStructure {
     val person2 = manyToOne[Person].oneToMany("knownBy")
   }
 
-  "Bob knows Liz"
+//  "Bob knows Liz"
 
   //  Person.name_("Bob").Knows.friend // Liz
   //  Person.name.Knows.friend_("Liz") // Bob
