@@ -6,54 +6,19 @@ import molecule.DomainStructure
 object SocialApp extends DomainStructure {
 
   trait Guest extends Role with query
-  trait Member extends Role with read
-  trait Moderator extends Role with read
-  trait Admin extends Role with all
+  trait Member extends Role with query
+  trait Moderator extends Role with query
+  trait Admin extends Role with query with save with insert with update with delete
 
 
-  // Entity-level update grant to single role
-  // Base: Member has read, Admin has all (all 6 actions covered)
-  // Grant: Member can also update all attributes
-  trait Post extends Member with Admin
-    with updating[Member] {
-    val content = oneString
-    val title   = oneString
-  }
+  // Delete-by-ID with attribute restrictions
+  // Tests that delete checks both entity AND attribute permissions
+  // Both Member and Admin can delete at entity level, but secretNotes is restricted to Admin only
+  trait Document extends Member with Admin
+    with deleting[(Member, Admin)] {
+    val title = oneString // All roles (Member, Admin)
 
-
-  // Entity-level delete grant to single role
-  // Base: Moderator has read, Admin has all (all 6 actions covered)
-  // Grant: Moderator can also delete
-  trait Comment extends Moderator with Admin
-    with deleting[Moderator] {
-    val text = oneString
-  }
-
-
-  // Multiple role grants at entity level
-  // Both Member and Moderator can update, Admin provides all actions
-  trait Article extends Member with Moderator with Admin
-    with updating[(Member, Moderator)] {
-    val title   = oneString
-    val content = oneString
-  }
-
-
-  // Combining updating and deleting grants
-  // Moderator can update, both Moderator and Admin can delete
-  trait ModLog extends Admin with Moderator
-    with updating[Moderator]
-    with deleting[(Moderator, Admin)] {
-    val action    = oneString
-    val timestamp = oneLong
-  }
-
-
-  // Different roles with different grants
-  trait UserProfile extends Member with Admin
-    with updating[Member]
-    with deleting[Admin] {
-    val displayName = oneString
-    val bio         = oneString
+    // Only Admin can access this attribute
+    val secretNotes = oneString.only[Admin]
   }
 }

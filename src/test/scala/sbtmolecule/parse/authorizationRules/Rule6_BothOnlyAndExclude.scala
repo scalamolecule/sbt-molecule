@@ -7,7 +7,7 @@ import utest.*
 // Rule 6: Cannot use both .only and .exclude on same attribute
 object Rule6_BothOnlyAndExclude extends DomainStructure {
   trait Guest extends Role with query
-  trait Member extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
 
   trait Profile extends Guest with Member {
     val email = oneString.only[Member].exclude[Guest]  // ❌ Can't use both

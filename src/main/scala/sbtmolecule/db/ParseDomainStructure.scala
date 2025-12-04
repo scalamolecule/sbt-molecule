@@ -47,9 +47,8 @@ case class ParseDomainStructure(
     "_", ":", "=", "=>", "<-", "<:", "<%", ">:", "#", "@"
   )
 
-  private val allActions = List("query", "subscribe", "save", "insert", "update", "delete")
-  private val read       = List("query", "subscribe")
-  private val write      = List("save", "insert", "update", "delete")
+  private val allActions = List("query", "save", "insert", "update", "delete", "rawQuery", "rawTransact")
+  private val coreActions = List("query", "save", "insert", "update", "delete") // Core CRUD actions that must be available for role-restricted entities
 
 
   private var backRefs       = Map.empty[String, List[String]]
@@ -229,10 +228,10 @@ case class ParseDomainStructure(
           val (entityRoles, entityUpdatingGrants, entityDeletingGrants) = extractEntityRoles(template)
           val entityActions                                             = entityRoles.flatMap(roleName => roles.find(_.role == roleName).map(_.actions).getOrElse(Nil)).distinct.sorted
 
-          // Validate entity has access to all 6 actions through its roles (Layer 1)
+          // Validate entity has access to all 5 core CRUD actions through its roles (Layer 1)
           validateEntityActionCoverage(entity, entityRoles, entityActions)
 
-          // Validate entity-level grants (Layer 2)
+          // Validate action grants (Layer 2)
           validateEntityGrants(entity, entityRoles, entityUpdatingGrants, "updating")
           validateEntityGrants(entity, entityRoles, entityDeletingGrants, "deleting")
 
@@ -286,14 +285,17 @@ case class ParseDomainStructure(
     }
     val metaAttrs = getAttrs(segmentPrefix, entity, attrs, isJoinTable)
 
-    // Validate attribute-level authorization (Layers 3 & 4)
+    // Validate attribute authorization (Layers 3 & 4)
     metaAttrs.foreach { attr =>
-      // Validate Layer 3: Attribute role restrictions
+      // Validate Layer 3: Attribute restrictions
       validateAttributeRoleRestrictions(entity, attr.attribute, entityRoles, attr.onlyRoles, attr.excludedRoles)
 
       // Validate Layer 4: Attribute update grants
       validateAttributeUpdateGrants(entity, attr.attribute, entityRoles, attr.attrUpdatingGrants, attr.onlyRoles, attr.excludedRoles)
     }
+
+    // Validate action grants have access to all attributes
+    validateEntityGrantsAttributeAccess(entity, entityRoles, entityUpdatingGrants, entityDeletingGrants, metaAttrs)
 
     val mandatoryAttrs = metaAttrs.collect {
       case a if a.ref.isEmpty && a.options.contains("mandatory") => a.attribute
@@ -789,8 +791,8 @@ case class ParseDomainStructure(
 
   private def accAccessControl(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
     t match {
-      // New access control model - Scala 3 patterns (with using)
-      // Layer 3: Attribute role restrictions
+      // Authorization model - Scala 3 patterns (with using)
+      // Layer 3: Attribute restrictions
       case q"$prev.exclude[$roleType](using $_)" =>
         val roles = extractRolesFromType(roleType)
         if (a.onlyRoles.nonEmpty) {
@@ -816,8 +818,8 @@ case class ParseDomainStructure(
 
   private def accAccessControlScala2(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
     t match {
-      // New access control model - Scala 2 compatible patterns
-      // Layer 3: Attribute role restrictions
+      // Authorization model - Scala 2 compatible patterns
+      // Layer 3: Attribute restrictions
       case q"$prev.exclude[$roleType]" =>
         val roles = extractRolesFromType(roleType)
         if (a.onlyRoles.nonEmpty) {
@@ -946,9 +948,6 @@ case class ParseDomainStructure(
   /** Extract action names from role definition traits */
   private def extractActions(actionTraits: List[Init]): List[String] = {
     actionTraits.flatMap {
-      case init"all"                                             => allActions
-      case init"read"                                            => read
-      case init"write"                                           => write
       case init"$action" if allActions.contains(action.toString) => List(action.toString)
       case _                                                      => Nil
     }.distinct.sorted
@@ -992,9 +991,6 @@ case class ParseDomainStructure(
   /** Extract actions from type parameter (handles single action and tuple of actions) */
   private def extractActionsFromType(tpe: Type): List[String] = {
     tpe match {
-      case Type.Name("all")                                 => allActions
-      case Type.Name("read")                                => read
-      case Type.Name("write")                               => write
       case Type.Name(action) if allActions.contains(action) => List(action)
       case Type.Tuple(types)                                => types.flatMap(extractActionsFromType)
       case _                                                => Nil
@@ -1003,8 +999,9 @@ case class ParseDomainStructure(
 
   // Authorization Validation Methods ................................................
 
-  /** Validate entity has access to all 6 actions through its roles (Layer 1)
+  /** Validate entity has access to all 5 core CRUD actions through its roles (Layer 1)
     * Only applies to role-restricted entities. Public entities (no roles) skip all validation.
+    * Note: rawQuery and rawTransact are escape hatches and not required.
     */
   private def validateEntityActionCoverage(entity: String, entityRoles: List[String], entityActions: List[String]): Unit = {
     // Public entities (no roles) are unrestricted - skip validation
@@ -1012,8 +1009,8 @@ case class ParseDomainStructure(
       return
     }
 
-    // Role-restricted entities must have all 6 actions available
-    val missingActions = allActions.filterNot(entityActions.contains)
+    // Role-restricted entities must have all 5 core CRUD actions available
+    val missingActions = coreActions.filterNot(entityActions.contains)
     if (missingActions.nonEmpty) {
       val roleDetails = entityRoles.map { roleName =>
         val role = roles.find(_.role == roleName).get
@@ -1022,7 +1019,7 @@ case class ParseDomainStructure(
 
       err(
         s"""Authorization error in entity '$entity':
-           |Entity roles do not provide access to all 6 required actions.
+           |Entity roles do not provide access to all 5 required core actions (query, save, insert, update, delete).
            |Missing actions: ${missingActions.mkString(", ")}
            |Available actions from roles: ${if (entityActions.isEmpty) "(none)" else entityActions.mkString(", ")}
            |
@@ -1030,18 +1027,17 @@ case class ParseDomainStructure(
            |$roleDetails
            |
            |To fix: Add role(s) that provide the missing actions. For example:
-           |  - Add a role with 'all' actions, OR
-           |  - Add combination of roles with 'read' and 'write' actions, OR
-           |  - Add individual roles for each missing action
+           |  - Add a role with all core CRUD actions, OR
+           |  - Add combination of roles that together provide all 5 core actions
            |
            |Example fix:
-           |  trait $entity extends ${(entityRoles :+ "Admin").distinct.sorted.mkString(" with ")}  // assuming Admin has 'all' actions
+           |  trait $entity extends ${(entityRoles :+ "Admin").distinct.sorted.mkString(" with ")}  // assuming Admin has all core actions
            |""".stripMargin
       )
     }
   }
 
-  /** Validate entity-level grants (Layer 2) */
+  /** Validate action grants (Layer 2) */
   private def validateEntityGrants(entity: String, entityRoles: List[String], grants: List[String], grantType: String): Unit = {
     grants.foreach { roleName =>
       if (!entityRoles.contains(roleName)) {
@@ -1058,7 +1054,7 @@ case class ParseDomainStructure(
     }
   }
 
-  /** Validate attribute-level role restrictions (Layer 3) */
+  /** Validate attribute restrictions (Layer 3) */
   private def validateAttributeRoleRestrictions(entity: String, attr: String, entityRoles: List[String],
                                                 onlyRoles: List[String], excludedRoles: List[String]): Unit = {
     // Check only[R] roles are in entity roles
@@ -1112,7 +1108,7 @@ case class ParseDomainStructure(
     }
   }
 
-  /** Validate attribute-level update grants (Layer 4) */
+  /** Validate attribute update grants (Layer 4) */
   private def validateAttributeUpdateGrants(entity: String, attr: String, entityRoles: List[String],
                                             attrUpdatingGrants: List[String], onlyRoles: List[String],
                                             excludedRoles: List[String]): Unit = {
@@ -1154,6 +1150,72 @@ case class ParseDomainStructure(
              |The update grant will have no effect because '$roleName' cannot access this attribute.
              |""".stripMargin
         )
+      }
+    }
+  }
+
+  /** Validate action grants have access to all attributes
+    * If a role can delete or update an entity, they must be able to access all attributes
+    * since these operations affect the entire database row.
+    */
+  private def validateEntityGrantsAttributeAccess(entity: String, entityRoles: List[String],
+                                                   entityUpdatingGrants: List[String],
+                                                   entityDeletingGrants: List[String],
+                                                   metaAttrs: List[MetaAttribute]): Unit = {
+    // Check both updating and deleting grants
+    val grantsToCheck = List(
+      ("updating", entityUpdatingGrants),
+      ("deleting", entityDeletingGrants)
+    )
+
+    grantsToCheck.foreach { case (grantType, grantedRoles) =>
+      grantedRoles.foreach { roleName =>
+        // Check each attribute to see if this role can access it
+        metaAttrs.foreach { attr =>
+          // Determine if role can access this attribute
+          val canAccess = {
+            if (attr.onlyRoles.nonEmpty) {
+              // Attribute has .only[R] - role must be in the only list
+              attr.onlyRoles.contains(roleName)
+            } else if (attr.excludedRoles.nonEmpty) {
+              // Attribute has .exclude[R] - role must NOT be in the exclude list
+              !attr.excludedRoles.contains(roleName)
+            } else {
+              // No restrictions - role can access
+              true
+            }
+          }
+
+          if (!canAccess) {
+            val restrictionMsg = if (attr.onlyRoles.nonEmpty) {
+              s".only[${attr.onlyRoles.mkString(", ")}]"
+            } else {
+              s".exclude[${attr.excludedRoles.mkString(", ")}]"
+            }
+
+            val fixOptions = if (attr.onlyRoles.nonEmpty) {
+              s"""  - Allow '$roleName' to access '${attr.attribute}': .only[${(attr.onlyRoles :+ roleName).distinct.sorted.mkString(", ")}]
+                 |  - Remove '$roleName' from the $grantType grant: with $grantType[${grantedRoles.filterNot(_ == roleName).mkString(", ")}]
+                 |  - Remove the attribute restriction: ${attr.attribute} (without .only)""".stripMargin
+            } else {
+              s"""  - Allow '$roleName' to access '${attr.attribute}': .exclude[${attr.excludedRoles.filterNot(_ == roleName).mkString(", ")}]
+                 |  - Remove '$roleName' from the $grantType grant: with $grantType[${grantedRoles.filterNot(_ == roleName).mkString(", ")}]
+                 |  - Remove the attribute restriction: ${attr.attribute} (without .exclude)""".stripMargin
+            }
+
+            err(
+              s"""Authorization error in entity '$entity':
+                 |Entity grants $grantType to role '$roleName' but attribute '${attr.attribute}' is restricted with $restrictionMsg
+                 |
+                 |A role cannot ${if (grantType == "deleting") "delete" else "update"} an entity if it cannot access all attributes,
+                 |since ${if (grantType == "deleting") "delete-by-ID removes" else "update operations affect"} the entire database row including all attribute values.
+                 |
+                 |To fix, choose one option:
+                 |$fixOptions
+                 |""".stripMargin
+            )
+          }
+        }
       }
     }
   }

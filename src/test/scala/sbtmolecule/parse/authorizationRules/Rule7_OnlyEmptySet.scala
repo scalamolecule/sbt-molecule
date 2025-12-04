@@ -7,8 +7,8 @@ import utest.*
 // Rule 7: .only[R] must not result in empty role set
 object Rule7_OnlyEmptySet extends DomainStructure {
   trait Guest extends Role with query
-  trait Member extends Role with all
-  trait Admin extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
+  trait Admin extends Role with query with save with insert with update with delete
 
   trait Profile extends Guest with Member {
     val secret = oneString.only[Admin]  // ❌ Admin not in entity roles [Guest, Member]

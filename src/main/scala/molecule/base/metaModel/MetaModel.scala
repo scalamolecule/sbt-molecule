@@ -50,8 +50,8 @@ case class MetaEntity(
   // Access control
   entityRoles: List[String] = Nil, // Layer 1: Roles this entity extends (empty = public)
   entityActions: List[String] = Nil, // Actions from role definitions
-  entityUpdatingGrants: List[String] = Nil, // Layer 2: entity-level update grants via `with updating[R]`
-  entityDeletingGrants: List[String] = Nil, // Layer 2: entity-level delete grants via `with deleting[R]`
+  entityUpdatingGrants: List[String] = Nil, // Layer 2: Action grants via `with updating[R]`
+  entityDeletingGrants: List[String] = Nil, // Layer 2: Action grants via `with deleting[R]`
 ) {
   def render(tabs: Int): String = {
     val attrsStr          = if (attributes.isEmpty) "" else {
@@ -112,9 +112,9 @@ case class MetaAttribute(
   validations: List[(String, String)] = Nil,
   description: Option[String] = None,
   // Access control - New model (Layer 3 & 4)
-  onlyRoles: List[String] = Nil, // Layer 3: .only[R] - restrict attribute to only these roles
-  excludedRoles: List[String] = Nil, // Layer 3: .exclude[R] - exclude these roles from attribute
-  attrUpdatingGrants: List[String] = Nil, // Layer 4: .updating[R] - grant update permission at attribute level
+  onlyRoles: List[String] = Nil, // Layer 3: Attribute restrictions via .only[R]
+  excludedRoles: List[String] = Nil, // Layer 3: Attribute restrictions via .exclude[R]
+  attrUpdatingGrants: List[String] = Nil, // Layer 4: Attribute update grants via .updating[R]
 ) {
   override def toString: String = {
     val validations1           = renderValidations(validations)

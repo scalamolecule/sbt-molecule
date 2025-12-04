@@ -6,8 +6,8 @@ import utest.*
 
 // Rule 9: Attribute .updating[R] - role must be in entity roles
 object Rule9_AttributeUpdating extends DomainStructure {
-  trait Member extends Role with all
-  trait Admin extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
+  trait Admin extends Role with query with save with insert with update with delete
 
   trait Draft extends Member {
     val title = oneString.updating[Admin]  // ❌ Admin not in entity roles

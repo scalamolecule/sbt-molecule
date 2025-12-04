@@ -6,8 +6,8 @@ import utest.*
 
 // Rule 3: Entity deleting[R] grant - role must be in entity roles
 object Rule3_EntityDeletingGrant extends DomainStructure {
-  trait Member extends Role with all
-  trait Admin extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
+  trait Admin extends Role with query with save with insert with update with delete
 
   trait Log extends Member
     with deleting[Admin] {  // ❌ Admin not in entity roles

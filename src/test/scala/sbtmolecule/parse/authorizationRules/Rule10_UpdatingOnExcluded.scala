@@ -7,7 +7,7 @@ import utest.*
 // Rule 10: .updating[R] grant on excluded role is ineffective
 object Rule10_UpdatingOnExcluded extends DomainStructure {
   trait Guest extends Role with query
-  trait Member extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
 
   trait Post extends Guest with Member {
     val content = oneString.exclude[Guest].updating[Guest]  // ❌ Guest is excluded

@@ -6,7 +6,7 @@ import utest.*
 
 // Rule 8: .exclude[R] must not exclude all entity roles
 object Rule8_ExcludeAll extends DomainStructure {
-  trait Member extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
 
   trait Settings extends Member {
     val data = oneString.exclude[Member]  // ❌ Excludes all entity roles

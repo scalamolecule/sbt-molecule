@@ -133,79 +133,29 @@ case class MetaDb_(metaDomain: MetaDomain) {
   }
 
   def queryAccessAttributes: String = generateAccessAttributes("query")
-  def subscribeAccessAttributes: String = generateAccessAttributes("subscribe")
   def saveAccessAttributes: String = generateAccessAttributes("save")
   def insertAccessAttributes: String = generateAccessAttributes("insert")
   def updateAccessAttributes: String = generateAccessAttributes("update")
   def deleteAccessAttributes: String = generateDeleteAccessAttributes()
+  def rawQueryAccessAttributes: String = generateAccessAttributes("rawQuery")
+  def rawTransactAccessAttributes: String = generateAccessAttributes("rawTransact")
 
-  def entityAttributesNoId: String = {
-    val p = indent(1)
-    val pad = s"\n$p  "
-
-    // Collect all entities in definition order
-    val entities = for {
-      segment <- metaDomain.segments
-      entity <- segment.entities
-    } yield entity
-
-    // For each entity, collect attribute indices (excluding 'id')
-    var globalAttrIndex = 0
-    val entityAttrIndices = entities.map { entity =>
-      val attrIndices = entity.attributes.flatMap { attr =>
-        val currentIndex = globalAttrIndex
-        globalAttrIndex += 1
-        // Exclude 'id' attributes from permission checks
-        if (attr.attribute == "id") None else Some(currentIndex)
-      }
-      (entity.entity, attrIndices)
-    }
-
-    val maxEntity = if (entityAttrIndices.isEmpty) 0 else entityAttrIndices.map(_._1.length).max
-
-    val lines = entityAttrIndices.map { case (entityName, attrIndices) =>
-      if (attrIndices.isEmpty) {
-        s"/* ${entityName.padTo(maxEntity, ' ')} */ IArray.empty[Int]"
-      } else {
-        s"/* ${entityName.padTo(maxEntity, ' ')} */ IArray(${attrIndices.mkString(", ")})"
-      }
-    }
-
-    val indicesStr = if (lines.isEmpty) "" else lines.mkString(pad, s",$pad", s"\n$p")
-    s"IArray($indicesStr)"
-  }
-
-  def attrNames: String = {
-    val p = indent(1)
-    val pad = s"\n$p  "
-
-    // Collect all attributes in definition order
-    val attrNames = for {
-      segment <- metaDomain.segments
-      entity <- segment.entities
-      attr <- entity.attributes
-    } yield {
-      s""""${entity.entity}.${attr.attribute}""""
-    }
-
-    val namesStr = if (attrNames.isEmpty) "" else attrNames.mkString(pad, s",$pad", s"\n$p")
-    s"IArray($namesStr)"
-  }
-
-  def subscribeAccessEntities: String = generateAccessEntities("subscribe")
   def saveAccessEntities: String = generateAccessEntities("save")
   def insertAccessEntities: String = generateAccessEntities("insert")
   def updateAccessEntities: String = generateAccessEntities("update")
   def deleteAccessEntities: String = generateAccessEntities("delete")
+  def rawQueryAccessEntities: String = generateAccessEntities("rawQuery")
+  def rawTransactAccessEntities: String = generateAccessEntities("rawTransact")
 
   // Role action bitmasks - which roles have which actions
   // Used to check authenticated user's permissions on public entities (-1)
   def roleQueryAction: String = generateRoleActionBitmask("query")
-  def roleSubscribeAction: String = generateRoleActionBitmask("subscribe")
   def roleSaveAction: String = generateRoleActionBitmask("save")
   def roleInsertAction: String = generateRoleActionBitmask("insert")
   def roleUpdateAction: String = generateRoleActionBitmask("update")
   def roleDeleteAction: String = generateRoleActionBitmask("delete")
+  def roleRawQueryAction: String = generateRoleActionBitmask("rawQuery")
+  def roleRawTransactAction: String = generateRoleActionBitmask("rawTransact")
 
   private def generateAccessEntities(action: String): String = {
     val roles = metaDomain.roles
@@ -405,10 +355,10 @@ case class MetaDb_(metaDomain: MetaDomain) {
     roles: List[MetaRole]
   ): Int = {
 
-    // New Authorization Model: 4 Layers
+    // Authorization Model: 4 Layers
     // Layer 1: Entity roles (who can access entity)
-    // Layer 2: Entity action grants (updating[R], deleting[R] at entity level)
-    // Layer 3: Attribute role restrictions (.only[R], .exclude[R])
+    // Layer 2: Action grants at entity level (updating[R], deleting[R])
+    // Layer 3: Attribute restrictions (.only[R], .exclude[R])
     // Layer 4: Attribute update grants (.updating[R] at attribute level)
 
     // Step 1: Determine effective roles for this attribute after restrictions (Layer 3)
@@ -451,7 +401,7 @@ case class MetaDb_(metaDomain: MetaDomain) {
     // (after attribute restrictions are applied)
     val grantsBitmask = if (action == "update") {
       // For update action: combine entity and attribute update grants
-      // Entity grants apply to all attributes, attribute grants are attribute-specific
+      // Action grants apply to all attributes, attribute update grants are attribute-specific
       val entityGrantBitmask = entity.entityUpdatingGrants.foldLeft(0) { (bitmask, roleName) =>
         roleMap.get(roleName) match {
           // Grant applies if role passes attribute restrictions (is in effectiveRoles)
@@ -468,17 +418,17 @@ case class MetaDb_(metaDomain: MetaDomain) {
       }
       entityGrantBitmask | attrGrantBitmask
     } else if (action == "delete") {
-      // For delete action: entity-level delete grants apply to ALL attributes
+      // For delete action: action grants apply to ALL attributes
       // (deleting an entity deletes all its attributes, so attribute restrictions don't apply)
       entity.entityDeletingGrants.foldLeft(0) { (bitmask, roleName) =>
         roleMap.get(roleName) match {
-          // Grant applies to all attributes regardless of attribute-level restrictions
+          // Grant applies to all attributes regardless of attribute restrictions
           case Some(index) => bitmask | (1 << index)
           case _ => bitmask
         }
       }
     } else {
-      0 // No grants for other actions (query, subscribe, save, insert)
+      0 // No grants for other actions (query, save, insert, rawQuery, rawTransact)
     }
 
     // Step 4: Combine base permissions with grants
@@ -549,9 +499,6 @@ case class MetaDb_(metaDomain: MetaDomain) {
         |  /** Bitmask of roles that have query action */
         |  override val roleQueryAction: Int = $roleQueryAction
         |
-        |  /** Bitmask of roles that have subscribe action */
-        |  override val roleSubscribeAction: Int = $roleSubscribeAction
-        |
         |  /** Bitmask of roles that have save action */
         |  override val roleSaveAction: Int = $roleSaveAction
         |
@@ -564,17 +511,17 @@ case class MetaDb_(metaDomain: MetaDomain) {
         |  /** Bitmask of roles that have delete action */
         |  override val roleDeleteAction: Int = $roleDeleteAction
         |
+        |  /** Bitmask of roles that have rawQuery action */
+        |  override val roleRawQueryAction: Int = $roleRawQueryAction
+        |
+        |  /** Bitmask of roles that have rawTransact action */
+        |  override val roleRawTransactAction: Int = $roleRawTransactAction
+        |
         |  /** Bitwise role access for entities on query action */
         |  override val queryAccessEntities: IArray[Int] = $queryAccessEntities
         |
         |  /** Bitwise role access for attributes on query action */
         |  override val queryAccessAttributes: IArray[Int] = $queryAccessAttributes
-        |
-        |  /** Bitwise role access for entities on subscribe action */
-        |  override val subscribeAccessEntities: IArray[Int] = $subscribeAccessEntities
-        |
-        |  /** Bitwise role access for attributes on subscribe action */
-        |  override val subscribeAccessAttributes: IArray[Int] = $subscribeAccessAttributes
         |
         |  /** Bitwise role access for entities on save action */
         |  override val saveAccessEntities: IArray[Int] = $saveAccessEntities
@@ -600,25 +547,16 @@ case class MetaDb_(metaDomain: MetaDomain) {
         |  /** Bitwise role access for attributes on delete action */
         |  override val deleteAccessAttributes: IArray[Int] = $deleteAccessAttributes
         |
+        |  /** Bitwise role access for entities on rawQuery action */
+        |  override val rawQueryAccessEntities: IArray[Int] = $rawQueryAccessEntities
         |
-        |  // Coordinate-based lookups -----------------------------------------------
+        |  /** Bitwise role access for attributes on rawQuery action */
+        |  override val rawQueryAccessAttributes: IArray[Int] = $rawQueryAccessAttributes
         |
-        |  /**
-        |   * Maps each entity index to the list of attribute indices belonging to that entity.
-        |   * Excludes 'id' attributes since they are not checked during permission validation.
-        |   *
-        |   * Index: entity coordinate (coord(0))
-        |   * Value: array of attribute coordinates (coord(1)) for that entity, excluding id
-        |   */
-        |  override val entityAttributesNoId: IArray[IArray[Int]] = $entityAttributesNoId
+        |  /** Bitwise role access for entities on rawTransact action */
+        |  override val rawTransactAccessEntities: IArray[Int] = $rawTransactAccessEntities
         |
-        |  /**
-        |   * Maps attribute index to attribute name for error messages.
-        |   * Index: attribute coordinate (coord(1))
-        |   * Value: "EntityName.attributeName"
-        |   *
-        |   * This is only used for generating human-readable error messages.
-        |   */
-        |  override val attrNames: IArray[String] = $attrNames
+        |  /** Bitwise role access for attributes on rawTransact action */
+        |  override val rawTransactAccessAttributes: IArray[Int] = $rawTransactAccessAttributes
         |}""".stripMargin
 }

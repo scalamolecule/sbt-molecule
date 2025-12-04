@@ -3,11 +3,11 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest._
 
-/** Test: Public entity (no roles) - should pass, automatically has all 6 actions */
+/** Test: Public entity (no roles) - should pass, automatically has all 5 core actions */
 
 object Rule0_PublicEntity extends DomainStructure {
   // No roles defined - public entity
-  trait Article { // ✅ Public entity, automatically has all 6 actions
+  trait Article { // ✅ Public entity, automatically has all 5 core actions
     val title = oneString
     val content = oneString
   }

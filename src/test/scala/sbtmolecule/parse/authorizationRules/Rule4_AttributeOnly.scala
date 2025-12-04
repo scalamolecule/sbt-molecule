@@ -6,8 +6,8 @@ import utest.*
 
 // Rule 4: Attribute .only[R] - role must be in entity roles
 object Rule4_AttributeOnly extends DomainStructure {
-  trait Member extends Role with all
-  trait Admin extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
+  trait Admin extends Role with query with save with insert with update with delete
 
   trait Settings extends Member {
     val apiKey = oneString.only[Admin]  // ❌ Admin not in entity roles

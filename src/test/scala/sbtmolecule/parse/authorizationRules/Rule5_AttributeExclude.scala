@@ -7,7 +7,7 @@ import utest.*
 // Rule 5: Attribute .exclude[R] - role must be in entity roles
 object Rule5_AttributeExclude extends DomainStructure {
   trait Guest extends Role with query
-  trait Member extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
 
   trait Profile extends Member {
     val email = oneString.exclude[Guest]  // ❌ Guest not in entity roles

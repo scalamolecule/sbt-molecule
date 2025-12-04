@@ -6,8 +6,8 @@ import utest.*
 
 // Rule 2: Entity updating[R] grant - role must be in entity roles
 object Rule2_EntityUpdatingGrant extends DomainStructure {
-  trait Member extends Role with all
-  trait Admin extends Role with all
+  trait Member extends Role with query with save with insert with update with delete
+  trait Admin extends Role with query with save with insert with update with delete
 
   trait Post extends Member
     with updating[Admin] {  // ❌ Admin not in entity roles

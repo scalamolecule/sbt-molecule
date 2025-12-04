@@ -7,8 +7,8 @@ import utest._
 
 object Rule2b_EntityUpdatingGrantEnforcement extends DomainStructure {
   trait Guest extends Role with query
-  trait Member extends Role with read        // read = query + subscribe (NO update)
-  trait Admin extends Role with all
+  trait Member extends Role with query        // NO update action
+  trait Admin extends Role with query with save with insert with update with delete
 
   trait BlogPost extends Guest with Member with Admin
     with updating[Member] {  // Grant update to Member (Member doesn't have update action)
@@ -28,7 +28,7 @@ object Rule2b_EntityUpdatingGrantEnforcementTest extends TestSuite {
       // This test verifies the BUG FIX:
       // Before fix: update access bitmask = all entity roles (Guest | Member | Admin)
       // After fix: update access bitmask = roles with update action + updating grants
-      //            = Admin (has 'all') | Member (granted via updating[Member])
+      //            = Admin (has update action) | Member (granted via updating[Member])
       //            = Member | Admin only (Guest should NOT have update access)
 
       println("Rule 2b: Entity updating grant properly enforced in generated bitmasks")

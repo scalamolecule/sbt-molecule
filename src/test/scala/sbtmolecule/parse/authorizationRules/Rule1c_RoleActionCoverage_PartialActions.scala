@@ -6,10 +6,10 @@ import utest._
 /** Test: Entity with partial actions through multiple roles */
 
 object Rule1c_EntityActionCoverage_PartialActions extends DomainStructure {
-  trait Viewer extends Role with query with subscribe
+  trait Viewer extends Role with query
   trait Editor extends Role with update
 
-  trait Post extends Viewer with Editor { // ❌ Only has query, subscribe, update - missing save, insert, delete
+  trait Post extends Viewer with Editor { // ❌ Only has query, update - missing save, insert, delete
     val content = oneString
   }
 }
@@ -23,7 +23,7 @@ object Rule1c_EntityActionCoverage_PartialActionsTest extends TestSuite {
       }
       assert(error.getMessage.contains("Authorization error in entity 'Post'"))
       assert(error.getMessage.contains("Missing actions: save, insert, delete"))
-      assert(error.getMessage.contains("Available actions from roles: query, subscribe, update"))
+      assert(error.getMessage.contains("Available actions from roles: query, update"))
     }
   }
 }
