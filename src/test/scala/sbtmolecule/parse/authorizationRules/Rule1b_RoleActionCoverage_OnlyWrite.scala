@@ -3,9 +3,9 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest._
 
-/** Test: Entity with only write actions - missing query action */
+/** Test: Role with only write actions - missing query action */
 
-object Rule1b_EntityActionCoverage_OnlyWrite extends DomainStructure {
+object Rule1b_RoleActionCoverage_OnlyWrite extends DomainStructure {
   trait Member extends Role with save with insert with update with delete
 
   trait Post extends Member { // ❌ Only has save, insert, update, delete - missing query
@@ -13,9 +13,9 @@ object Rule1b_EntityActionCoverage_OnlyWrite extends DomainStructure {
   }
 }
 
-object Rule1b_EntityActionCoverage_OnlyWriteTest extends TestSuite {
+object Rule1b_RoleActionCoverage_OnlyWriteTest extends TestSuite {
   override def tests: Tests = Tests {
-    test("Rule 1b: Entity with only write actions - missing query action") {
+    test("Rule 1b: Role with only write actions - missing query action") {
       val path = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/authorizationRules/"
       val error = intercept[Exception] {
         ParseAndGenerate(path + getClass.getSimpleName.dropRight(5) + ".scala").generator

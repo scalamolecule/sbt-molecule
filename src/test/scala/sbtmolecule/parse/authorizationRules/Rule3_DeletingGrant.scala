@@ -4,8 +4,8 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest.*
 
-// Rule 3: Entity deleting[R] grant - role must be in entity roles
-object Rule3_EntityDeletingGrant extends DomainStructure {
+// Rule 3: Role deleting[R] grant - role must be in entity roles
+object Rule3_DeletingGrant extends DomainStructure {
   trait Member extends Role with query with save with insert with update with delete
   trait Admin extends Role with query with save with insert with update with delete
 
@@ -15,9 +15,9 @@ object Rule3_EntityDeletingGrant extends DomainStructure {
   }
 }
 
-object Rule3_EntityDeletingGrantTest extends TestSuite {
+object Rule3_DeletingGrantTest extends TestSuite {
   override def tests: Tests = Tests {
-    test("Rule 3: Entity deleting[R] grant - role must be in entity roles") {
+    test("Rule 3: Role deleting[R] grant - role must be in entity roles") {
       val path = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/authorizationRules/"
       val error = intercept[Exception] {
         ParseAndGenerate(path + getClass.getSimpleName.dropRight(5) + ".scala").generator

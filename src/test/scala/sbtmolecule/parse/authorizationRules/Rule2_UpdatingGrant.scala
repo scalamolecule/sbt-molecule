@@ -4,8 +4,8 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest.*
 
-// Rule 2: Entity updating[R] grant - role must be in entity roles
-object Rule2_EntityUpdatingGrant extends DomainStructure {
+// Rule 2: Role updating[R] grant - role must be in entity roles
+object Rule2_UpdatingGrant extends DomainStructure {
   trait Member extends Role with query with save with insert with update with delete
   trait Admin extends Role with query with save with insert with update with delete
 
@@ -15,9 +15,9 @@ object Rule2_EntityUpdatingGrant extends DomainStructure {
   }
 }
 
-object Rule2_EntityUpdatingGrantTest extends TestSuite {
+object Rule2_UpdatingGrantTest extends TestSuite {
   override def tests: Tests = Tests {
-    test("Rule 2: Entity updating[R] grant - role must be in entity roles") {
+    test("Rule 2: Role updating[R] grant - role must be in entity roles") {
       val path = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/authorizationRules/"
       val error = intercept[Exception] {
         ParseAndGenerate(path + getClass.getSimpleName.dropRight(5) + ".scala").generator

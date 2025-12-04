@@ -3,9 +3,9 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest._
 
-/** Test: Entity with query + write actions via multiple roles - should pass */
+/** Test: Roles with query + write actions combined - should pass */
 
-object Rule1e_EntityActionCoverage_ReadPlusWrite extends DomainStructure {
+object Rule1e_RoleActionCoverage_ReadPlusWrite extends DomainStructure {
   trait Reader extends Role with query
   trait Writer extends Role with save with insert with update with delete
 
@@ -14,9 +14,9 @@ object Rule1e_EntityActionCoverage_ReadPlusWrite extends DomainStructure {
   }
 }
 
-object Rule1e_EntityActionCoverage_ReadPlusWriteTest extends TestSuite {
+object Rule1e_RoleActionCoverage_ReadPlusWriteTest extends TestSuite {
   override def tests: Tests = Tests {
-    test("Rule 1e: Entity with query + write actions via multiple roles - should pass") {
+    test("Rule 1e: Roles with query + write actions combined - should pass") {
       val path = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/authorizationRules/"
       // Should not throw
       ParseAndGenerate(path + getClass.getSimpleName.dropRight(5) + ".scala").generator

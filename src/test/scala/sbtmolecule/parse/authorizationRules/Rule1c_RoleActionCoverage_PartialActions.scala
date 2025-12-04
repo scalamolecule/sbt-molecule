@@ -3,9 +3,9 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest._
 
-/** Test: Entity with partial actions through multiple roles */
+/** Test: Roles with partial actions combined */
 
-object Rule1c_EntityActionCoverage_PartialActions extends DomainStructure {
+object Rule1c_RoleActionCoverage_PartialActions extends DomainStructure {
   trait Viewer extends Role with query
   trait Editor extends Role with update
 
@@ -14,9 +14,9 @@ object Rule1c_EntityActionCoverage_PartialActions extends DomainStructure {
   }
 }
 
-object Rule1c_EntityActionCoverage_PartialActionsTest extends TestSuite {
+object Rule1c_RoleActionCoverage_PartialActionsTest extends TestSuite {
   override def tests: Tests = Tests {
-    test("Rule 1c: Entity with partial actions through multiple roles") {
+    test("Rule 1c: Roles with partial actions combined") {
       val path = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/authorizationRules/"
       val error = intercept[Exception] {
         ParseAndGenerate(path + getClass.getSimpleName.dropRight(5) + ".scala").generator

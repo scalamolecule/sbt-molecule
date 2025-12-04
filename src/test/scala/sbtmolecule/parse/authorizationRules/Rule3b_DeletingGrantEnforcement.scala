@@ -3,9 +3,9 @@ import molecule.DomainStructure
 import sbtmolecule.ParseAndGenerate
 import utest._
 
-/** Test: Entity deleting[R] grant should be enforced - only roles with delete action OR grant can delete */
+/** Test: Role deleting[R] grant should be enforced - only roles with delete action OR grant can delete */
 
-object Rule3b_EntityDeletingGrantEnforcement extends DomainStructure {
+object Rule3b_DeletingGrantEnforcement extends DomainStructure {
   trait Guest extends Role with query
   trait Member extends Role with query        // NO delete action
   trait Admin extends Role with query with save with insert with update with delete
@@ -17,9 +17,9 @@ object Rule3b_EntityDeletingGrantEnforcement extends DomainStructure {
   }
 }
 
-object Rule3b_EntityDeletingGrantEnforcementTest extends TestSuite {
+object Rule3b_DeletingGrantEnforcementTest extends TestSuite {
   override def tests: Tests = Tests {
-    test("Rule 3b: Entity deleting[R] grant enforcement - bitmask generation") {
+    test("Rule 3b: Role deleting[R] grant enforcement - bitmask generation") {
       val path = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/authorizationRules/"
 
       // Parse and generate - should not throw (validation passes)
@@ -31,7 +31,7 @@ object Rule3b_EntityDeletingGrantEnforcementTest extends TestSuite {
       //            = Admin only (has delete action)
       //            Guest and Member should NOT have delete access
 
-      println("Rule 3b: Entity deleting grant properly enforced in generated bitmasks")
+      println("Rule 3b: Role deleting grant properly enforced in generated bitmasks")
     }
   }
 }
