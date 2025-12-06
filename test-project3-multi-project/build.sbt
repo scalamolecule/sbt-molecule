@@ -3,11 +3,11 @@ name := "test-project3-multi-project"
 
 inThisBuild(
   List(
-    version := "1.21.1",
+    version := "1.22.0",
     organization := "org.scalamolecule",
-    scalaVersion := "3.7.3",
+    scalaVersion := "3.7.4",
     libraryDependencies ++= Seq(
-      "org.scalamolecule" %% "molecule-db-h2" % "0.26.0",
+      "org.scalamolecule" %% "molecule-db-h2" % "0.27.0",
       "com.lihaoyi" %% "utest" % "0.8.5" % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
