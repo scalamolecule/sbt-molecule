@@ -37,10 +37,13 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(entity.toLowerCase)) "_" else ""
 
+    // Get general custom column properties for this specific database
+    val generalPropsForDb = metaDomain.generalDbColumnProps.getOrElse(dialect.dbId, Map.empty)
+
     val columns = metaEntity.attributes.flatMap {
       case a if a.attribute == "id" =>
         reservedAttrs = reservedAttrs :+ b0
-        Some("id" + padS(max, "id") + " " + dialect.tpe(a))
+        Some("id" + padS(max, "id") + " " + dialect.tpe(a, generalPropsForDb))
 
       case a if a.value == SetValue && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
@@ -65,7 +68,7 @@ abstract class SqlBase(metaDomain: MetaDomain) extends RegexMatching with BaseHe
           indexes += s"CREATE INDEX$ifNotExists _${entity}_$column ON $entity ($column);"
         }
 
-        Some(column + padS(max, column) + " " + dialect.tpe(a))
+        Some(column + padS(max, column) + " " + dialect.tpe(a, generalPropsForDb))
     }.mkString(s",\n  ")
 
     val table =

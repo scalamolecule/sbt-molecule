@@ -5,20 +5,27 @@ import molecule.core.dataModel.*
 
 object H2 extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attribute == "id")
-      "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else metaAttribute.value match {
+  override def dbId: String = "H2"
+
+  override def tpe(metaAttribute: MetaAttribute, generalProps: Map[String, String] = Map.empty): String = {
+    // Priority: 1) Attribute-specific custom property, 2) General custom property, 3) Default
+    metaAttribute.dbColumnProps.get(dbId).orElse {
+      generalProps.get(metaAttribute.baseTpe)
+    }.getOrElse {
+      // Use default type mapping
+      if (metaAttribute.attribute == "id")
+        "BIGINT AUTO_INCREMENT PRIMARY KEY"
+      else metaAttribute.value match {
       case _: OneValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT"
-        case "String"         => "LONGVARCHAR"
+        case "String"         => "VARCHAR"
         case "Int"            => "INT"
         case "Long"           => "BIGINT"
         case "Float"          => "REAL"
         case "Double"         => "DOUBLE PRECISION"
         case "Boolean"        => "BOOLEAN"
         case "BigInt"         => "DECIMAL(100, 0)"
-        case "BigDecimal"     => "DECIMAL(65535, 38)"
+        case "BigDecimal"     => "DECIMAL(65, 30)"
         case "Date"           => "BIGINT"
         case "Duration"       => "VARCHAR"
         case "Instant"        => "VARCHAR"
@@ -32,18 +39,18 @@ object H2 extends Dialect {
         case "URI"            => "VARCHAR"
         case "Byte"           => "TINYINT"
         case "Short"          => "SMALLINT"
-        case "Char"           => "CHAR"
+        case "Char"           => "CHAR(1)"
       }
       case _: SeqValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT ARRAY"
-        case "String"         => "LONGVARCHAR ARRAY"
+        case "String"         => "VARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
         case "Long"           => "BIGINT ARRAY"
         case "Float"          => "REAL ARRAY"
         case "Double"         => "DOUBLE PRECISION ARRAY"
         case "Boolean"        => "BOOLEAN ARRAY"
         case "BigInt"         => "DECIMAL(100, 0) ARRAY"
-        case "BigDecimal"     => "DECIMAL(65535, 38) ARRAY"
+        case "BigDecimal"     => "DECIMAL(65, 30) ARRAY"
         case "Date"           => "BIGINT ARRAY"
         case "Duration"       => "VARCHAR ARRAY"
         case "Instant"        => "VARCHAR ARRAY"
@@ -57,18 +64,18 @@ object H2 extends Dialect {
         case "URI"            => "VARCHAR ARRAY"
         case "Byte"           => "VARBINARY" // special for byte arrays
         case "Short"          => "SMALLINT ARRAY"
-        case "Char"           => "CHAR ARRAY"
+        case "Char"           => "CHAR(1) ARRAY"
       }
       case _: SetValue => metaAttribute.baseTpe match {
         case "ID"             => "BIGINT ARRAY"
-        case "String"         => "LONGVARCHAR ARRAY"
+        case "String"         => "VARCHAR ARRAY"
         case "Int"            => "INT ARRAY"
         case "Long"           => "BIGINT ARRAY"
         case "Float"          => "REAL ARRAY"
         case "Double"         => "DOUBLE PRECISION ARRAY"
         case "Boolean"        => "BOOLEAN ARRAY"
         case "BigInt"         => "DECIMAL(100, 0) ARRAY"
-        case "BigDecimal"     => "DECIMAL(65535, 38) ARRAY"
+        case "BigDecimal"     => "DECIMAL(65, 30) ARRAY"
         case "Date"           => "BIGINT ARRAY"
         case "Duration"       => "VARCHAR ARRAY"
         case "Instant"        => "VARCHAR ARRAY"
@@ -82,9 +89,10 @@ object H2 extends Dialect {
         case "URI"            => "VARCHAR ARRAY"
         case "Byte"           => "TINYINT ARRAY"
         case "Short"          => "SMALLINT ARRAY"
-        case "Char"           => "CHAR ARRAY"
+        case "Char"           => "CHAR(1) ARRAY"
       }
       case _: MapValue => "JSON"
+      }
     }
   }
 

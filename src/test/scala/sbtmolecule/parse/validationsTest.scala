@@ -40,9 +40,6 @@ object validationsTest extends TestSuite {
     "DSL" - {
       val path      = System.getProperty("user.dir") + "/src/test/scala/sbtmolecule/parse/"
       val generator = ParseAndGenerate(path + "validationsTest.scala").generator
-      generator.metaDomain ==>
-        42
-
 
       //      generator.printEntity(generator.metaDomain.segments.head.entities(1))
       generator.printEntityBuilder(generator.metaDomain.segments.head.entities(0))

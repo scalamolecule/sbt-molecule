@@ -22,10 +22,13 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
 
     val tableSuffix = if (dialect.reservedKeyWords.contains(ent.toLowerCase)) "_" else ""
 
+    // Get general custom column properties for this specific database
+    val generalPropsForDb = metaDomain.generalDbColumnProps.getOrElse(dialect.dbId, Map.empty)
+
     val fields = metaEntity.attributes.flatMap {
       case a if a.attribute == "id" =>
         reservedAttrs = reservedAttrs :+ b0
-        Some("id" + padS(max, "id") + " " + dialect.tpe(a))
+        Some("id" + padS(max, "id") + " " + dialect.tpe(a, generalPropsForDb))
 
       case a if a.value == SetValue && a.ref.nonEmpty =>
         reservedAttrs = reservedAttrs :+ reserved(a)
@@ -51,7 +54,7 @@ case class Db_SQlite(metaDomain: MetaDomain) extends SqlBase(metaDomain) {
         if (a.ref.nonEmpty)
           indexes += s"CREATE INDEX IF NOT EXISTS _${ent}_$column ON $ent ($column);"
 
-        Some(column + padS(max, column) + " " + dialect.tpe(a))
+        Some(column + padS(max, column) + " " + dialect.tpe(a, generalPropsForDb))
     }
 
     val foreignKeys = if (refs2.isEmpty) Nil else {

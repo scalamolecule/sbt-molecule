@@ -5,10 +5,17 @@ import molecule.core.dataModel.*
 
 object SQlite extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attribute == "id")
-      "INTEGER PRIMARY KEY AUTOINCREMENT"
-    else metaAttribute.value match {
+  override def dbId: String = "SQLite"
+
+  override def tpe(metaAttribute: MetaAttribute, generalProps: Map[String, String] = Map.empty): String = {
+    // Priority: 1) Attribute-specific custom property, 2) General custom property, 3) Default
+    metaAttribute.dbColumnProps.get(dbId).orElse {
+      generalProps.get(metaAttribute.baseTpe)
+    }.getOrElse {
+      // Use default type mapping
+      if (metaAttribute.attribute == "id")
+        "INTEGER PRIMARY KEY AUTOINCREMENT"
+      else metaAttribute.value match {
       case OneValue => metaAttribute.baseTpe match {
         case "ID"             => "INTEGER"
         case "String"         => "TEXT"
@@ -28,7 +35,7 @@ object SQlite extends Dialect {
         case "OffsetTime"     => "NVARCHAR(100)"
         case "OffsetDateTime" => "NVARCHAR(100)"
         case "ZonedDateTime"  => "NVARCHAR(100)"
-        case "UUID"           => "VARCHAR(16)"
+        case "UUID"           => "TEXT"
         case "URI"            => "TEXT"
         case "Byte"           => "TINYINT"
         case "Short"          => "SMALLINT"
@@ -41,6 +48,7 @@ object SQlite extends Dialect {
       }
 
       case _ => "JSON"
+      }
     }
   }
 

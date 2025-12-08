@@ -7,7 +7,8 @@ case class MetaDomain(
   pkg: String,
   domain: String,
   segments: List[MetaSegment],
-  roles: List[MetaRole] = Nil // Role definitions
+  roles: List[MetaRole] = Nil, // Role definitions
+  generalDbColumnProps: Map[String, Map[String, String]] = Map.empty // Map(db -> Map(baseTpe -> columnTypeDefinition))
 ) {
   def render(tabs: Int = 0): String = {
     val p           = indent(tabs)
@@ -16,7 +17,13 @@ case class MetaDomain(
       segments.map(_.render(tabs + 1)).mkString(pad, s",\n\n$pad", s"\n$p")
     val rolesStr    = if (roles.isEmpty) "" else
       roles.map(_.toString).mkString(pad, s",$pad", s"\n$p")
-    s"""MetaDomain("$pkg", "$domain", List($segmentsStr), List($rolesStr))"""
+    val generalPropsStr = if (generalDbColumnProps.isEmpty) "Map.empty" else {
+      generalDbColumnProps.map { case (db, typeMap) =>
+        val innerMap = typeMap.map { case (tpe, colDef) => s""""$tpe" -> "$colDef"""" }.mkString("Map(", ", ", ")")
+        s""""$db" -> $innerMap"""
+      }.mkString("Map(", ", ", ")")
+    }
+    s"""MetaDomain("$pkg", "$domain", List($segmentsStr), List($rolesStr), $generalPropsStr)"""
   }
 
   override def toString: String = render()
@@ -115,13 +122,16 @@ case class MetaAttribute(
   onlyRoles: List[String] = Nil, // Layer 3: Attribute restrictions via .only[R]
   excludedRoles: List[String] = Nil, // Layer 3: Attribute restrictions via .exclude[R]
   attrUpdatingGrants: List[String] = Nil, // Layer 4: Attribute update grants via .updating[R]
+  // Custom database column properties
+  dbColumnProps: Map[String, String] = Map.empty, // Map(db -> columnTypeDefinition)
 ) {
   override def toString: String = {
     val validations1           = renderValidations(validations)
     val onlyRolesStr           = if (onlyRoles.isEmpty) "" else onlyRoles.mkString("\"", "\", \"", "\"")
     val excludedRolesStr       = if (excludedRoles.isEmpty) "" else excludedRoles.mkString("\"", "\", \"", "\"")
     val attrUpdatingGrantsStr  = if (attrUpdatingGrants.isEmpty) "" else attrUpdatingGrants.mkString("\"", "\", \"", "\"")
-    s"""MetaAttribute("$attribute", $value, "$baseTpe", ${list(arguments)}, ${o(ref)}, ${o(reverseRef)}, ${o(relationship)}, ${o(enumTpe)}, ${list(options)}, ${o(alias)}, ${list(requiredAttrs)}, ${list(valueAttrs)}, $validations1, ${o(description)}, List($onlyRolesStr), List($excludedRolesStr), List($attrUpdatingGrantsStr))"""
+    val dbColumnPropsStr       = if (dbColumnProps.isEmpty) "Map.empty" else dbColumnProps.map { case (k, v) => s""""$k" -> "$v"""" }.mkString("Map(", ", ", ")")
+    s"""MetaAttribute("$attribute", $value, "$baseTpe", ${list(arguments)}, ${o(ref)}, ${o(reverseRef)}, ${o(relationship)}, ${o(enumTpe)}, ${list(options)}, ${o(alias)}, ${list(requiredAttrs)}, ${list(valueAttrs)}, $validations1, ${o(description)}, List($onlyRolesStr), List($excludedRolesStr), List($attrUpdatingGrantsStr), $dbColumnPropsStr)"""
   }
 }
 

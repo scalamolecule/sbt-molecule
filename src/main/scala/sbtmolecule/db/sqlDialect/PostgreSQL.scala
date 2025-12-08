@@ -5,86 +5,94 @@ import molecule.core.dataModel.*
 
 object PostgreSQL extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attribute == "id")
-      "BIGSERIAL PRIMARY KEY"
-    else metaAttribute.value match {
-      case _: OneValue => metaAttribute.baseTpe match {
-        case "ID"             => "BIGINT"
-        case "String"         => "TEXT COLLATE ucs_basic"
-        case "Int"            => "INTEGER"
-        case "Long"           => "BIGINT"
-        case "Float"          => "DECIMAL"
-        case "Double"         => "DOUBLE PRECISION"
-        case "Boolean"        => "BOOLEAN"
-        case "BigInt"         => "DECIMAL"
-        case "BigDecimal"     => "DECIMAL"
-        case "Date"           => "BIGINT"
-        case "Duration"       => "VARCHAR"
-        case "Instant"        => "VARCHAR"
-        case "LocalDate"      => "VARCHAR"
-        case "LocalTime"      => "VARCHAR"
-        case "LocalDateTime"  => "VARCHAR"
-        case "OffsetTime"     => "VARCHAR"
-        case "OffsetDateTime" => "VARCHAR"
-        case "ZonedDateTime"  => "VARCHAR"
-        case "UUID"           => "UUID"
-        case "URI"            => "VARCHAR"
-        case "Byte"           => "SMALLINT"
-        case "Short"          => "SMALLINT"
-        case "Char"           => "CHAR(1)"
-      }
-      case _: SetValue => metaAttribute.baseTpe match {
-        case "String"         => "TEXT ARRAY"
-        case "Int"            => "INTEGER ARRAY"
-        case "Long"           => "BIGINT ARRAY"
-        case "Float"          => "DECIMAL ARRAY"
-        case "Double"         => "DOUBLE PRECISION ARRAY"
-        case "Boolean"        => "BOOLEAN ARRAY"
-        case "BigInt"         => "DECIMAL ARRAY"
-        case "BigDecimal"     => "DECIMAL ARRAY"
-        case "Date"           => "BIGINT ARRAY"
-        case "Duration"       => "VARCHAR ARRAY"
-        case "Instant"        => "VARCHAR ARRAY"
-        case "LocalDate"      => "VARCHAR ARRAY"
-        case "LocalTime"      => "VARCHAR ARRAY"
-        case "LocalDateTime"  => "VARCHAR ARRAY"
-        case "OffsetTime"     => "VARCHAR ARRAY"
-        case "OffsetDateTime" => "VARCHAR ARRAY"
-        case "ZonedDateTime"  => "VARCHAR ARRAY"
-        case "UUID"           => "UUID ARRAY"
-        case "URI"            => "VARCHAR ARRAY"
-        case "Byte"           => "SMALLINT ARRAY"
-        case "Short"          => "SMALLINT ARRAY"
-        case "Char"           => "CHAR(1) ARRAY"
-      }
+  override def dbId: String = "PostgreSQL"
 
-      case _: SeqValue => metaAttribute.baseTpe match {
-        case "String"         => "TEXT ARRAY"
-        case "Int"            => "INTEGER ARRAY"
-        case "Long"           => "BIGINT ARRAY"
-        case "Float"          => "DECIMAL ARRAY"
-        case "Double"         => "DOUBLE PRECISION ARRAY"
-        case "Boolean"        => "BOOLEAN ARRAY"
-        case "BigInt"         => "DECIMAL ARRAY"
-        case "BigDecimal"     => "DECIMAL ARRAY"
-        case "Date"           => "BIGINT ARRAY"
-        case "Duration"       => "VARCHAR ARRAY"
-        case "Instant"        => "VARCHAR ARRAY"
-        case "LocalDate"      => "VARCHAR ARRAY"
-        case "LocalTime"      => "VARCHAR ARRAY"
-        case "LocalDateTime"  => "VARCHAR ARRAY"
-        case "OffsetTime"     => "VARCHAR ARRAY"
-        case "OffsetDateTime" => "VARCHAR ARRAY"
-        case "ZonedDateTime"  => "VARCHAR ARRAY"
-        case "UUID"           => "UUID ARRAY"
-        case "URI"            => "VARCHAR ARRAY"
-        case "Byte"           => "BYTEA" // special for byte arrays
-        case "Short"          => "SMALLINT ARRAY"
-        case "Char"           => "CHAR(1) ARRAY"
-      }
+  override def tpe(metaAttribute: MetaAttribute, generalProps: Map[String, String] = Map.empty): String = {
+    // Priority: 1) Attribute-specific custom property, 2) General custom property, 3) Default
+    metaAttribute.dbColumnProps.get(dbId).orElse {
+      generalProps.get(metaAttribute.baseTpe)
+    }.getOrElse {
+      // Use default type mapping
+      if (metaAttribute.attribute == "id")
+        "BIGSERIAL PRIMARY KEY"
+      else metaAttribute.value match {
+        case _: OneValue => metaAttribute.baseTpe match {
+          case "ID"             => "BIGINT"
+          case "String"         => "TEXT COLLATE ucs_basic"
+          case "Int"            => "INTEGER"
+          case "Long"           => "BIGINT"
+          case "Float"          => "DECIMAL"
+          case "Double"         => "DOUBLE PRECISION"
+          case "Boolean"        => "BOOLEAN"
+          case "BigInt"         => "DECIMAL"
+          case "BigDecimal"     => "DECIMAL"
+          case "Date"           => "BIGINT"
+          case "Duration"       => "VARCHAR"
+          case "Instant"        => "VARCHAR"
+          case "LocalDate"      => "VARCHAR"
+          case "LocalTime"      => "VARCHAR"
+          case "LocalDateTime"  => "VARCHAR"
+          case "OffsetTime"     => "VARCHAR"
+          case "OffsetDateTime" => "VARCHAR"
+          case "ZonedDateTime"  => "VARCHAR"
+          case "UUID"           => "UUID"
+          case "URI"            => "VARCHAR"
+          case "Byte"           => "SMALLINT"
+          case "Short"          => "SMALLINT"
+          case "Char"           => "CHAR(1)"
+        }
+        case _: SetValue => metaAttribute.baseTpe match {
+          case "String"         => "TEXT ARRAY"
+          case "Int"            => "INTEGER ARRAY"
+          case "Long"           => "BIGINT ARRAY"
+          case "Float"          => "DECIMAL ARRAY"
+          case "Double"         => "DOUBLE PRECISION ARRAY"
+          case "Boolean"        => "BOOLEAN ARRAY"
+          case "BigInt"         => "DECIMAL ARRAY"
+          case "BigDecimal"     => "DECIMAL ARRAY"
+          case "Date"           => "BIGINT ARRAY"
+          case "Duration"       => "VARCHAR ARRAY"
+          case "Instant"        => "VARCHAR ARRAY"
+          case "LocalDate"      => "VARCHAR ARRAY"
+          case "LocalTime"      => "VARCHAR ARRAY"
+          case "LocalDateTime"  => "VARCHAR ARRAY"
+          case "OffsetTime"     => "VARCHAR ARRAY"
+          case "OffsetDateTime" => "VARCHAR ARRAY"
+          case "ZonedDateTime"  => "VARCHAR ARRAY"
+          case "UUID"           => "UUID ARRAY"
+          case "URI"            => "VARCHAR ARRAY"
+          case "Byte"           => "SMALLINT ARRAY"
+          case "Short"          => "SMALLINT ARRAY"
+          case "Char"           => "CHAR(1) ARRAY"
+        }
 
-      case _: MapValue => "JSONB"
+        case _: SeqValue => metaAttribute.baseTpe match {
+          case "String"         => "TEXT ARRAY"
+          case "Int"            => "INTEGER ARRAY"
+          case "Long"           => "BIGINT ARRAY"
+          case "Float"          => "DECIMAL ARRAY"
+          case "Double"         => "DOUBLE PRECISION ARRAY"
+          case "Boolean"        => "BOOLEAN ARRAY"
+          case "BigInt"         => "DECIMAL ARRAY"
+          case "BigDecimal"     => "DECIMAL ARRAY"
+          case "Date"           => "BIGINT ARRAY"
+          case "Duration"       => "VARCHAR ARRAY"
+          case "Instant"        => "VARCHAR ARRAY"
+          case "LocalDate"      => "VARCHAR ARRAY"
+          case "LocalTime"      => "VARCHAR ARRAY"
+          case "LocalDateTime"  => "VARCHAR ARRAY"
+          case "OffsetTime"     => "VARCHAR ARRAY"
+          case "OffsetDateTime" => "VARCHAR ARRAY"
+          case "ZonedDateTime"  => "VARCHAR ARRAY"
+          case "UUID"           => "UUID ARRAY"
+          case "URI"            => "VARCHAR ARRAY"
+          case "Byte"           => "BYTEA" // special for byte arrays
+          case "Short"          => "SMALLINT ARRAY"
+          case "Char"           => "CHAR(1) ARRAY"
+        }
+
+        case _: MapValue => "JSONB"
+      }
     }
   }
 

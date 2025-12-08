@@ -5,36 +5,44 @@ import molecule.core.dataModel.*
 
 object MSSQLServer extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
-    if (metaAttribute.attribute == "id")
-      "BIGINT AUTO_INCREMENT PRIMARY KEY"
-    else metaAttribute.value match {
-      case OneValue => metaAttribute.baseTpe match {
-        case "ID"             => "BIGINT"
-        case "String"         => "TEXT"
-        case "Int"            => "INT"
-        case "Long"           => "BIGINT"
-        case "Float"          => "REAL"
-        case "Double"         => "REAL"
-        case "Boolean"        => "TINYINT(1)"
-        case "BigInt"         => "DECIMAL(65, 0)"
-        case "BigDecimal"     => "DECIMAL(65, 30)"
-        case "Date"           => "BIGINT"
-        case "Duration"       => "TINYTEXT"
-        case "Instant"        => "TINYTEXT"
-        case "LocalDate"      => "TINYTEXT"
-        case "LocalTime"      => "TINYTEXT"
-        case "LocalDateTime"  => "TINYTEXT"
-        case "OffsetTime"     => "TINYTEXT"
-        case "OffsetDateTime" => "TINYTEXT"
-        case "ZonedDateTime"  => "TINYTEXT"
-        case "UUID"           => "TINYTEXT"
-        case "URI"            => "TEXT"
-        case "Byte"           => "TINYINT"
-        case "Short"          => "SMALLINT"
-        case "Char"           => "CHAR"
+  override def dbId: String = "MSSQLServer"
+
+  override def tpe(metaAttribute: MetaAttribute, generalProps: Map[String, String] = Map.empty): String = {
+    // Priority: 1) Attribute-specific custom property, 2) General custom property, 3) Default
+    metaAttribute.dbColumnProps.get(dbId).orElse {
+      generalProps.get(metaAttribute.baseTpe)
+    }.getOrElse {
+      // Use default type mapping
+      if (metaAttribute.attribute == "id")
+        "BIGINT AUTO_INCREMENT PRIMARY KEY"
+      else metaAttribute.value match {
+        case OneValue => metaAttribute.baseTpe match {
+          case "ID"             => "BIGINT"
+          case "String"         => "TEXT"
+          case "Int"            => "INT"
+          case "Long"           => "BIGINT"
+          case "Float"          => "REAL"
+          case "Double"         => "REAL"
+          case "Boolean"        => "TINYINT(1)"
+          case "BigInt"         => "DECIMAL(38)"
+          case "BigDecimal"     => "DECIMAL(38, 19)"
+          case "Date"           => "BIGINT"
+          case "Duration"       => "TINYTEXT"
+          case "Instant"        => "TINYTEXT"
+          case "LocalDate"      => "TINYTEXT"
+          case "LocalTime"      => "TINYTEXT"
+          case "LocalDateTime"  => "TINYTEXT"
+          case "OffsetTime"     => "TINYTEXT"
+          case "OffsetDateTime" => "TINYTEXT"
+          case "ZonedDateTime"  => "TINYTEXT"
+          case "UUID"           => "TINYTEXT"
+          case "URI"            => "TEXT"
+          case "Byte"           => "TINYINT"
+          case "Short"          => "SMALLINT"
+          case "Char"           => "CHAR"
+        }
+        case _          => "JSON"
       }
-      case _          => "JSON"
     }
   }
 

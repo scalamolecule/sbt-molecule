@@ -47,7 +47,7 @@ case class ParseDomainStructure(
     "_", ":", "=", "=>", "<-", "<:", "<%", ">:", "#", "@"
   )
 
-  private val allActions = List("query", "save", "insert", "update", "delete", "rawQuery", "rawTransact")
+  private val allActions  = List("query", "save", "insert", "update", "delete", "rawQuery", "rawTransact")
   private val coreActions = List("query", "save", "insert", "update", "delete") // Core CRUD actions that must be available for role-restricted entities
 
 
@@ -90,9 +90,41 @@ case class ParseDomainStructure(
     }
   }
 
+  private def parseGeneralDbColumnProperties(): Map[String, Map[String, String]] = {
+    body.collectFirst {
+      case q"generalDbColumnProperties(..$props)" =>
+        if (props.isEmpty)
+          err("Please add at least one column property definition for a database.")
+        props.map {
+          case q"(Db.$db, Set(..$set))" => (db, set)
+          case q"Db.$db -> Set(..$set)" => (db, set)
+          case other                     => unexpected(other)
+        }.map {
+          case (db, set) =>
+            if (set.isEmpty)
+              err("Please add at least one attr -> props pair.")
+
+            // Now parse each tuple in the set
+            val columnProps = set.map {
+              case q"($baseType, ${Lit.String(props)})" => (baseType, props)
+              case q"$baseType -> ${Lit.String(props)}" => (baseType, props)
+            }.map {
+              case (baseType, props) =>
+                val baseTypeName = baseType match {
+                  case Term.Name(name) => name.stripPrefix("one")
+                  case _               => baseType.toString.stripPrefix("one")
+                }
+                (baseTypeName, props)
+            }
+            (db.value, columnProps.toMap)
+        }.toMap
+    }.getOrElse(Map.empty[String, Map[String, String]])
+  }
+
   def getMetaDomain: MetaDomain = {
-    // First pass: collect role definitions (separate from entity parsing)
+    // First pass: collect role definitions and general db column properties (separate from entity parsing)
     parseRoles()
+    val generalProps = parseGeneralDbColumnProperties()
 
     val hasSegements = body.exists {
       case q"object $_ { ..$_ }" => true
@@ -105,10 +137,11 @@ case class ParseDomainStructure(
 
         case Defn.Enum.After_4_6_0(_, name, _, _, templ) => parseEnum[MetaSegment](name, templ)
         case q"trait $_ extends Role with ..$_"         => None // Skip role definitions in entity parsing
+        case q"generalDbColumnProperties(..$_)"         => None // Skip general db props in entity parsing
         case q"trait $entity $template"                 => noMix()
       }
     } else {
-      // No segments - parse entities directly, but skip role definitions
+      // No segments - parse entities directly, but skip role definitions and general db props
       List(MetaSegment("", getEntities("", body)))
     }
     checkCircularMandatoryRefs(segments)
@@ -124,7 +157,7 @@ case class ParseDomainStructure(
     }
     val segments3 = addReverseRefs(segments2)
     val segments4 = addBridges(segments3)
-    MetaDomain(pkg, domain, segments4, roles)
+    MetaDomain(pkg, domain, segments4, roles, generalProps)
   }
 
   private def checkCircularMandatoryRefs(segments: Seq[MetaSegment]): Unit = {
@@ -262,6 +295,7 @@ case class ParseDomainStructure(
         }
       case Defn.Enum.After_4_6_0(_, name, _, _, templ)                                                  => parseEnum[MetaEntity](name, templ)
       case q"object $o { ..$_ }"                                                                       => noMix()
+      case q"generalDbColumnProperties(..$_)"                                                          => None // Skip general db column properties
       case other                                                                                        => unexpected(other)
     }
   }.toList
@@ -428,6 +462,13 @@ case class ParseDomainStructure(
             acc(segmentPrefix, entity, prev, a.copy(alias = Some(clean(alias, msg(alias)))), isJoinTable)
           case other                         => err(msg(other))
         }
+
+      case q"$prev.dbColumnProperties(..$props)" =>
+        val dbColumnProps = props.map {
+          case q"(Db.$db, ${Lit.String(colDef)})" => db.toString() -> colDef
+          case q"Db.$db -> ${Lit.String(colDef)}" => db.toString() -> colDef
+        }.toMap
+        acc(segmentPrefix, entity, prev, a.copy(dbColumnProps = dbColumnProps), isJoinTable)
 
       case _ => accRelationships(segmentPrefix, entity, t, a, isJoinTable)
     }
@@ -1000,9 +1041,9 @@ case class ParseDomainStructure(
   // Authorization Validation Methods ................................................
 
   /** Validate entity has access to all 5 core CRUD actions through its roles (Layer 1)
-    * Only applies to role-restricted entities. Public entities (no roles) skip all validation.
-    * Note: rawQuery and rawTransact are escape hatches and not required.
-    */
+   * Only applies to role-restricted entities. Public entities (no roles) skip all validation.
+   * Note: rawQuery and rawTransact are escape hatches and not required.
+   */
   private def validateEntityActionCoverage(entity: String, entityRoles: List[String], entityActions: List[String]): Unit = {
     // Public entities (no roles) are unrestricted - skip validation
     if (entityRoles.isEmpty) {
@@ -1155,13 +1196,13 @@ case class ParseDomainStructure(
   }
 
   /** Validate action grants have access to all attributes
-    * If a role can delete or update an entity, they must be able to access all attributes
-    * since these operations affect the entire database row.
-    */
+   * If a role can delete or update an entity, they must be able to access all attributes
+   * since these operations affect the entire database row.
+   */
   private def validateEntityGrantsAttributeAccess(entity: String, entityRoles: List[String],
-                                                   entityUpdatingGrants: List[String],
-                                                   entityDeletingGrants: List[String],
-                                                   metaAttrs: List[MetaAttribute]): Unit = {
+                                                  entityUpdatingGrants: List[String],
+                                                  entityDeletingGrants: List[String],
+                                                  metaAttrs: List[MetaAttribute]): Unit = {
     // Check both updating and deleting grants
     val grantsToCheck = List(
       ("updating", entityUpdatingGrants),

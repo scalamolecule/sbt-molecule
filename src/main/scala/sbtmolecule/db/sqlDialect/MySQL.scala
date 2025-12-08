@@ -5,7 +5,13 @@ import molecule.core.dataModel.*
 
 object MySQL extends Dialect {
 
-  override def tpe(metaAttribute: MetaAttribute): String = {
+  override def dbId: String = "MySQL"
+
+  override def tpe(metaAttribute: MetaAttribute, generalProps: Map[String, String] = Map.empty): String = {
+    // Priority: 1) Attribute-specific custom property, 2) General custom property, 3) Default
+    metaAttribute.dbColumnProps.get(dbId).orElse {
+      generalProps.get(metaAttribute.baseTpe)
+    }.getOrElse {
     if (metaAttribute.attribute == "id")
       "BIGINT AUTO_INCREMENT PRIMARY KEY"
     else metaAttribute.value match {
@@ -32,7 +38,7 @@ object MySQL extends Dialect {
         case "URI"            => "TEXT"
         case "Byte"           => "TINYINT"
         case "Short"          => "SMALLINT"
-        case "Char"           => "CHAR"
+        case "Char"           => "CHAR(1)"
       }
 
       case SeqValue => metaAttribute.baseTpe match {
@@ -41,6 +47,7 @@ object MySQL extends Dialect {
       }
 
       case _ => "JSON"
+      }
     }
   }
 

@@ -13,17 +13,17 @@ case class Entity_(
 
   val javaImports: String = {
     val typeImports = attributes.collect {
-      case MetaAttribute(_, _, "Duration", _, _, _, _, _, _, _, _, _, _, _, _, _, _)       => "java.time.*"
-      case MetaAttribute(_, _, "Instant", _, _, _, _, _, _, _, _, _, _, _, _, _, _)        => "java.time.*"
-      case MetaAttribute(_, _, "LocalDate", _, _, _, _, _, _, _, _, _, _, _, _, _, _)      => "java.time.*"
-      case MetaAttribute(_, _, "LocalTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _)      => "java.time.*"
-      case MetaAttribute(_, _, "LocalDateTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _)  => "java.time.*"
-      case MetaAttribute(_, _, "OffsetTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _)     => "java.time.*"
-      case MetaAttribute(_, _, "OffsetDateTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _) => "java.time.*"
-      case MetaAttribute(_, _, "ZonedDateTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _)  => "java.time.*"
-      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _, _, _, _, _, _)           => "java.util.Date"
-      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _, _, _, _, _, _)           => "java.util.UUID"
-      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _, _, _, _, _, _)            => "java.net.URI"
+      case MetaAttribute(_, _, "Duration", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)       => "java.time.*"
+      case MetaAttribute(_, _, "Instant", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)        => "java.time.*"
+      case MetaAttribute(_, _, "LocalDate", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)      => "java.time.*"
+      case MetaAttribute(_, _, "LocalTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)      => "java.time.*"
+      case MetaAttribute(_, _, "LocalDateTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)  => "java.time.*"
+      case MetaAttribute(_, _, "OffsetTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)     => "java.time.*"
+      case MetaAttribute(_, _, "OffsetDateTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => "java.time.*"
+      case MetaAttribute(_, _, "ZonedDateTime", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)  => "java.time.*"
+      case MetaAttribute(_, _, "Date", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)           => "java.util.Date"
+      case MetaAttribute(_, _, "UUID", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)           => "java.util.UUID"
+      case MetaAttribute(_, _, "URI", _, _, _, _, _, _, _, _, _, _, _, _, _, _, _)            => "java.net.URI"
     }.distinct
     if(typeImports.isEmpty) "" else "\n" + typeImports.sorted.mkString("import ", "\nimport ", "")
   }
