@@ -3,7 +3,7 @@ package sbtmolecule.db
 import molecule.DomainStructure
 
 //@deprecated
-object Types extends DomainStructure {
+trait Types extends DomainStructure {
 
   trait Entity {
     val i    = oneInt

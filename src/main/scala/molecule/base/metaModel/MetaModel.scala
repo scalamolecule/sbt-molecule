@@ -8,22 +8,33 @@ case class MetaDomain(
   domain: String,
   segments: List[MetaSegment],
   roles: List[MetaRole] = Nil, // Role definitions
-  generalDbColumnProps: Map[String, Map[String, String]] = Map.empty // Map(db -> Map(baseTpe -> columnTypeDefinition))
+  generalDbColumnProps: Map[String, Map[String, String]] = Map.empty, // Map(db -> Map(baseTpe -> columnTypeDefinition))
+  // Migration metadata
+  migrationVersion: Option[Int] = None,
+  migrationStatus: MigrationStatus = MigrationStatus.Clean
 ) {
   def render(tabs: Int = 0): String = {
-    val p           = indent(tabs)
-    val pad         = s"\n$p  "
-    val segmentsStr = if (segments.isEmpty) "" else
+    val p                   = indent(tabs)
+    val pad                 = s"\n$p  "
+    val segmentsStr         = if (segments.isEmpty) "" else
       segments.map(_.render(tabs + 1)).mkString(pad, s",\n\n$pad", s"\n$p")
-    val rolesStr    = if (roles.isEmpty) "" else
+    val rolesStr            = if (roles.isEmpty) "" else
       roles.map(_.toString).mkString(pad, s",$pad", s"\n$p")
-    val generalPropsStr = if (generalDbColumnProps.isEmpty) "Map.empty" else {
+    val generalPropsStr     = if (generalDbColumnProps.isEmpty) "Map.empty" else {
       generalDbColumnProps.map { case (db, typeMap) =>
         val innerMap = typeMap.map { case (tpe, colDef) => s""""$tpe" -> "$colDef"""" }.mkString("Map(", ", ", ")")
         s""""$db" -> $innerMap"""
       }.mkString("Map(", ", ", ")")
     }
-    s"""MetaDomain("$pkg", "$domain", List($segmentsStr), List($rolesStr), $generalPropsStr)"""
+    val migrationVersionStr = migrationVersion.map(v => s"Some($v)").getOrElse("None")
+    val migrationStatusStr  = migrationStatus match {
+      case MigrationStatus.Clean              => "MigrationStatus.Clean"
+      case MigrationStatus.HasChanges         => "MigrationStatus.HasChanges"
+      case MigrationStatus.AwaitingResolution => "MigrationStatus.AwaitingResolution"
+      case MigrationStatus.Resolved           => "MigrationStatus.Resolved"
+      case MigrationStatus.Applied            => "MigrationStatus.Applied"
+    }
+    s"""MetaDomain("$pkg", "$domain", List($segmentsStr), List($rolesStr), $generalPropsStr, $migrationVersionStr, $migrationStatusStr)"""
   }
 
   override def toString: String = render()
@@ -32,14 +43,20 @@ case class MetaDomain(
 
 case class MetaSegment(
   segment: String,
-  entities: List[MetaEntity]
+  entities: List[MetaEntity],
+  migration: Option[SegmentMigration] = None
 ) {
   def render(tabs: Int): String = {
-    val p           = indent(tabs)
-    val pad         = s"\n$p  "
-    val entitiesStr = if (entities.isEmpty) "" else
+    val p            = indent(tabs)
+    val pad          = s"\n$p  "
+    val entitiesStr  = if (entities.isEmpty) "" else
       entities.map(_.render(tabs + 1)).mkString(pad, s",\n$pad", s"\n$p")
-    s"""MetaSegment("$segment", List($entitiesStr))"""
+    val migrationStr = migration match {
+      case Some(SegmentMigration.Rename(newName)) => s"""Some(SegmentMigration.Rename("$newName"))"""
+      case Some(SegmentMigration.Remove)          => "Some(SegmentMigration.Remove)"
+      case None                                   => "None"
+    }
+    s"""MetaSegment("$segment", List($entitiesStr), $migrationStr)"""
   }
 
   override def toString: String = render(0)
@@ -59,44 +76,60 @@ case class MetaEntity(
   entityActions: List[String] = Nil, // Actions from role definitions
   entityUpdatingGrants: List[String] = Nil, // Layer 2: Action grants via `with updating[R]`
   entityDeletingGrants: List[String] = Nil, // Layer 2: Action grants via `with deleting[R]`
+  // Migration metadata
+  migration: Option[EntityMigration] = None
 ) {
   def render(tabs: Int): String = {
-    val attrsStr          = if (attributes.isEmpty) "" else {
+    val attrsStr                = if (attributes.isEmpty) "" else {
       val maxAttr = attributes.map(_.attribute.length).max
       val maxTpe  = attributes.map(_.baseTpe.length).max
       val p       = indent(tabs)
       val pad     = s"\n$p  "
       attributes.map { attr =>
-        val attr1             = "\"" + attr.attribute + "\"" + padS(maxAttr, attr.attribute)
-        val value             = attr.value
-        val tpe               = "\"" + attr.baseTpe + "\"" + padS(maxTpe, attr.baseTpe)
-        val args              = list(attr.arguments)
-        val ref               = o(attr.ref)
-        val reverseRef        = o(attr.reverseRef)
-        val relationship      = o(attr.relationship)
-        val enumTpe           = o(attr.enumTpe)
-        val options           = list(attr.options)
-        val descr             = o(attr.description)
-        val alias             = o(attr.alias)
-        val requiredAttrs     = list(attr.requiredAttrs)
-        val valueAttrs        = list(attr.valueAttrs)
-        val validations1      = renderValidations(attr.validations)
-        val onlyRoles1        = list(attr.onlyRoles)
-        val excludedRoles1    = list(attr.excludedRoles)
+        val attr1               = "\"" + attr.attribute + "\"" + padS(maxAttr, attr.attribute)
+        val value               = attr.value
+        val tpe                 = "\"" + attr.baseTpe + "\"" + padS(maxTpe, attr.baseTpe)
+        val args                = list(attr.arguments)
+        val ref                 = o(attr.ref)
+        val reverseRef          = o(attr.reverseRef)
+        val relationship        = o(attr.relationship)
+        val enumTpe             = o(attr.enumTpe)
+        val options             = list(attr.options)
+        val descr               = o(attr.description)
+        val alias               = o(attr.alias)
+        val requiredAttrs       = list(attr.requiredAttrs)
+        val valueAttrs          = list(attr.valueAttrs)
+        val validations1        = renderValidations(attr.validations)
+        val onlyRoles1          = list(attr.onlyRoles)
+        val excludedRoles1      = list(attr.excludedRoles)
         val attrUpdatingGrants1 = list(attr.attrUpdatingGrants)
-        s"""MetaAttribute($attr1, $value, $tpe, $args, $ref, $reverseRef, $relationship, $enumTpe, $options, $alias, $requiredAttrs, $valueAttrs, $validations1, $descr, $onlyRoles1, $excludedRoles1, $attrUpdatingGrants1)"""
+        val dbColumnPropsStr    = if (attr.dbColumnProps.isEmpty) "Map.empty" else attr.dbColumnProps.map { case (k, v) => s""""$k" -> "$v"""" }.mkString("Map(", ", ", ")")
+        val migrationStr        = attr.migration match {
+          case Some(AttrMigration.Rename(newName)) => s"""Some(AttrMigration.Rename("$newName"))"""
+          case Some(AttrMigration.Add)             => "Some(AttrMigration.Add)"
+          case Some(AttrMigration.Remove)          => "Some(AttrMigration.Remove)"
+          case None                                => "None"
+        }
+        val sourcePositionStr   = if (attr.sourcePosition.isDefined) "Some(<pos>)" else "None"
+        s"""MetaAttribute($attr1, $value, $tpe, $args, $ref, $reverseRef, $relationship, $enumTpe, $options, $alias, $requiredAttrs, $valueAttrs, $validations1, $descr, $onlyRoles1, $excludedRoles1, $attrUpdatingGrants1, $dbColumnPropsStr, $migrationStr, $sourcePositionStr)"""
       }.mkString(pad, s",$pad", s"\n$p")
     }
-    val backRefs1         = if (backRefs.isEmpty) "" else backRefs.mkString("\"", "\", \"", "\"")
-    val mandatoryAttrsStr = if (mandatoryAttrs.isEmpty) "" else mandatoryAttrs.mkString("\"", "\", \"", "\"")
-    val mandatoryRefsStr  = if (mandatoryRefs.isEmpty) "" else mandatoryRefs.map {
+    val backRefs1               = if (backRefs.isEmpty) "" else backRefs.mkString("\"", "\", \"", "\"")
+    val mandatoryAttrsStr       = if (mandatoryAttrs.isEmpty) "" else mandatoryAttrs.mkString("\"", "\", \"", "\"")
+    val mandatoryRefsStr        = if (mandatoryRefs.isEmpty) "" else mandatoryRefs.map {
       case (attr, ref) => s"""\"$attr\" -> \"$ref\""""
     }.mkString(", ")
-    val entityRolesStr    = if (entityRoles.isEmpty) "" else entityRoles.mkString("\"", "\", \"", "\"")
-    val entityActionsStr  = if (entityActions.isEmpty) "" else entityActions.mkString("\"", "\", \"", "\"")
+    val entityRolesStr          = if (entityRoles.isEmpty) "" else entityRoles.mkString("\"", "\", \"", "\"")
+    val entityActionsStr        = if (entityActions.isEmpty) "" else entityActions.mkString("\"", "\", \"", "\"")
     val entityUpdatingGrantsStr = if (entityUpdatingGrants.isEmpty) "" else entityUpdatingGrants.mkString("\"", "\", \"", "\"")
     val entityDeletingGrantsStr = if (entityDeletingGrants.isEmpty) "" else entityDeletingGrants.mkString("\"", "\", \"", "\"")
-    s"""MetaEntity("$entity", List($attrsStr), List($backRefs1), List($mandatoryAttrsStr), List($mandatoryRefsStr), $isJoinTable, ${o(description)}, List($entityRolesStr), List($entityActionsStr), List($entityUpdatingGrantsStr), List($entityDeletingGrantsStr))"""
+    val entityMigrationStr      = migration match {
+      case Some(EntityMigration.Rename(from)) => s"""Some(EntityMigration.Rename("$from"))"""
+      case Some(EntityMigration.Add)          => "Some(EntityMigration.Add)"
+      case Some(EntityMigration.Remove)       => "Some(EntityMigration.Remove)"
+      case None                               => "None"
+    }
+    s"""MetaEntity("$entity", List($attrsStr), List($backRefs1), List($mandatoryAttrsStr), List($mandatoryRefsStr), $isJoinTable, ${o(description)}, List($entityRolesStr), List($entityActionsStr), List($entityUpdatingGrantsStr), List($entityDeletingGrantsStr), $entityMigrationStr)"""
   }
 
   override def toString: String = render(0)
@@ -124,14 +157,25 @@ case class MetaAttribute(
   attrUpdatingGrants: List[String] = Nil, // Layer 4: Attribute update grants via .updating[R]
   // Custom database column properties
   dbColumnProps: Map[String, String] = Map.empty, // Map(db -> columnTypeDefinition)
+  // Migration metadata (explicit from .migrateTo()/.remove or detected by MigrationDetector)
+  migration: Option[AttrMigration] = None,
+  // Source position for safe migration marker cleanup (startPos, endPos)
+  sourcePosition: Option[(Int, Int)] = None
 ) {
   override def toString: String = {
-    val validations1           = renderValidations(validations)
-    val onlyRolesStr           = if (onlyRoles.isEmpty) "" else onlyRoles.mkString("\"", "\", \"", "\"")
-    val excludedRolesStr       = if (excludedRoles.isEmpty) "" else excludedRoles.mkString("\"", "\", \"", "\"")
-    val attrUpdatingGrantsStr  = if (attrUpdatingGrants.isEmpty) "" else attrUpdatingGrants.mkString("\"", "\", \"", "\"")
-    val dbColumnPropsStr       = if (dbColumnProps.isEmpty) "Map.empty" else dbColumnProps.map { case (k, v) => s""""$k" -> "$v"""" }.mkString("Map(", ", ", ")")
-    s"""MetaAttribute("$attribute", $value, "$baseTpe", ${list(arguments)}, ${o(ref)}, ${o(reverseRef)}, ${o(relationship)}, ${o(enumTpe)}, ${list(options)}, ${o(alias)}, ${list(requiredAttrs)}, ${list(valueAttrs)}, $validations1, ${o(description)}, List($onlyRolesStr), List($excludedRolesStr), List($attrUpdatingGrantsStr), $dbColumnPropsStr)"""
+    val validations1          = renderValidations(validations)
+    val onlyRolesStr          = if (onlyRoles.isEmpty) "" else onlyRoles.mkString("\"", "\", \"", "\"")
+    val excludedRolesStr      = if (excludedRoles.isEmpty) "" else excludedRoles.mkString("\"", "\", \"", "\"")
+    val attrUpdatingGrantsStr = if (attrUpdatingGrants.isEmpty) "" else attrUpdatingGrants.mkString("\"", "\", \"", "\"")
+    val dbColumnPropsStr      = if (dbColumnProps.isEmpty) "Map.empty" else dbColumnProps.map { case (k, v) => s""""$k" -> "$v"""" }.mkString("Map(", ", ", ")")
+    val migrationStr          = migration match {
+      case Some(AttrMigration.Rename(newName)) => s"""Some(AttrMigration.Rename("$newName"))"""
+      case Some(AttrMigration.Add)             => "Some(AttrMigration.Add)"
+      case Some(AttrMigration.Remove)          => "Some(AttrMigration.Remove)"
+      case None                                => "None"
+    }
+    val sourcePositionStr     = if (sourcePosition.isDefined) "Some(<pos>)" else "None"
+    s"""MetaAttribute("$attribute", $value, "$baseTpe", ${list(arguments)}, ${o(ref)}, ${o(reverseRef)}, ${o(relationship)}, ${o(enumTpe)}, ${list(options)}, ${o(alias)}, ${list(requiredAttrs)}, ${list(valueAttrs)}, $validations1, ${o(description)}, List($onlyRolesStr), List($excludedRolesStr), List($attrUpdatingGrantsStr), $dbColumnPropsStr, $migrationStr, $sourcePositionStr)"""
   }
 }
 
@@ -158,5 +202,67 @@ case class MetaRole(
     s"""MetaRole("$role", List($actionsStr))"""
   }
 }
+
+
+// ============================================================================
+// Migration metadata
+// ============================================================================
+
+/** Overall migration status of a MetaDomain */
+sealed trait MigrationStatus
+object MigrationStatus {
+  /** No migration in progress - clean state */
+  case object Clean extends MigrationStatus
+
+  /** Changes detected between domain versions */
+  case object HasChanges extends MigrationStatus
+
+  /** Ambiguous changes detected - awaiting user resolution via scaffolding */
+  case object AwaitingResolution extends MigrationStatus
+
+  /** User has resolved ambiguities - ready to apply */
+  case object Resolved extends MigrationStatus
+
+  /** Migration has been applied */
+  case object Applied extends MigrationStatus
+}
+
+/** Attribute-level migration metadata */
+sealed trait AttrMigration
+object AttrMigration {
+  /** Attribute renamed (explicit via .rename("newName") in before structure) */
+  case class Rename(newName: String) extends AttrMigration
+
+  /** Attribute newly added (implicit - no explicit .remove for it) */
+  case object Add extends AttrMigration
+
+  /** Attribute to be removed (explicit via .remove in before structure) */
+  case object Remove extends AttrMigration
+}
+
+/** Entity-level migration metadata */
+sealed trait EntityMigration
+object EntityMigration {
+  /** Entity renamed from another name */
+  case class Rename(from: String) extends EntityMigration
+
+  /** Entity newly added */
+  case object Add extends EntityMigration
+
+  /** Entity to be removed */
+  case object Remove extends EntityMigration
+}
+
+/** Segment-level migration metadata */
+sealed trait SegmentMigration
+object SegmentMigration {
+  /** Segment renamed (renames all tables: oldSegment_Entity -> newSegment_Entity) */
+  case class Rename(newName: String) extends SegmentMigration
+
+  /** Segment to be removed (drops all tables with this segment prefix) */
+  case object Remove extends SegmentMigration
+}
+
+
 
 

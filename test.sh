@@ -23,9 +23,13 @@ for project in "${projects[@]}"; do
 
   (
     cd "$project"
-    sbt "clean; moleculePackage; test"
+    sbt "clean; moleculeGen; test"
+    #    sbt "clean; moleculePackage; test"
   )
 done
+
+./test-project8-migration/test-all-workflows.sh
+./src/test/scala/sbtmolecule/migrate/test-migration-flags.sh
 
 echo "======================================================"
 echo "✅ DONE testing all MoleculePlugin test projects"

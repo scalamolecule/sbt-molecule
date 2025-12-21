@@ -3,7 +3,7 @@ package sbtmolecule.db
 import molecule.DomainStructure
 
 
-object SocialApp extends DomainStructure {
+trait SocialApp extends DomainStructure {
 
   trait Guest extends Role with query
   trait Member extends Role with query

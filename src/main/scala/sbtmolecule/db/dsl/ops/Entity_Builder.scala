@@ -54,7 +54,7 @@ case class Entity_Builder(
   private val pByteArray = (t: String) => " " * (maxLength - 7 - t.length)
 
   attributes.foreach {
-    case MetaAttribute(attr, value, baseType0, _, optRef, _, _, optEnum, _, optAlias, _, _, _, _, _, _, _, _) =>
+    case MetaAttribute(attr, value, baseType0, _, optRef, _, _, optEnum, _, optAlias, _, _, _, _, _, _, _, _, _, _) =>
       val cleanAttr   = firstLow(optAlias.getOrElse(attr))
       val isByteArray = value == SeqValue && baseType0 == "Byte"
       val c           = if (isByteArray) "BAr" else value._marker
@@ -132,7 +132,7 @@ case class Entity_Builder(
   private val hasManyToMany = refs.exists(_.relationship.get == ManyToMany)
 
   refs.collect {
-    case MetaAttribute(attr, value, _, _, Some(ref0), Some(reverseRef), Some(relationship), _, options, optAlias, _, _, _, _, _, _, _, _) =>
+    case MetaAttribute(attr, value, _, _, Some(ref0), Some(reverseRef), Some(relationship), _, options, optAlias, _, _, _, _, _, _, _, _, _, _) =>
       val cleanAttr      = optAlias.getOrElse(attr)
       val refName        = if (cleanAttr.contains("_")) cleanAttr else camel(cleanAttr)
       val pRefAttr       = padRefAttr(cleanAttr)

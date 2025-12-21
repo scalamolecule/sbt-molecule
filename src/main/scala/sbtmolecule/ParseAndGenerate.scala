@@ -17,25 +17,34 @@ case class ParseAndGenerate(filePath: String) {
     case Pkg(pkg, afterPkg) => (pkg.toString, afterPkg)
   }.getOrElse(throw new Exception(s"Missing package definition in file $filePath:\n" + tree))
 
-  def generate(srcManaged: File, resourcesDir: File): Option[(String, String)] = afterPkg.collectFirst {
-    case q"object $domain extends DomainStructure { ..$body }" =>
+  def getPackage: String = pkg
+
+  def generate(srcManaged: File, schemaDir: File): Option[(String, String)] = afterPkg.collectFirst {
+    case q"trait $domain extends DomainStructure { ..$body }" =>
       val metaDomain = ParseDomainStructure(filePath, pkg, domain.value, body).getMetaDomain
-      GenerateSourceFiles_db(metaDomain).generate(srcManaged, resourcesDir)
+      GenerateSourceFiles_db(metaDomain).generate(srcManaged, schemaDir)
       (pkg, domain.value)
 
-    case q"object $domain extends Graphql($urlOrPath)" =>
+    case q"trait $domain extends Graphql($urlOrPath)" =>
       val doc = ParseGraphqlSchema(filePath, domain.value, urlOrPath.children.head.text).getDoc
       GenerateSourceFiles_graphql(doc, pkg, domain.value).generate(srcManaged)
       (pkg, domain.value)
+
+    case q"object $domain extends DomainStructure { ..$body }" => useTrait(domain.value)
+    case q"object $domain extends Graphql($urlOrPath)"         => useTrait(domain.value)
   }
 
 
   def extract: (String, String, Seq[Stat], String) = afterPkg.collectFirst {
-    case q"object $domain extends DomainStructure { ..$body }" =>
+    case q"trait $domain extends DomainStructure { ..$body }" =>
       (domain.value, "DomainStructure", body, "")
 
-    case q"object $domain extends Graphql($urlOrPath)" =>
+    case q"trait $domain extends Graphql($urlOrPath)" =>
       (domain.value, "Graphql", Nil, urlOrPath.children.head.text)
+
+    case q"object $domain extends DomainStructure { ..$body }" => useTrait(domain.value)
+    case q"object $domain extends Graphql($urlOrPath)"         => useTrait(domain.value)
+
   }.getOrElse(
     throw new Exception(
       s"Couldn't find matching source tree for $filePath:" +
@@ -44,6 +53,19 @@ case class ParseAndGenerate(filePath: String) {
     )
   )
 
+  def extracts: List[(String, String, Seq[Stat], String)] = afterPkg.collect {
+    case q"trait $domain extends DomainStructure { ..$body }"         =>
+      (domain.value, "DomainStructure", body, "")
+    case q"trait $domain extends $x with DomainStructure { ..$body }" =>
+      (domain.value, "DomainStructure", body, "")
+
+    case q"trait $domain extends Graphql($urlOrPath)" =>
+      (domain.value, "Graphql", Nil, urlOrPath.children.head.text)
+  }
+
+  def useTrait(domain: String): Nothing = throw new Exception(
+    s"Domain structure should be defined as a trait, not an object. Found: object $domain"
+  )
 
   // For testing:
 
@@ -52,6 +74,14 @@ case class ParseAndGenerate(filePath: String) {
 
     val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
     GenerateSourceFiles_db(metaDomain)
+  }
+
+  def generators: List[GenerateSourceFiles_db] = {
+    extracts.map {
+      case (domain, _, body, _) =>
+        val metaDomain = ParseDomainStructure(filePath, pkg, domain, body).getMetaDomain
+        GenerateSourceFiles_db(metaDomain)
+    }
   }
 
   def graphql: GenerateSourceFiles_graphql = {

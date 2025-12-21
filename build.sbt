@@ -7,7 +7,7 @@ lazy val root = (project in file("."))
     sbtPlugin := true,
     name := "sbt-molecule",
     description := "sbt plugin to generate and package Molecule boilerplate code",
-    version := "1.23.0",
+    version := "1.24.0",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "4.9.0",
@@ -21,7 +21,10 @@ lazy val root = (project in file("."))
       "com.github.ghostdogpr" %% "caliban-tools" % calibanVersion,
       "com.github.ghostdogpr" %% "caliban-client" % calibanVersion,
 
-      "com.lihaoyi" %% "utest" % "0.8.5" % Test
+      "com.lihaoyi" %% "utest" % "0.8.5" % Test,
+      "com.lihaoyi" %% "os-lib" % "0.11.6" % Test,
+      "com.h2database" % "h2" % "2.2.224" % Test,
+      "org.flywaydb" % "flyway-core" % "10.21.0" % Test
     ),
 
     testFrameworks += new TestFramework("utest.runner.Framework"),

@@ -2,7 +2,7 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Starwars extends DomainStructure {
+trait Starwars extends DomainStructure {
 
   trait Character {
     val name      = oneString
@@ -25,7 +25,7 @@ object Starwars extends DomainStructure {
   }
 }
 
-object Starwars2 extends DomainStructure {
+trait Starwars2 extends DomainStructure {
 
   trait Character {
     val name      = oneString

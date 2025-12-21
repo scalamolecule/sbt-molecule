@@ -5,7 +5,7 @@ import java.util.Date
 import molecule.DomainStructure
 import scala.collection.immutable.Seq
 
-object Validation extends DomainStructure {
+trait Validation extends DomainStructure {
 
   //  enum Color:
   //  case RED, BLUE, GREEN

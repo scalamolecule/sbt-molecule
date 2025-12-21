@@ -3,7 +3,7 @@ package bar.domain
 import molecule.DomainStructure
 
 
-object Person extends DomainStructure {
+trait Person extends DomainStructure {
 
   trait Person {
     val name = oneString

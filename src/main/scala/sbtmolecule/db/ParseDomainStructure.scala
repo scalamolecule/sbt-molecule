@@ -7,12 +7,6 @@ import molecule.base.util.BaseHelpers
 import molecule.core.dataModel.*
 import org.atteo.evo.inflector.English
 
-/*
-Hack for reformatting code (IntelliJ bug): replace manually:
-(case\s+(?:q|init|t|r))\s+"
-$1"
-
- */
 
 case class ParseDomainStructure(
   filePath: String,
@@ -86,7 +80,7 @@ case class ParseDomainStructure(
       case q"trait $roleName extends Role with ..$actions" =>
         val roleActions = extractActions(actions.toList)
         roles = roles :+ MetaRole(roleName.toString, roleActions)
-      case _                                                => // Ignore non-role definitions
+      case _                                               => // Ignore non-role definitions
     }
   }
 
@@ -98,7 +92,7 @@ case class ParseDomainStructure(
         props.map {
           case q"(Db.$db, Set(..$set))" => (db, set)
           case q"Db.$db -> Set(..$set)" => (db, set)
-          case other                     => unexpected(other)
+          case other                    => unexpected(other)
         }.map {
           case (db, set) =>
             if (set.isEmpty)
@@ -128,21 +122,32 @@ case class ParseDomainStructure(
 
     val hasSegements = body.exists {
       case q"object $_ { ..$_ }" => true
-      case _                      => false
+      case _                     => false
     }
     val segments     = if (hasSegements) {
       body.flatMap {
-        case q"object $segment { ..$entities }" =>
-          Some(MetaSegment(segment.toString, getEntities(segment.toString + "_", entities.toList)))
+        // Object with template (may have extends Remove or Rename)
+        case Defn.Object(_, segmentName, Template.After_4_4_0(_, inits, _, stats, _)) =>
+          var segmentMigration: Option[SegmentMigration] = None
+          inits.foreach {
+            case init"Remove"                                                                                 =>
+              segmentMigration = Some(SegmentMigration.Remove)
+            case Init.After_4_6_0(Type.Apply.After_4_6_0(Type.Name("Rename"), Seq(Type.Name(newName))), _, _) =>
+              segmentMigration = Some(SegmentMigration.Rename(newName))
+            case init"RenameToDummySegment"                                                                   =>
+              segmentMigration = Some(SegmentMigration.Rename("seg"))
+            case _                                                                                            => // Other extends clauses ignored
+          }
+          Some(MetaSegment(segmentName.toString, getEntities(segmentName.toString + "_", stats), segmentMigration))
 
         case Defn.Enum.After_4_6_0(_, name, _, _, templ) => parseEnum[MetaSegment](name, templ)
-        case q"trait $_ extends Role with ..$_"         => None // Skip role definitions in entity parsing
-        case q"generalDbColumnProperties(..$_)"         => None // Skip general db props in entity parsing
-        case q"trait $entity $template"                 => noMix()
+        case q"trait $_ extends Role with ..$_"          => None // Skip role definitions in entity parsing
+        case q"generalDbColumnProperties(..$_)"          => None // Skip general db props in entity parsing
+        case q"trait $entity $template"                  => noMix()
       }
     } else {
       // No segments - parse entities directly, but skip role definitions and general db props
-      List(MetaSegment("", getEntities("", body)))
+      List(MetaSegment("", getEntities("", body), None))
     }
     checkCircularMandatoryRefs(segments)
     val segments1 = addBackRefs(segments)
@@ -152,7 +157,8 @@ case class ParseDomainStructure(
         enums.toList.map {
           case (enumName, enumCases) =>
             MetaEntity(enumName, enumCases.map(c => MetaAttribute(c, OneValue, "String")))
-        }
+        },
+        None // Enum segment cannot be migrated
       )
     }
     val segments3 = addReverseRefs(segments2)
@@ -258,8 +264,8 @@ case class ParseDomainStructure(
                |- in lower case not be a Scala keyword: ${marked(reservedScalaKeywords, entity).mkString(", ")}
                |""".stripMargin
           clean(entity.toLowerCase, msg)
-          val (entityRoles, entityUpdatingGrants, entityDeletingGrants) = extractEntityRoles(template)
-          val entityActions                                             = entityRoles.flatMap(roleName => roles.find(_.role == roleName).map(_.actions).getOrElse(Nil)).distinct.sorted
+          val (entityRoles, entityUpdatingGrants, entityDeletingGrants, entityMigration) = extractEntityRoles(template)
+          val entityActions                                                              = entityRoles.flatMap(roleName => roles.find(_.role == roleName).map(_.actions).getOrElse(Nil)).distinct.sorted
 
           // Validate entity has access to all 5 core CRUD actions through its roles (Layer 1)
           validateEntityActionCoverage(entity, entityRoles, entityActions)
@@ -268,16 +274,16 @@ case class ParseDomainStructure(
           validateEntityGrants(entity, entityRoles, entityUpdatingGrants, "updating")
           validateEntityGrants(entity, entityRoles, entityDeletingGrants, "deleting")
 
-          Some(getEntity(segmentPrefix, entityTpe, attrs.toList, isJoinTable, entityRoles, entityActions, entityUpdatingGrants, entityDeletingGrants))
-        case other                          =>
-          err("Entity trait name should match [A-Z][a-zA-Z0-9]*_? - found: " + other)
+          Some(getEntity(segmentPrefix, entityTpe, attrs.toList, isJoinTable, entityRoles, entityActions, entityUpdatingGrants, entityDeletingGrants, entityMigration))
+        case other                         =>
+          err("Entity trait name should match [A-Z][a-zA-Z0-9]* - found: " + other)
       }
     }
 
     def isRoleDefinition(template: Template): Boolean = {
       template.inits.exists {
         case init"Role" => true
-        case _           => false
+        case _          => false
       }
     }
 
@@ -289,13 +295,13 @@ case class ParseDomainStructure(
         } else {
           val isJoinTable = template.inits.exists {
             case init"Join" => true
-            case _           => false
+            case _          => false
           }
           parseEntity(entityTpe, template, stats, isJoinTable)
         }
       case Defn.Enum.After_4_6_0(_, name, _, _, templ)                                                  => parseEnum[MetaEntity](name, templ)
-      case q"object $o { ..$_ }"                                                                       => noMix()
-      case q"generalDbColumnProperties(..$_)"                                                          => None // Skip general db column properties
+      case q"object $o { ..$_ }"                                                                        => noMix()
+      case q"generalDbColumnProperties(..$_)"                                                           => None // Skip general db column properties
       case other                                                                                        => unexpected(other)
     }
   }.toList
@@ -308,7 +314,8 @@ case class ParseDomainStructure(
     entityRoles: List[String] = Nil,
     entityActions: List[String] = Nil,
     entityUpdatingGrants: List[String] = Nil,
-    entityDeletingGrants: List[String] = Nil
+    entityDeletingGrants: List[String] = Nil,
+    entityMigration: Option[EntityMigration] = None
   ): MetaEntity = {
     val entity = entityTpe.toString
     if (entity.head.isLower) {
@@ -360,7 +367,7 @@ case class ParseDomainStructure(
       } else a
     }
 
-    MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs, isJoinTable, None, entityRoles, entityActions, entityUpdatingGrants, entityDeletingGrants)
+    MetaEntity(segmentPrefix + entity, metaAttrs1, Nil, mandatoryAttrs, mandatoryRefs, isJoinTable, None, entityRoles, entityActions, entityUpdatingGrants, entityDeletingGrants, entityMigration)
   }
 
   def marked(keywords: Seq[String], keyword: String) = keywords.map {
@@ -460,7 +467,7 @@ case class ParseDomainStructure(
         s match {
           case r"([a-z][a-zA-Z0-9]*)$alias" =>
             acc(segmentPrefix, entity, prev, a.copy(alias = Some(clean(alias, msg(alias)))), isJoinTable)
-          case other                         => err(msg(other))
+          case other                        => err(msg(other))
         }
 
       case q"$prev.dbColumnProperties(..$props)" =>
@@ -469,6 +476,38 @@ case class ParseDomainStructure(
           case q"Db.$db -> ${Lit.String(colDef)}" => db.toString() -> colDef
         }.toMap
         acc(segmentPrefix, entity, prev, a.copy(dbColumnProps = dbColumnProps), isJoinTable)
+
+      case _ => accMigration(segmentPrefix, entity, t, a, isJoinTable)
+    }
+  }
+
+  private def accMigration(segmentPrefix: String, entity: String, t: Tree, a: MetaAttribute, isJoinTable: Boolean): MetaAttribute = {
+    t match {
+      case t@q"$prev.rename(${Lit.String(newName)})" =>
+        // Store explicit rename (attribute field has current name, Rename has new name)
+        // Capture source position from the entire attribute definition (from val to .rename)
+        val sourcePos = Some((t.pos.start, t.pos.end))
+        acc(segmentPrefix, entity, prev, a.copy(
+          migration = Some(AttrMigration.Rename(newName)),
+          sourcePosition = sourcePos
+        ), isJoinTable)
+
+      case t@q"$prev.becomes(${Term.Name(newName)})" =>
+        // Store explicit name of new attribute
+        val sourcePos = Some((t.pos.start, t.pos.end))
+        acc(segmentPrefix, entity, prev, a.copy(
+          migration = Some(AttrMigration.Rename(newName)),
+          sourcePosition = sourcePos
+        ), isJoinTable)
+
+      case t@q"$prev.remove" =>
+        // Store explicit removal
+        // Capture source position from the entire attribute definition (from val to .remove)
+        val sourcePos = Some((t.pos.start, t.pos.end))
+        acc(segmentPrefix, entity, prev, a.copy(
+          migration = Some(AttrMigration.Remove),
+          sourcePosition = sourcePos
+        ), isJoinTable)
 
       case _ => accRelationships(segmentPrefix, entity, t, a, isJoinTable)
     }
@@ -490,10 +529,10 @@ case class ParseDomainStructure(
         }
         a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
 
-      case q"manyToOne[$ref0].oneToMany(${Lit.String(reverseRef0)})" => {
+      case q"manyToOne[$ref0].oneToMany(${Lit.String(reverseRef0)})" =>
         val reverseRef1 = reverseRef0 match {
           case r"([A-Z][a-zA-Z0-9]*)$ref" => ref
-          case other                       => err(
+          case other                      => err(
             s"""oneToMany name should start with capital letter and contain only english letters and digits. Found: "$other""""
           )
         }
@@ -509,7 +548,6 @@ case class ParseDomainStructure(
           addManyToManyBridges(fullEnt, a.attribute, fullRef, reverseRef)
         }
         a.copy(value = OneValue, baseTpe = "ID", ref = Some(fullRef), reverseRef = Some(reverseRef), relationship = Some(ManyToOne))
-      }
 
       case _ => accEnums(segmentPrefix, entity, t, a, isJoinTable)
     }
@@ -754,7 +792,7 @@ case class ParseDomainStructure(
         test match {
           case q"{ ..case $cases }: PartialFunction[$_, $_]" =>
             handleValidationCases(prev, segmentPrefix, entity, a, cases.toList, attr, isJoinTable)
-          case _                                              =>
+          case _                                             =>
             oneValidationCall(entity, a)
             val valueAttrs1  = extractValueAttrs(entity, a, test.asInstanceOf[Stat])
             val valueAttrs2  = if (valueAttrs1.isEmpty) Nil else (a.attribute +: valueAttrs1).distinct.sorted
@@ -990,20 +1028,31 @@ case class ParseDomainStructure(
   private def extractActions(actionTraits: List[Init]): List[String] = {
     actionTraits.flatMap {
       case init"$action" if allActions.contains(action.toString) => List(action.toString)
-      case _                                                      => Nil
+      case _                                                     => Nil
     }.distinct.sorted
   }
 
-  /** Extract roles, updating grants, deleting grants from entity trait definition */
-  private def extractEntityRoles(template: Template): (List[String], List[String], List[String]) = {
+  /** Extract roles, updating grants, deleting grants, and entity migration from entity trait definition */
+  private def extractEntityRoles(template: Template): (List[String], List[String], List[String], Option[EntityMigration]) = {
     val inits                = template.inits
     var entityRoles          = List.empty[String]
     var entityUpdatingGrants = List.empty[String]
     var entityDeletingGrants = List.empty[String]
+    var entityMigration      = Option.empty[EntityMigration]
 
     inits.foreach {
-      case init"Role" => // Entity is itself a role
-      case init"Join" => // Join table marker
+      case init"Role"   => // Entity is itself a role
+      case init"Join"   => // Join table marker
+      case init"Remove" => // Entity marked for removal
+        entityMigration = Some(EntityMigration.Remove)
+
+      // Extract Rename marker - Scala 3 syntax with parameter
+      case Init.After_4_6_0(Type.Apply.After_4_6_0(Type.Name("Rename"), Seq(Type.Name(newName))), _, _) =>
+        entityMigration = Some(EntityMigration.Rename(newName))
+
+      // Extract RenameTo* markers - Scala 2.12 compatible dummy markers
+      case init"RenameToDummyEntity" =>
+        entityMigration = Some(EntityMigration.Rename("Entity"))
 
       // Extract updating[R] marker traits
       case init"updating[$roleType]" =>
@@ -1016,10 +1065,10 @@ case class ParseDomainStructure(
       case init"$roleName" if roles.exists(_.role == roleName.toString) =>
         // Entity extends a defined role
         entityRoles = entityRoles :+ roleName.toString
-      case _                                                             => // Regular entity or unknown trait
+      case _                                                            => // Regular entity or unknown trait
     }
 
-    (entityRoles.distinct.sorted, entityUpdatingGrants.distinct.sorted, entityDeletingGrants.distinct.sorted)
+    (entityRoles.distinct.sorted, entityUpdatingGrants.distinct.sorted, entityDeletingGrants.distinct.sorted, entityMigration)
   }
 
   /** Extract roles from type parameter (handles single role and tuple of roles) */

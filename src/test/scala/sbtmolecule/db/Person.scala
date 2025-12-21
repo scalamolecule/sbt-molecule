@@ -2,7 +2,7 @@ package sbtmolecule.db
 
 import molecule.DomainStructure
 
-object Person extends DomainStructure {
+trait Person extends DomainStructure {
 
   object male {
     trait Character {
