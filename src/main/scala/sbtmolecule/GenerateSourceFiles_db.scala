@@ -83,7 +83,7 @@ case class GenerateSourceFiles_db(metaDomain: MetaDomain) {
     IO.write(domainSchemaDir / s"${domain}_postgresql.sql", postgresql.getSQL)
     IO.write(domainSchemaDir / s"${domain}_sqlite.sql", sqlite.getSQL)
 
-    // Note: V1 migrations are now created explicitly via --init-migrations flag
+    // Note: V1 migrations are now created explicitly via 'moleculeGen initMigrations' subcommand
     // Incremental migrations are auto-generated when migration directory exists
   }
 

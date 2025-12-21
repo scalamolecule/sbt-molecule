@@ -12,8 +12,6 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def requires: JvmPlugin.type = plugins.JvmPlugin
 
   object autoImport {
-    // Each command cleans previously generated source files and jars
-    lazy val moleculeGen             = inputKey[Unit]("Generate Molecule source files.")
     lazy val moleculePackage         = taskKey[Unit]("Generate Molecule source files, compile and package jars to lib/")
     lazy val moleculeMigrationStatus = taskKey[Unit]("Show migration status for all domains.")
   }
@@ -21,15 +19,64 @@ object MoleculePlugin extends sbt.AutoPlugin {
   import autoImport.*
   import sbt.complete.DefaultParsers._
 
+  private lazy val moleculeGenerateSources = taskKey[Seq[(String, String)]]("Internal task for generating sources")
+
+  private lazy val moleculeGenCommand = Command.args("moleculeGen", "<args>") { (state, args) =>
+    val extracted = Project.extract(state)
+    import extracted._
+
+    val log = state.log
+    val config = Compile
+    val baseDir = (config / baseDirectory).get(structure.data).getOrElse(file("."))
+    val resourcesDir = (config / resourceDirectory).get(structure.data).getOrElse(baseDir / "src" / "main" / "resources")
+    val srcDir = getSrcDirValue(state, config)
+    val schemaDir = resourcesDir / "db" / "schema"
+    val migrationDir = resourcesDir / "db" / "migration"
+
+    // Check for subcommands
+    args.toList match {
+      case "initMigrations" :: domains =>
+        log.info("Generating Molecule DSL source files...")
+        executeTask(moleculeGenerateSources, state)
+        handleInitMigrationsImpl(schemaDir, migrationDir, srcDir, resourcesDir, domains, log)
+
+      case "deleteMigrations" :: domains =>
+        handleDeleteMigrationsImpl(migrationDir, domains, log)
+
+      case other :: _ =>
+        log.error(s"Unknown subcommand: $other")
+        log.error("Valid subcommands: initMigrations, deleteMigrations")
+        log.error("")
+        log.error("Usage from SBT shell:")
+        log.error("  > moleculeGen")
+        log.error("  > moleculeGen initMigrations")
+        log.error("  > moleculeGen initMigrations Foo Bar")
+        log.error("  > moleculeGen deleteMigrations Foo")
+        log.error("")
+        log.error("Usage from command line (requires quotes):")
+        log.error("  sbt \"moleculeGen\"")
+        log.error("  sbt \"moleculeGen initMigrations\"")
+        log.error("  sbt \"moleculeGen initMigrations Foo Bar\"")
+        log.error("  sbt \"moleculeGen deleteMigrations Foo\"")
+
+      case Nil =>
+        // No subcommand, run normal generation
+        executeTask(moleculeGenerateSources, state)
+    }
+
+    state
+  }
 
   override def projectSettings: Seq[Def.Setting[?]] = Seq(
     // Make sure generated sources are discoverable
     Compile / unmanagedSourceDirectories += sourceManaged.value,
 
-    moleculeGen := handleMoleculeGen(Compile).evaluated,
+    commands += moleculeGenCommand,
+
+    moleculeGenerateSources := generateSources(Compile).value,
 
     moleculePackage := Def.taskDyn {
-      val pkgs = generateSources(Compile).value.map(_._1)
+      val pkgs = moleculeGenerateSources.value.map(_._1)
       Def.sequential( // make sure generated sources are fully compiled before packaging jars
         Compile / compile,
         packJars(Compile, pkgs),
@@ -40,41 +87,27 @@ object MoleculePlugin extends sbt.AutoPlugin {
     moleculeMigrationStatus := showMigrationStatus(Compile).value
   )
 
-  private def handleMoleculeGen(config: Configuration): Def.Initialize[InputTask[Seq[(String, String)]]] = Def.inputTask {
-    val args = spaceDelimited("<arg>").parsed
-    val log = streams.value.log
-    val resourcesDir = (config / resourceDirectory).value
-    val srcDir = getSrcDir(config).value
-    val schemaDir = resourcesDir / "db" / "schema"
-    val migrationDir = resourcesDir / "db" / "migration"
-
-    // Check if we have flags
-    val hasFlags = args.nonEmpty && args.exists(_.startsWith("--"))
-
-    // If no flags or we have non-flag args, run normal generation
-    val result = if (!hasFlags || args.exists(a => !a.isEmpty && !a.startsWith("--"))) {
-      generateSources(config).value
-    } else {
-      Nil: Seq[(String, String)]
+  private def executeTask[T](taskKey: TaskKey[T], state: State): T = {
+    val extracted = Project.extract(state)
+    import extracted._
+    EvaluateTask(structure, taskKey, state, currentRef) match {
+      case Some((_, Value(result))) => result
+      case Some((_, Inc(cause))) => throw new Exception(s"Task failed: $cause")
+      case None => throw new Exception("Task evaluation failed")
     }
+  }
 
-    // Handle flags AFTER generation (or instead of it)
-    args.foreach {
-      case flag if flag.startsWith("--init-migrations") =>
-        val domains = if (flag.contains(":")) flag.split(":").drop(1).mkString(":").split(",").toList else Nil
-        handleInitMigrationsImpl(schemaDir, migrationDir, srcDir, resourcesDir, domains, log)
-
-      case flag if flag.startsWith("--delete-migrations") =>
-        val domains = if (flag.contains(":")) flag.split(":").drop(1).mkString(":").split(",").toList else Nil
-        handleDeleteMigrationsImpl(migrationDir, domains, log)
-
-      case other if !other.isEmpty =>
-        throw new Exception(s"Unknown flag: $other. Valid flags: --init-migrations[:Domain1,Domain2], --delete-migrations[:Domain1,Domain2]")
-
-      case _ => // empty arg
-    }
-
-    result
+  private def getSrcDirValue(state: State, config: Configuration): File = {
+    val extracted = Project.extract(state)
+    import extracted._
+    val baseDir = (config / baseDirectory).get(structure.data).getOrElse(file("."))
+    val parent = baseDir.getParentFile
+    if ((parent / "shared").exists())
+      parent / "shared/src/main/scala"
+    else if ((parent / ".js").exists())
+      parent / "src/main/scala"
+    else
+      (config / scalaSource).get(structure.data).getOrElse(baseDir / "src" / "main" / "scala")
   }
 
   private def generateSources(config: Configuration): Def.Initialize[Task[Seq[(String, String)]]] = Def.task {

@@ -3,7 +3,7 @@ name := "test-project4-cross-full"
 
 inThisBuild(
   List(
-    version := "1.24.0",
+    version := "1.24.1",
     organization := "org.scalamolecule",
     scalaVersion := "3.7.4",
     libraryDependencies ++= Seq(

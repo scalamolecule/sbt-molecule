@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test script for migration workflow
-# Tests --init-migrations and --delete-migrations flags
+# Tests initMigrations and deleteMigrations subcommands
 #
 # Note: This script is slow because each sbt invocation has startup time.
 # For faster testing during development, run commands manually.
@@ -115,7 +115,7 @@ echo ""
 
 echo "Step 3: Initialize migrations for Foo"
 echo "----------------------------------------------"
-run_sbt "moleculeGen --init-migrations:Foo"
+run_sbt "moleculeGen initMigrations Foo"
 check_file_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Foo/postgresql/V1__initial_schema.sql"
 check_file_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Foo/h2/V1__initial_schema.sql"
 check_file_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Foo/Foo_previous.scala"
@@ -137,7 +137,7 @@ echo ""
 
 echo "Step 5: Initialize migrations for all domains"
 echo "----------------------------------------------"
-run_sbt "moleculeGen --init-migrations"
+run_sbt "moleculeGen initMigrations"
 check_file_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Bar/postgresql/V1__initial_schema.sql"
 check_file_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Bar/Bar_previous.scala"
 echo -e "${GREEN}✓${NC} All domains now have migrations"
@@ -178,7 +178,7 @@ rm -f "$PROJECT_DIR/src/main/scala/app/domain/Foo_migration.scala"
 echo "Regenerating with original schema..."
 run_sbt "moleculeGen"
 echo "Restoring Foo_previous.scala..."
-run_sbt "moleculeGen --init-migrations:Foo"
+run_sbt "moleculeGen initMigrations Foo"
 echo -e "${GREEN}✓${NC} Removed test attribute and cleaned up migration files"
 echo ""
 echo "Migration status after Step 7:"
@@ -188,7 +188,7 @@ echo ""
 
 echo "Step 8: Delete migrations for Bar"
 echo "----------------------------------------------"
-run_sbt "moleculeGen --delete-migrations:Bar"
+run_sbt "moleculeGen deleteMigrations Bar"
 check_file_not_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Bar/postgresql/V1__initial_schema.sql"
 check_file_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Foo/postgresql/V1__initial_schema.sql"
 echo -e "${GREEN}✓${NC} Bar migrations deleted, Foo remains"
@@ -200,7 +200,7 @@ echo ""
 
 echo "Step 9: Delete all migrations"
 echo "----------------------------------------------"
-run_sbt "moleculeGen --delete-migrations"
+run_sbt "moleculeGen deleteMigrations"
 check_file_not_exists "$PROJECT_DIR/src/main/resources/db/migration/app/domain/Foo/postgresql/V1__initial_schema.sql"
 if [ -d "$PROJECT_DIR/src/main/resources/db/migration" ]; then
     REMAINING=$(find "$PROJECT_DIR/src/main/resources/db/migration" -name "V*.sql" | wc -l | tr -d ' ')

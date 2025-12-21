@@ -47,13 +47,22 @@ sbt moleculeGen
 
 Initialize migrations for specific domain(s):
 ```bash
-sbt "moleculeGen --init-migrations:Foo"
-sbt "moleculeGen --init-migrations:Foo,Bar"
+# From command line (requires quotes)
+sbt "moleculeGen initMigrations Foo"
+sbt "moleculeGen initMigrations Foo Bar"
+
+# From SBT shell (no quotes needed)
+> moleculeGen initMigrations Foo
+> moleculeGen initMigrations Foo Bar
 ```
 
 Initialize for all domains:
 ```bash
-sbt "moleculeGen --init-migrations"
+# From command line
+sbt "moleculeGen initMigrations"
+
+# From SBT shell
+> moleculeGen initMigrations
 ```
 
 This creates:
@@ -90,13 +99,22 @@ Active migrations:
 
 Remove migrations for specific domain(s):
 ```bash
-sbt "moleculeGen --delete-migrations:Foo"
-sbt "moleculeGen --delete-migrations:Foo,Bar"
+# From command line (requires quotes)
+sbt "moleculeGen deleteMigrations Foo"
+sbt "moleculeGen deleteMigrations Foo Bar"
+
+# From SBT shell (no quotes needed)
+> moleculeGen deleteMigrations Foo
+> moleculeGen deleteMigrations Foo Bar
 ```
 
 Remove all migrations:
 ```bash
-sbt "moleculeGen --delete-migrations"
+# From command line
+sbt "moleculeGen deleteMigrations"
+
+# From SBT shell
+> moleculeGen deleteMigrations
 ```
 
 ## Migration Markers
@@ -334,12 +352,12 @@ A comprehensive test script is provided:
 
 This script tests all migration flag combinations:
 1. **Development mode**: `moleculeGen` (no migrations)
-2. **Initialize single domain**: `moleculeGen --init-migrations:Foo`
+2. **Initialize single domain**: `moleculeGen initMigrations Foo`
 3. **Check migration status**: `moleculeMigrationStatus`
-4. **Initialize all domains**: `moleculeGen --init-migrations`
+4. **Initialize all domains**: `moleculeGen initMigrations`
 5. **Auto-migration**: Schema change triggers automatic migration generation
-6. **Delete single domain**: `moleculeGen --delete-migrations:Bar`
-7. **Delete all domains**: `moleculeGen --delete-migrations`
+6. **Delete single domain**: `moleculeGen deleteMigrations Bar`
+7. **Delete all domains**: `moleculeGen deleteMigrations`
 8. **Verify status after deletion**: `moleculeMigrationStatus` shows no active migrations
 9. **Clean regeneration**: `moleculeGen` works correctly after all migrations deleted
 
@@ -357,9 +375,9 @@ The script covers all flag variations and ensures proper state transitions betwe
 
 ### Flag Parsing
 
-Arguments are parsed in `handleMoleculeGen`:
-- `--init-migrations[:Domain1,Domain2]`
-- `--delete-migrations[:Domain1,Domain2]`
+Subcommands are parsed in `moleculeGenCommand`:
+- `initMigrations [Domain1 Domain2 ...]`
+- `deleteMigrations [Domain1 Domain2 ...]`
 
 Optional domain list filters which domains are affected.
 
@@ -398,7 +416,7 @@ All operations affect all supported database dialects:
 sbt moleculeGen  # Fast iteration, no migrations
 
 # Ready for production
-sbt "moleculeGen --init-migrations:User"
+sbt "moleculeGen initMigrations User"
 
 # Make a change
 # Add field: val email = oneString
@@ -411,11 +429,11 @@ cat src/main/resources/db/migration/app/domain/User/postgresql/V2__molecule_1_ch
 # (Use Flyway or similar tool)
 
 # Later: major refactoring of experimental domain
-sbt "moleculeGen --delete-migrations:Experimental"
+sbt "moleculeGen deleteMigrations Experimental"
 # Make breaking changes freely
 sbt moleculeGen
 # When stable again:
-sbt "moleculeGen --init-migrations:Experimental"
+sbt "moleculeGen initMigrations Experimental"
 ```
 
 ## Philosophy
