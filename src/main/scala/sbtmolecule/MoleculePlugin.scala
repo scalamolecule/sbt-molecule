@@ -12,6 +12,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def requires: JvmPlugin.type = plugins.JvmPlugin
 
   object autoImport {
+    lazy val moleculeGen             = inputKey[Unit]("Generate Molecule source files.")
     lazy val moleculePackage         = taskKey[Unit]("Generate Molecule source files, compile and package jars to lib/")
     lazy val moleculeMigrationStatus = taskKey[Unit]("Show migration status for all domains.")
   }
@@ -21,15 +22,31 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
   private lazy val moleculeGenerateSources = taskKey[Seq[(String, String)]]("Internal task for generating sources")
 
-  private lazy val moleculeGenCommand = Command.args("moleculeGen", "<args>") { (state, args) =>
-    val extracted = Project.extract(state)
-    import extracted._
+  override def projectSettings: Seq[Def.Setting[?]] = Seq(
+    // Make sure generated sources are discoverable
+    Compile / unmanagedSourceDirectories += sourceManaged.value,
 
-    val log = state.log
-    val config = Compile
-    val baseDir = (config / baseDirectory).get(structure.data).getOrElse(file("."))
-    val resourcesDir = (config / resourceDirectory).get(structure.data).getOrElse(baseDir / "src" / "main" / "resources")
-    val srcDir = getSrcDirValue(state, config)
+    moleculeGen := handleMoleculeGen(Compile).evaluated,
+
+    moleculeGenerateSources := generateSources(Compile).value,
+
+    moleculePackage := Def.taskDyn {
+      val pkgs = moleculeGenerateSources.value.map(_._1)
+      Def.sequential( // make sure generated sources are fully compiled before packaging jars
+        Compile / compile,
+        packJars(Compile, pkgs),
+        cleanGeneratedSources(Compile),
+      )
+    }.value,
+
+    moleculeMigrationStatus := showMigrationStatus(Compile).value
+  )
+
+  private def handleMoleculeGen(config: Configuration): Def.Initialize[InputTask[Unit]] = Def.inputTask {
+    val args = spaceDelimited("<arg>").parsed
+    val log = streams.value.log
+    val resourcesDir = (config / resourceDirectory).value
+    val srcDir = getSrcDir(config).value
     val schemaDir = resourcesDir / "db" / "schema"
     val migrationDir = resourcesDir / "db" / "migration"
 
@@ -37,7 +54,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     args.toList match {
       case "initMigrations" :: domains =>
         log.info("Generating Molecule DSL source files...")
-        executeTask(moleculeGenerateSources, state)
+        moleculeGenerateSources.value
         handleInitMigrationsImpl(schemaDir, migrationDir, srcDir, resourcesDir, domains, log)
 
       case "deleteMigrations" :: domains =>
@@ -61,53 +78,8 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
       case Nil =>
         // No subcommand, run normal generation
-        executeTask(moleculeGenerateSources, state)
+        moleculeGenerateSources.value
     }
-
-    state
-  }
-
-  override def projectSettings: Seq[Def.Setting[?]] = Seq(
-    // Make sure generated sources are discoverable
-    Compile / unmanagedSourceDirectories += sourceManaged.value,
-
-    commands += moleculeGenCommand,
-
-    moleculeGenerateSources := generateSources(Compile).value,
-
-    moleculePackage := Def.taskDyn {
-      val pkgs = moleculeGenerateSources.value.map(_._1)
-      Def.sequential( // make sure generated sources are fully compiled before packaging jars
-        Compile / compile,
-        packJars(Compile, pkgs),
-        cleanGeneratedSources(Compile),
-      )
-    }.value,
-
-    moleculeMigrationStatus := showMigrationStatus(Compile).value
-  )
-
-  private def executeTask[T](taskKey: TaskKey[T], state: State): T = {
-    val extracted = Project.extract(state)
-    import extracted._
-    EvaluateTask(structure, taskKey, state, currentRef) match {
-      case Some((_, Value(result))) => result
-      case Some((_, Inc(cause))) => throw new Exception(s"Task failed: $cause")
-      case None => throw new Exception("Task evaluation failed")
-    }
-  }
-
-  private def getSrcDirValue(state: State, config: Configuration): File = {
-    val extracted = Project.extract(state)
-    import extracted._
-    val baseDir = (config / baseDirectory).get(structure.data).getOrElse(file("."))
-    val parent = baseDir.getParentFile
-    if ((parent / "shared").exists())
-      parent / "shared/src/main/scala"
-    else if ((parent / ".js").exists())
-      parent / "src/main/scala"
-    else
-      (config / scalaSource).get(structure.data).getOrElse(baseDir / "src" / "main" / "scala")
   }
 
   private def generateSources(config: Configuration): Def.Initialize[Task[Seq[(String, String)]]] = Def.task {
