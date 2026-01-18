@@ -51,6 +51,7 @@ case class Entity_(
        |import molecule.core.dataModel.*
        |import molecule.db.common.api.*
        |import molecule.db.common.api.expression.*
+       |import molecule.db.common.crud.*
        |import molecule.db.common.ops.ModelTransformations_.*
        |import scala.Tuple.:*
        |

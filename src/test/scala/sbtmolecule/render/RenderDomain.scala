@@ -18,8 +18,8 @@ object RenderDomain extends TestSuite {
   //  lazy val unique        = ParseAndGenerate(basePath + "Uniques.scala").generate.get
   lazy val validation = ParseAndGenerate(basePath + "Validation.scala").generator
   lazy val segments   = ParseAndGenerate(basePath + "Segments.scala").generator
-  lazy val person   = ParseAndGenerate(basePath + "Person.scala").generator
-  lazy val social   = ParseAndGenerate(basePath + "SocialApp.scala").generator
+  lazy val person     = ParseAndGenerate(basePath + "Person.scala").generator
+  lazy val social     = ParseAndGenerate(basePath + "SocialApp.scala").generator
 
 
   override def tests: Tests = Tests {
@@ -29,21 +29,20 @@ object RenderDomain extends TestSuite {
       //      validation.printMetaDb
       //      refs.printMetaDb
       //      refs.printEntityBuilder(refs.metaDomain.segments.head.entities(6))
-//      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
+      //      types.printEntityBuilder(types.metaDomain.segments.head.entities(0))
 
-//      segments.printEntityBuilder(segments.metaDomain.segments.head.entities(1)) // gen_Person
+      //      segments.printEntityBuilder(segments.metaDomain.segments.head.entities(1)) // gen_Person
 
-//      segments.printMetaDb
+      //      segments.printMetaDb
 
-      println(segments)
-//      segments.printEntityBuilder(segments.metaDomain.segments(1).entities.head) // lit_Book
+      //      segments.printEntityBuilder(segments.metaDomain.segments(1).entities.head) // lit_Book
 
-//      println(person)
-//      person.printEntityBuilder(person.metaDomain.segments(2).entities.head)
+      //      println(person)
+      person.printEntityBuilder(person.metaDomain.segments(2).entities.head)
 
-//      println(ParseAndGenerate(basePath + "SocialApp.scala"))
-//      social.printMetaDb
-//      social.printEntityBuilder(social.metaDomain.segments.head.entities.head)
+      //            println(ParseAndGenerate(basePath + "SocialApp.scala"))
+      //      social.printMetaDb
+      //      social.printEntityBuilder(social.metaDomain.segments.head.entities.head)
 
       //      println(DbEntityOps(refs, metaEntity, entityIndex, attrIndex).get)
 
@@ -85,7 +84,7 @@ object RenderDomain extends TestSuite {
       //      SchemaBase(types).get ==> "check"
 
       //            Schema_MariaDB(types).get ==> "check"
-//            Schema_MariaDB(starwars).get ==> "check"
+      //            Schema_MariaDB(starwars).get ==> "check"
       //      Schema_SQlite(types).get ==> "check"
       //      Schema_PostgreSQL(types).get ==> "check"
       //      Schema_H2(types).get ==> "check"

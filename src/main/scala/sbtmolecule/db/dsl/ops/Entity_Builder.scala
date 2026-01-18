@@ -211,6 +211,19 @@ case class Entity_Builder(
        |  }$nestedInitJoin""".stripMargin
   } else ""
 
+  private val subMethods = if (hasRef) {
+    val (t1, t2) = arity match {
+      case 0 => ("SubT", "SubTpl")
+      case 1 => ("(T, SubT)", "(T, SubTpl)")
+      case _ => ("Tpl :* SubT", "Tpl :* SubTpl")
+    }
+    s"""
+       |  def join  [SubT           ](subMolecule   : Molecule_1 [SubT  ]) = new $entB[$t1  ](joinSubMolecule   (this, subMolecule   ))
+       |  def join  [SubTpl <: Tuple](subMolecule   : Molecule_n [SubTpl]) = new $entB[$t2](joinSubMolecule   (this, subMolecule   ))
+       |  def join  [SubTpl         ](subQuery      : Query      [SubTpl]) = new $entB[$t2](joinSubQuery      (this, subQuery      ))
+       |  def join  [SubTpl         ](subQueryOffset: QueryOffset[SubTpl]) = new $entB[$t2](joinSubQueryOffset(this, subQueryOffset))""".stripMargin
+  } else ""
+
   private val refResult = ref.result()
   private val refDefs   = if (refResult.isEmpty) "" else refResult.mkString("\n\n  ", "\n  ", "")
 
@@ -242,7 +255,7 @@ case class Entity_Builder(
   private val (refClass, refClassBody) = if (refResult.isEmpty && backRefs.isEmpty) {
     (s"Molecule_$n$t3 with ${entity}_attrs", "")
   } else {
-    val refHandles = List(optRefInit, nestedInit, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
+    val refHandles = List(optRefInit, nestedInit, subMethods, refDefs, backRefDefs).map(_.trim).filterNot(_.isEmpty).mkString("\n\n  ")
     (
       s"$entity_refs_cur$t1(dataModel) with ${entity}_attrs",
       s"""

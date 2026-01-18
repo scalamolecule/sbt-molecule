@@ -128,6 +128,10 @@ case class ParseDomainStructure(
       body.flatMap {
         // Object with template (may have extends Remove or Rename)
         case Defn.Object(_, segmentName, Template.After_4_4_0(_, inits, _, stats, _)) =>
+          val segment                                    = segmentName.toString match {
+            case r"([a-z][a-z0-9]*)$segment" => segment
+            case other                       => err(s"Segment name should match [a-z][a-z0-9]* - found: $other")
+          }
           var segmentMigration: Option[SegmentMigration] = None
           inits.foreach {
             case init"Remove"                                                                                 =>
@@ -138,7 +142,7 @@ case class ParseDomainStructure(
               segmentMigration = Some(SegmentMigration.Rename("seg"))
             case _                                                                                            => // Other extends clauses ignored
           }
-          Some(MetaSegment(segmentName.toString, getEntities(segmentName.toString + "_", stats), segmentMigration))
+          Some(MetaSegment(segment, getEntities(segment + "_", stats), segmentMigration))
 
         case Defn.Enum.After_4_6_0(_, name, _, _, templ) => parseEnum[MetaSegment](name, templ)
         case q"trait $_ extends Role with ..$_"          => None // Skip role definitions in entity parsing

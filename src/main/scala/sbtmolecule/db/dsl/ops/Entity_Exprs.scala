@@ -16,10 +16,15 @@ case class Entity_Exprs(
   val sorts = List(
     s"""// Sort ========================================================================================================
        |
+       |class ${entity}_0_Sort                 (dm: DataModel) extends ${entity}_0           (dm) with ${entity}_Sort_0            with OneValue
        |class ${entity}_1_Sort   [T           ](dm: DataModel) extends ${entity}_1[T        ](dm) with ${entity}_Sort_1[T        ] with OneValue
        |class ${entity}_1_SortOpt[T           ](dm: DataModel) extends ${entity}_1[Option[T]](dm) with ${entity}_Sort_1[Option[T]] with OneValue
        |class ${entity}_n_Sort   [Tpl <: Tuple](dm: DataModel) extends ${entity}_n[Tpl      ](dm) with ${entity}_Sort_n[Tpl      ] with OneValue
-       |       |
+       |
+       |trait ${entity}_Sort_0 extends Sort[${entity}_0] { self: Molecule =>
+       |  override def sortEntity: DataModel => ${entity}_0 = (dm: DataModel) => ${entity}_0(dm)
+       |}
+       |
        |trait ${entity}_Sort_1[T] extends Sort[${entity}_1[T]] { self: Molecule =>
        |  override def sortEntity: DataModel => ${entity}_1[T] = (dm: DataModel) => ${entity}_1[T](dm)
        |}
@@ -86,15 +91,15 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprOneTac[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with OneValue)
+         |    with ExprOneTac[T, $ent_0 & OneValue]((dm: DataModel) => new $ent_0(dm) with OneValue)
          |
          |class ${ent_1}_ExprOneTac[S, T](override val dataModel: DataModel)
          |  extends $ent_1[S](dataModel)
-         |    with ExprOneTac[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  OneValue)
+         |    with ExprOneTac[T, $ent_1[S] & OneValue]((dm: DataModel) => new $ent_1[S](dm) with OneValue)
          |
          |class ${ent_n}_ExprOneTac[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  OneValue)
+         |    with ExprOneTac[T, $ent_n[Tpl] & OneValue]((dm: DataModel) => new $ent_n[Tpl](dm) with OneValue)
          |""".stripMargin
     )
 
@@ -137,15 +142,15 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprOneTac_String[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_String[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with OneValue)
+         |    with ExprOneTac_String[T, $ent_0 & OneValue]((dm: DataModel) => new $ent_0(dm) with OneValue)
          |
          |class ${ent_1}_ExprOneTac_String[S, T](override val dataModel: DataModel)
          |  extends $ent_1[S](dataModel)
-         |    with ExprOneTac_String[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  OneValue)
+         |    with ExprOneTac_String[T, $ent_1[S] & OneValue]((dm: DataModel) => new $ent_1[S](dm) with OneValue)
          |
          |class ${ent_n}_ExprOneTac_String[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_String[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  OneValue)
+         |    with ExprOneTac_String[T, $ent_n[Tpl] & OneValue]((dm: DataModel) => new $ent_n[Tpl](dm) with OneValue)
          |""".stripMargin
     ) else Nil
 
@@ -174,15 +179,15 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprOneTac_Enum[EnumType](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_Enum[EnumType, $ent_0]((dm: DataModel) => new $ent_0(dm) with OneValue)
+         |    with ExprOneTac_Enum[EnumType, $ent_0 & OneValue]((dm: DataModel) => new $ent_0(dm) with OneValue)
          |
          |class ${ent_1}_ExprOneTac_Enum[S, EnumType](override val dataModel: DataModel)
          |  extends $ent_1[S](dataModel)
-         |    with ExprOneTac_Enum[EnumType, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  OneValue)
+         |    with ExprOneTac_Enum[EnumType, $ent_1[S] & OneValue]((dm: DataModel) => new $ent_1[S](dm) with OneValue)
          |
          |class ${ent_n}_ExprOneTac_Enum[EnumType, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_Enum[EnumType, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  OneValue)
+         |    with ExprOneTac_Enum[EnumType, $ent_n[Tpl] & OneValue]((dm: DataModel) => new $ent_n[Tpl](dm) with OneValue)
          |""".stripMargin
     ) else Nil
 
@@ -226,15 +231,15 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprOneTac_Integer[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_Integer[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with OneValue)
+         |    with ExprOneTac_Integer[T, $ent_0 & OneValue]((dm: DataModel) => new $ent_0(dm) with OneValue)
          |
          |class ${ent_1}_ExprOneTac_Integer[S, T](override val dataModel: DataModel)
          |  extends $ent_1[S](dataModel)
-         |    with ExprOneTac_Integer[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  OneValue)
+         |    with ExprOneTac_Integer[T, $ent_1[S] & OneValue]((dm: DataModel) => new $ent_1[S](dm) with OneValue)
          |
          |class ${ent_n}_ExprOneTac_Integer[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_Integer[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  OneValue)
+         |    with ExprOneTac_Integer[T, $ent_n[Tpl] & OneValue]((dm: DataModel) => new $ent_n[Tpl](dm) with OneValue)
          |""".stripMargin
     ) else Nil
 
@@ -278,15 +283,15 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprOneTac_Decimal[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_Decimal[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with OneValue)
+         |    with ExprOneTac_Decimal[T, $ent_0 & OneValue]((dm: DataModel) => new $ent_0(dm) with OneValue)
          |
          |class ${ent_1}_ExprOneTac_Decimal[S, T](override val dataModel: DataModel)
          |  extends $ent_1[S](dataModel)
-         |    with ExprOneTac_Decimal[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  OneValue)
+         |    with ExprOneTac_Decimal[T, $ent_1[S] & OneValue]((dm: DataModel) => new $ent_1[S](dm) with OneValue)
          |
          |class ${ent_n}_ExprOneTac_Decimal[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_Decimal[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  OneValue)
+         |    with ExprOneTac_Decimal[T, $ent_n[Tpl] & OneValue]((dm: DataModel) => new $ent_n[Tpl](dm) with OneValue)
          |""".stripMargin
     ) else Nil
 
@@ -329,15 +334,15 @@ case class Entity_Exprs(
          |
          |class ${ent_0}_ExprOneTac_Boolean[T](override val dataModel: DataModel)
          |  extends $ent_0(dataModel)
-         |    with ExprOneTac_Boolean[T, $ent_0]((dm: DataModel) => new $ent_0(dm) with OneValue)
+         |    with ExprOneTac_Boolean[T, $ent_0 & OneValue]((dm: DataModel) => new $ent_0(dm) with OneValue)
          |
          |class ${ent_1}_ExprOneTac_Boolean[S, T](override val dataModel: DataModel)
          |  extends $ent_1[S](dataModel)
-         |    with ExprOneTac_Boolean[T, $ent_1[S]]((dm: DataModel) => new $ent_1[S](dm) with  OneValue)
+         |    with ExprOneTac_Boolean[T, $ent_1[S] & OneValue]((dm: DataModel) => new $ent_1[S](dm) with OneValue)
          |
          |class ${ent_n}_ExprOneTac_Boolean[T, Tpl <: Tuple](override val dataModel: DataModel)
          |  extends $ent_n[Tpl](dataModel)
-         |    with ExprOneTac_Boolean[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm) with  OneValue)
+         |    with ExprOneTac_Boolean[T, $ent_n[Tpl] & OneValue]((dm: DataModel) => new $ent_n[Tpl](dm) with OneValue)
          |""".stripMargin
     ) else Nil
 
