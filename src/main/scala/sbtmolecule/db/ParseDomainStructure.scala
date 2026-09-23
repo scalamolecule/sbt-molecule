@@ -6,6 +6,7 @@ import molecule.base.metaModel.*
 import molecule.base.util.BaseHelpers
 import molecule.core.dataModel.*
 import org.atteo.evo.inflector.English
+import sbtmolecule.TreeWalk
 
 
 case class ParseDomainStructure(
@@ -1013,16 +1014,11 @@ case class ParseDomainStructure(
   }
 
   // Recursively traverse test code trees to extract attribute names
-  private lazy val traverser = (entity: String) => new Traverser {
-    override def apply(tree: Tree): Unit = tree match {
-      case Term.Select(Term.Name(attr), Term.Name("value")) => valueAttrs += attr
-      case node                                             => super.apply(node)
-    }
-  }
-
   private def extractValueAttrs(entity: String, a: MetaAttribute, test: Stat): List[String] = {
     valueAttrs.clear()
-    traverser(entity)(test)
+    TreeWalk.foreach(test) {
+      case Term.Select(Term.Name(attr), Term.Name("value")) => valueAttrs += attr
+    }
     valueAttrs.result().distinct.sorted
   }
 

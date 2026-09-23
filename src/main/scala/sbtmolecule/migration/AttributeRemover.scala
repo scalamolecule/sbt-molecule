@@ -3,6 +3,7 @@ package sbtmolecule.migration
 import java.io.{BufferedReader, File, InputStreamReader}
 import molecule.base.metaModel.*
 import sbt.IO
+import sbtmolecule.TreeWalk
 
 /**
  * Automatically removes migration markers from domain structure files after successful migrations.
@@ -575,7 +576,7 @@ object AttributeRemover {
             // Find all Term.Name nodes that match our rename map
             val replacements = scala.collection.mutable.ListBuffer[(Int, Int, String, String)]()
 
-            tree.traverse {
+            TreeWalk.foreach(tree) {
               case name @ Term.Name(oldName) if renameMap.contains(oldName) =>
                 // Found an identifier that needs renaming
                 val newName = renameMap(oldName)
