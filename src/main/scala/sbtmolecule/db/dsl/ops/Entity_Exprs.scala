@@ -154,7 +154,7 @@ case class Entity_Exprs(
          |""".stripMargin
     ) else Nil
 
-    val enum = if (oneValueAttrs.exists(_.enumTpe.isDefined)) List(
+    val enumSegment = if (oneValueAttrs.exists(_.enumTpe.isDefined)) List(
       s"""class ${ent_1}_ExprOneMan_Enum[EnumType](override val dataModel: DataModel)
          |  extends $ent_1[String](dataModel)
          |    with ExprOneMan_1_Enum[EnumType, ${ent_1}_Sort[String]]((dm: DataModel) => new ${ent_1}_Sort[String](dm))
@@ -346,7 +346,7 @@ case class Entity_Exprs(
          |""".stripMargin
     ) else Nil
 
-    List(List(base, string, enum, integer, decimal, boolean).flatten.mkString("\n\n"))
+    List(List(base, string, enumSegment, integer, decimal, boolean).flatten.mkString("\n\n"))
   } else Nil
 
 
@@ -386,7 +386,7 @@ case class Entity_Exprs(
          |""".stripMargin
     )
 
-    val enum = if (attributes.filter(_.value == SetValue).exists(_.enumTpe.isDefined)) List(
+    val enumSegment = if (attributes.filter(_.value == SetValue).exists(_.enumTpe.isDefined)) List(
       s"""class ${ent_1}_ExprSetMan_Enum[T](override val dataModel: DataModel)
          |  extends $ent_1[Set[T]](dataModel)
          |    with ExprSetMan_Enum[T, $ent_1[Set[T]]]((dm: DataModel) => new $ent_1[Set[T]](dm))
@@ -418,7 +418,7 @@ case class Entity_Exprs(
          |    with ExprSetTac_Enum[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm))
          |""".stripMargin
     ) else Nil
-    List(List(base, enum).flatten.mkString("\n\n"))
+    List(List(base, enumSegment).flatten.mkString("\n\n"))
   } else Nil
 
 
@@ -458,7 +458,7 @@ case class Entity_Exprs(
          |""".stripMargin
     )
 
-    val enum = if (attributes.filter(_.value == SeqValue).exists(_.enumTpe.isDefined)) List(
+    val enumSegment = if (attributes.filter(_.value == SeqValue).exists(_.enumTpe.isDefined)) List(
       s"""class ${ent_1}_ExprSeqMan_Enum[T](override val dataModel: DataModel)
          |  extends $ent_1[Seq[T]](dataModel)
          |    with ExprSeqMan_Enum[T, $ent_1[Seq[T]]]((dm: DataModel) => new $ent_1[Seq[T]](dm))
@@ -490,7 +490,7 @@ case class Entity_Exprs(
          |    with ExprSeqTac_Enum[T, $ent_n[Tpl]]((dm: DataModel) => new $ent_n[Tpl](dm))
          |""".stripMargin
     ) else Nil
-    List(List(base, enum).flatten.mkString("\n\n"))
+    List(List(base, enumSegment).flatten.mkString("\n\n"))
 
   } else Nil
 

@@ -53,12 +53,12 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     doc.typeDefinitions.collect {
       case ObjectTypeDefinition(descr, name, _, _, fields)            =>
         name match {
-          case `queryType` =>
+          case n if n == queryType =>
             val code = GraphqlQuery(pkg, domain, typeNames, enumNames, descr, fields).get
             IO.write(domainDir / "query.scala", code)
 
-          case `mutationType`                => ""
-          case `subscriptionType`            => ""
+          case n if n == mutationType     => ""
+          case n if n == subscriptionType => ""
           case _ if name.endsWith("Input")   => ""
           case _ if name.endsWith("Payload") => ""
           case _                             => ""
@@ -80,13 +80,13 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     doc.typeDefinitions.collect {
       case ObjectTypeDefinition(descr, `name`, _, _, fields) =>
         name match {
-          case `queryType`                   =>
+          case n if n == queryType        =>
 
             GraphqlQuery(pkg, domain, typeNames, enumNames, descr, fields).get
 
 
-          case `mutationType`                => ""
-          case `subscriptionType`            => ""
+          case n if n == mutationType     => ""
+          case n if n == subscriptionType => ""
           case _ if name.endsWith("Input")   => ""
           case _ if name.endsWith("Payload") => ""
           case _                             => name
@@ -145,7 +145,7 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     mkMetaModel(doc)
     val input  = if (inputs.nonEmpty) Some(MetaSegment("input", inputs)) else None
     val output = if (outputs.nonEmpty) Some(MetaSegment("output", withBackRefs(outputs))) else None
-    val enum   = if (enums.nonEmpty) Some(MetaSegment("enum", enums)) else None
+    val enumSegment = if (enums.nonEmpty) Some(MetaSegment("enum", enums)) else None
     val scalar = if (scalars.nonEmpty) Some(MetaSegment("scalar", scalars)) else None
 
     val query = Some(MetaSegment(s"query $queryType", queryMethods))
@@ -161,7 +161,7 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     val pagination = if (paginations.nonEmpty) Some(MetaSegment("pagination", paginations)) else None
     val payload    = if (payloads.nonEmpty) Some(MetaSegment("payload", payloads)) else None
 
-    val segments = List(input, output, enum, scalar, query, mutation, subscription, pagination, payload).flatten
+    val segments = List(input, output, enumSegment, scalar, query, mutation, subscription, pagination, payload).flatten
     val md       = MetaDomain(pkg, domain, segments)
     println(md)
     md
@@ -178,17 +178,17 @@ case class GenerateSourceFiles_graphql(doc: Document, pkg: String, domain: Strin
     doc.typeDefinitions.collect {
       case ObjectTypeDefinition(description, name, _, directives, fields) =>
         name match {
-          case `queryType` =>
+          case n if n == queryType =>
             //            val code = GraphqlQuery(doc, pkg, domain, maxArity).get
             //            IO.write(domainDir / "query.scala", code)
 
 
             queryMethods = mkRootMethods(description, directives, fields)
 
-          case `mutationType` =>
+          case n if n == mutationType =>
             mutationMethods = mkRootMethods(description, directives, fields)
 
-          case `subscriptionType` =>
+          case n if n == subscriptionType =>
             subscriptionMethods = mkRootMethods(description, directives, fields)
 
           case _ if name.endsWith("Input") =>
