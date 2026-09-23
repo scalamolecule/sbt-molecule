@@ -130,8 +130,8 @@ sbt moleculeGen
 echo ""
 echo "Now running tests to create H2 database and apply V1 migration..."
 echo ""
-echo "> sbt test"
-sbt test
+echo "> sbt "Test/testOnly app.Test""
+sbt "Test/testOnly app.Test"
 
 echo ""
 echo "Results:"
@@ -176,8 +176,13 @@ echo "  1. Automatically clean up the .rename marker from domain structure (no p
 echo "  2. Prompt to rename attribute usages across the codebase"
 echo "We'll automatically accept the rename prompt using MOLECULE_AUTO_RENAME_IN_CODE=true."
 echo ""
-echo "> MOLECULE_AUTO_RENAME_IN_CODE=true sbt moleculeGen"
-MOLECULE_AUTO_RENAME_IN_CODE=true sbt moleculeGen
+# sbt 2 reuses one server per project, and that server keeps the environment of
+# whoever started it: kill any stale server, run the env-prefixed command in its
+# own JVM, then kill that one so later steps don't inherit the auto-accept flag.
+sbt --batch shutdown > /dev/null 2>&1 || true
+echo "> MOLECULE_AUTO_RENAME_IN_CODE=true sbt --batch moleculeGen"
+MOLECULE_AUTO_RENAME_IN_CODE=true sbt --batch moleculeGen
+sbt --batch shutdown > /dev/null 2>&1 || true
 
 echo ""
 echo -e "${GREEN}✓ Created Flyway migration file:${NC}"
@@ -274,8 +279,8 @@ object Test extends TestSuite {
 }
 EOF
 
-echo "> sbt test"
-sbt test
+echo "> sbt "Test/testOnly app.Test""
+sbt "Test/testOnly app.Test"
 
 echo ""
 echo "Results:"

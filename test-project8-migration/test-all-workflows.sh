@@ -38,6 +38,8 @@ EOF
     rm -rf target/
     rm -rf src/main/resources/db/
 
+    sbt --batch shutdown > /dev/null 2>&1 || true
+
     echo -e "${GREEN}✓ Project restored${NC}"
     echo ""
     echo "========================================="
@@ -69,19 +71,45 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 
-# Helper to run sbt command
+# Helpers run each sbt invocation in a fresh JVM ("--batch"): sbt 2 otherwise
+# reuses one server across steps, keeping stale MOLECULE_* environments and
+# locking target/ dirs between workflows. The initial moleculeGen run is followed
+# by 'moleculeGen initMigrations' to capture the V1 baseline the workflows expect.
 run_sbt() {
     echo ""
-    sbt moleculeGen
+    sbt --batch "moleculeGen ; shutdown"
     return $?
 }
 
-# Helper to run sbt test command
-run_sbt_test() {
+# Initialize migration baselines (V1__initial_schema.sql + previous structure)
+run_sbt_init() {
     echo ""
-    sbt test
+    sbt --batch "moleculeGen initMigrations ; shutdown"
     return $?
 }
+
+# Rename-resolution step: MUST run in a JVM that sees the env flag. A previous
+# failing step (expected ambiguity errors) aborts its "cmd ; shutdown" sequence
+# and leaves a server without the flag, so kill any stale server first.
+run_sbt_auto_rename() {
+    sbt --batch shutdown > /dev/null 2>&1 || true
+    echo ""
+    MOLECULE_AUTO_RENAME_IN_CODE=true sbt --batch "moleculeGen ; shutdown"
+    return $?
+}
+
+# Helper to run sbt test command.
+# "Test/testOnly app.Test" instead of "test": sbt 2's `test` is smart testQuick
+# selection, which silently skips re-applied identical test sources (each
+# workflow reuses templates), leaving the H2 database unseeded. testOnly with an
+# explicit class always executes (verified across target wipes and repeats).
+run_sbt_test() {
+    echo ""
+    sbt --batch "Test/testOnly app.Test ; shutdown"
+    return $?
+}
+
+
 
 # Test function
 run_test() {
@@ -165,7 +193,7 @@ object Test extends TestSuite {
 }
 EOF
 
-run_sbt && run_sbt_test
+run_sbt && run_sbt_init && run_sbt_test
 if [ $? -eq 0 ]; then
     pass_test
 else
@@ -302,7 +330,7 @@ object Test extends TestSuite {
 }
 EOF
 
-run_sbt && run_sbt_test
+run_sbt && run_sbt_init && run_sbt_test
 if [ $? -ne 0 ]; then
     fail_test "Initial generation failed"
     TOTAL_TESTS=$((TOTAL_TESTS - 1))
@@ -323,7 +351,7 @@ trait Foo extends DomainStructure {
 }
 EOF
 
-MOLECULE_AUTO_RENAME_IN_CODE=true run_sbt
+run_sbt_auto_rename
 
 if [ $? -eq 0 ] && [ -f "src/main/resources/db/migration/app/domain/Foo/h2/V2__molecule_1_change.sql" ]; then
     # Verify marker was cleaned up
@@ -453,7 +481,7 @@ object Test extends TestSuite {
 }
 EOF
 
-run_sbt && run_sbt_test
+run_sbt && run_sbt_init && run_sbt_test
 if [ $? -ne 0 ]; then
     fail_test "Initial generation failed"
     TOTAL_TESTS=$((TOTAL_TESTS - 1))
@@ -604,7 +632,7 @@ object Test extends TestSuite {
 }
 EOF
 
-run_sbt && run_sbt_test
+run_sbt && run_sbt_init && run_sbt_test
 if [ $? -ne 0 ]; then
     fail_test "Initial generation failed"
     TOTAL_TESTS=$((TOTAL_TESTS - 1))
@@ -644,7 +672,7 @@ trait Foo_migration extends Foo with DomainStructure {
 }
 EOF
 
-MOLECULE_AUTO_RENAME_IN_CODE=true run_sbt
+run_sbt_auto_rename
 
 if [ $? -eq 0 ] && [ -f "src/main/resources/db/migration/app/domain/Foo/h2/V2__molecule_1_change.sql" ]; then
     # Verify migration file was removed
@@ -774,7 +802,7 @@ object Test extends TestSuite {
 }
 EOF
 
-run_sbt && run_sbt_test
+run_sbt && run_sbt_init && run_sbt_test
 if [ $? -ne 0 ]; then
     fail_test "Initial generation failed"
     TOTAL_TESTS=$((TOTAL_TESTS - 1))
@@ -902,7 +930,7 @@ EOF
 rm -f src/main/scala/app/domain/Foo_migration.scala
 rm -rf target/
 rm -rf src/main/resources/db/
-sbt moleculeGen > /dev/null 2>&1
+sbt --batch "moleculeGen ; shutdown" > /dev/null 2>&1
 echo -e "${GREEN}✓ Project restored${NC}"
 
 echo ""
