@@ -239,7 +239,7 @@ case class ParseDomainStructure(
         val joinTables = ent2joinTables.getOrElse(ent, Nil).distinct.sorted
         val bridges    = joinTables.flatMap { joinTable =>
           val refCoordinates             = joinTable2refs.getOrElse(joinTable, Nil).distinct
-          val Some((attr, ref1, revRef)) = refCoordinates.find(_._2 == ent)
+          val Some((attr, ref1, revRef)) = refCoordinates.find(_._2 == ent).runtimeChecked
           //          println("==========================")
           //          println(joinTable)
           //          println(ent)
@@ -411,7 +411,7 @@ case class ParseDomainStructure(
       throw new Exception(
         s"Can't define enum $enumName because it's already defined in the same file."
       )
-    val enumCases = templ.stats.flatMap {
+    val enumCases = templ.body.stats.flatMap {
       case Defn.RepeatedEnumCase(Nil, caseNames) => caseNames.map(_.value)
       case unexpected                            =>
         throw new Exception(s"Unexpected enum case: $unexpected\n${unexpected.structure}")

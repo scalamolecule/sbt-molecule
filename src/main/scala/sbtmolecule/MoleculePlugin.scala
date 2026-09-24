@@ -117,7 +117,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     IO.createDirectory(resourcesDir)
 
     // Generate new sources and resources
-    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir), log)
+    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir).toIndexedSeq, log)
 
     if (isJvm && pkgDomains.nonEmpty) {
       // Only render once
@@ -293,7 +293,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
           }
           result
         } else None
-      case dir => parseAndGenerate(srcManaged, schemaDir, IO.listFiles(dir), log)
+      case dir => parseAndGenerate(srcManaged, schemaDir, IO.listFiles(dir).toIndexedSeq, log)
     }
   }
 
@@ -372,7 +372,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
   private def path2files(
     path: String, directory: File, tpe: String, dslSchemaDirs: Seq[String]
   ): Seq[(File, String)] = {
-    IO.listFiles(directory) flatMap {
+    IO.listFiles(directory).toIndexedSeq flatMap {
       case file if file.isFile &&
         (file.name.endsWith(tpe) || file.name.endsWith(".sjsir") || file.name.endsWith(".tasty")) &&
         dslSchemaDirs.exists(path.startsWith) &&
@@ -513,7 +513,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     def scanDir(dir: File, pathSoFar: String): Seq[(String, String)] = {
       if (!dir.isDirectory) return Nil
 
-      val files = IO.listFiles(dir)
+      val files = IO.listFiles(dir).toIndexedSeq
 
       // Check if this directory contains schema SQL files (indicating it's a domain dir)
       val sqlFiles = files.filter(f => f.isFile && f.name.endsWith(".sql"))
@@ -560,7 +560,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     def scanForDomains(dir: File, namespacePath: String): Seq[(String, String)] = {
       if (!dir.isDirectory) return Nil
 
-      val subdirs = IO.listFiles(dir).filter(_.isDirectory)
+      val subdirs = IO.listFiles(dir).filter(_.isDirectory).toIndexedSeq
 
       // Check if subdirectories are dialect directories (contain V*.sql files)
       val dialectDirs = subdirs.filter { subdir =>
@@ -593,7 +593,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     }
 
     // Start scanning - the first level subdirs are the start of namespace paths
-    val topLevelDirs = IO.listFiles(migrationDir).filter(_.isDirectory)
+    val topLevelDirs = IO.listFiles(migrationDir).filter(_.isDirectory).toIndexedSeq
     topLevelDirs.flatMap(dir => scanForDomains(dir, ""))
   }
 }

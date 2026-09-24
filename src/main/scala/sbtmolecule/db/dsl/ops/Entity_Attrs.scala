@@ -41,6 +41,7 @@ case class Entity_Attrs(
                 case SeqValue if tpe1 == "Byte" => s"Array[Byte]"
                 case SeqValue                   => s"Seq[$tpe1]"
                 case MapValue                   => s"Map[String, $tpe1]"
+                case other                      => throw new MatchError(other)
               }
               (attr1, isOneValue, fullTpe, s"Attr${value1._marker}Man$tpe1", s"${value1._marker}$tpe1")
           }.sortBy(_._1)

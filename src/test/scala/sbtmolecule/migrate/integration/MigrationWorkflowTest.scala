@@ -7,6 +7,7 @@ import sbtmolecule.migrate.BaseTest
 import sbtmolecule.migration.{MigrationDetector, MigrationFileGenerator}
 import utest.*
 
+import scala.compiletime.uninitialized
 import java.sql.{Connection, DriverManager}
 
 /**
@@ -26,16 +27,16 @@ import java.sql.{Connection, DriverManager}
 object MigrationWorkflowTest extends BaseTest {
 
   // Shared state across tests
-  var tempDir              : os.Path    = _
-  var domainDir            : os.Path    = _
-  var fooFile              : os.Path    = _
-  var fooMigrationFile     : os.Path    = _
-  var dbUrl                : String     = _
-  var conn                 : Connection = _
-  var initialMeta          : MetaDomain = _
-  var modifiedMeta         : MetaDomain = _
-  var resolvedMigrationMeta: MetaDomain = _
-  var annotatedBefore      : MetaDomain = _
+  var tempDir              : os.Path    = uninitialized
+  var domainDir            : os.Path    = uninitialized
+  var fooFile              : os.Path    = uninitialized
+  var fooMigrationFile     : os.Path    = uninitialized
+  var dbUrl                : String     = uninitialized
+  var conn                 : Connection = uninitialized
+  var initialMeta          : MetaDomain = uninitialized
+  var modifiedMeta         : MetaDomain = uninitialized
+  var resolvedMigrationMeta: MetaDomain = uninitialized
+  var annotatedBefore      : MetaDomain = uninitialized
 
   override def tests: Tests = Tests {
 
