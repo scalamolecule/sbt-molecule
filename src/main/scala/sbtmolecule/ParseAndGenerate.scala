@@ -14,7 +14,7 @@ case class ParseAndGenerate(filePath: String) {
   private val tree        = dialect.parse[Source].get
 
   private val (pkg, afterPkg) = if (tree.children.isEmpty) ("", Nil) else tree.children.collectFirst {
-    case Pkg(pkg, afterPkg) => (pkg.toString, afterPkg)
+    case Pkg.After_4_9_9(pkg, body) => (pkg.toString, body.stats)
   }.getOrElse(throw new Exception(s"Missing package definition in file $filePath:\n" + tree))
 
   def getPackage: String = pkg

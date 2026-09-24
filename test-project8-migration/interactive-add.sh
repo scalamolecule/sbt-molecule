@@ -124,8 +124,8 @@ sbt moleculeGen
 echo ""
 echo "Now running tests to create H2 database and apply V1 migration..."
 echo ""
-echo "> sbt test"
-sbt test
+echo "> sbt "Test/testOnly app.Test""
+sbt "Test/testOnly app.Test"
 
 echo ""
 echo "Results:"
@@ -246,8 +246,8 @@ object Test extends TestSuite {
 }
 EOF
 
-echo "> sbt test"
-sbt test
+echo "> sbt "Test/testOnly app.Test""
+sbt "Test/testOnly app.Test"
 echo ""
 echo "Results:"
 echo "  • Detected that 'email' was added to domain structure"

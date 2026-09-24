@@ -10,7 +10,7 @@ object BaseHelpers extends BaseHelpers
 trait BaseHelpers extends DateHandling {
 
   def firstLow(str: Any): String = str.toString.head.toLower.toString + str.toString.tail
-  def firstUpper(str: String): String = str.head.toUpper + str.tail
+  def firstUpper(str: String): String = s"${str.head.toUpper}${str.tail}"
 
   def getKwName(kw: String): String = kw.substring(kw.indexOf('/') + 1)
 

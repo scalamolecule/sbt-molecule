@@ -1,7 +1,6 @@
 package sbtmolecule.domains
 
 import molecule.DomainStructure
-import sbt.Join
 
 
 trait Company extends DomainStructure {

@@ -12,15 +12,17 @@ object MoleculePlugin extends sbt.AutoPlugin {
   override def requires: JvmPlugin.type = plugins.JvmPlugin
 
   object autoImport {
-    lazy val moleculeGen             = inputKey[Unit]("Generate Molecule source files.")
-    lazy val moleculePackage         = taskKey[Unit]("Generate Molecule source files, compile and package jars to lib/")
-    lazy val moleculeMigrationStatus = taskKey[Unit]("Show migration status for all domains.")
+    // @transient: these tasks always mutate the filesystem (generate/delete/package);
+    // sbt 2's default task caching would silently skip regeneration on cache hit.
+    @transient lazy val moleculeGen             = inputKey[Unit]("Generate Molecule source files.")
+    @transient lazy val moleculePackage         = taskKey[Unit]("Generate Molecule source files, compile and package jars to lib/")
+    @transient lazy val moleculeMigrationStatus = taskKey[Unit]("Show migration status for all domains.")
   }
 
   import autoImport.*
   import sbt.complete.DefaultParsers._
 
-  private lazy val moleculeGenerateSources = taskKey[Seq[(String, String)]]("Internal task for generating sources")
+  @transient private lazy val moleculeGenerateSources = taskKey[Seq[(String, String)]]("Internal task for generating sources")
 
   override def projectSettings: Seq[Def.Setting[?]] = Seq(
     // Make sure generated sources are discoverable
@@ -115,7 +117,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     IO.createDirectory(resourcesDir)
 
     // Generate new sources and resources
-    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir), log)
+    val pkgDomains = parseAndGenerate(srcManaged, resourcesDir, IO.listFiles(srcDir).toIndexedSeq, log)
 
     if (isJvm && pkgDomains.nonEmpty) {
       // Only render once
@@ -291,14 +293,16 @@ object MoleculePlugin extends sbt.AutoPlugin {
           }
           result
         } else None
-      case dir => parseAndGenerate(srcManaged, schemaDir, IO.listFiles(dir), log)
+      case dir => parseAndGenerate(srcManaged, schemaDir, IO.listFiles(dir).toIndexedSeq, log)
     }
   }
 
 
   private def cleanGeneratedSources(config: Configuration): Def.Initialize[Task[Unit]] = Def.task {
-    // Clear newly generated source files in moleculeGenerated namespace only
-    IO.delete((config / sourceManaged).value / "moleculeGen")
+    Def.uncached {
+      // Clear newly generated source files in moleculeGenerated namespace only
+      IO.delete((config / sourceManaged).value / "moleculeGen")
+    }
   }
 
 
@@ -341,32 +345,34 @@ object MoleculePlugin extends sbt.AutoPlugin {
 
 
   private def packJars(config: Configuration, pkgs: Seq[String]): Def.Initialize[Task[Unit]] = Def.task {
-    val log                                           = streams.value.log
-    val baseDir                                       = baseDirectory.value
-    val (isJvm, platformPrefix, _, _, clsJar, srcJar) = getCoordinates(config).value
-    val dslSchemaDirs: Seq[String]                    = pkgs
-      .map(_.split('.').mkString("/"))
-      .flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
+    Def.uncached {
+      val log                                           = streams.value.log
+      val baseDir                                       = baseDirectory.value
+      val (isJvm, platformPrefix, _, _, clsJar, srcJar) = getCoordinates(config).value
+      val dslSchemaDirs: Seq[String]                    = pkgs
+        .map(_.split('.').mkString("/"))
+        .flatMap(path => Seq(s"$path/dsl/", s"$path/schema"))
 
-    val platform = if (platformPrefix.isEmpty) "" else if (isJvm) " jvm" else " js"
+      val platform = if (platformPrefix.isEmpty) "" else if (isJvm) " jvm" else " js"
 
-    // Create jar from class files (classes are not namespaced with /moleculeGen/)
-    val clsDir   = (config / classDirectory).value
-    val clsFiles = path2files("", clsDir, ".class", dslSchemaDirs)
-    IO.jar(clsFiles, baseDir / clsJar, new Manifest, None)
-    log.success(s"Packaged Molecule$platform class files in  $clsJar")
+      // Create jar from class files (classes are not namespaced with /moleculeGen/)
+      val clsDir   = (config / classDirectory).value
+      val clsFiles = path2files("", clsDir, ".class", dslSchemaDirs)
+      IO.jar(clsFiles, baseDir / clsJar, new Manifest, None)
+      log.success(s"Packaged Molecule$platform class files in  $clsJar")
 
-    // Create jar from scala source files
-    val srcDir   = (config / sourceManaged).value / "moleculeGen"
-    val srcFiles = path2files("", srcDir, ".scala", dslSchemaDirs)
-    IO.jar(srcFiles, baseDir / srcJar, new Manifest, None)
-    log.success(s"Packaged Molecule$platform source files in $srcJar")
+      // Create jar from scala source files
+      val srcDir   = (config / sourceManaged).value / "moleculeGen"
+      val srcFiles = path2files("", srcDir, ".scala", dslSchemaDirs)
+      IO.jar(srcFiles, baseDir / srcJar, new Manifest, None)
+      log.success(s"Packaged Molecule$platform source files in $srcJar")
+    }
   }
 
   private def path2files(
     path: String, directory: File, tpe: String, dslSchemaDirs: Seq[String]
   ): Seq[(File, String)] = {
-    IO.listFiles(directory) flatMap {
+    IO.listFiles(directory).toIndexedSeq flatMap {
       case file if file.isFile &&
         (file.name.endsWith(tpe) || file.name.endsWith(".sjsir") || file.name.endsWith(".tasty")) &&
         dslSchemaDirs.exists(path.startsWith) &&
@@ -507,7 +513,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     def scanDir(dir: File, pathSoFar: String): Seq[(String, String)] = {
       if (!dir.isDirectory) return Nil
 
-      val files = IO.listFiles(dir)
+      val files = IO.listFiles(dir).toIndexedSeq
 
       // Check if this directory contains schema SQL files (indicating it's a domain dir)
       val sqlFiles = files.filter(f => f.isFile && f.name.endsWith(".sql"))
@@ -554,7 +560,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     def scanForDomains(dir: File, namespacePath: String): Seq[(String, String)] = {
       if (!dir.isDirectory) return Nil
 
-      val subdirs = IO.listFiles(dir).filter(_.isDirectory)
+      val subdirs = IO.listFiles(dir).filter(_.isDirectory).toIndexedSeq
 
       // Check if subdirectories are dialect directories (contain V*.sql files)
       val dialectDirs = subdirs.filter { subdir =>
@@ -587,7 +593,7 @@ object MoleculePlugin extends sbt.AutoPlugin {
     }
 
     // Start scanning - the first level subdirs are the start of namespace paths
-    val topLevelDirs = IO.listFiles(migrationDir).filter(_.isDirectory)
+    val topLevelDirs = IO.listFiles(migrationDir).filter(_.isDirectory).toIndexedSeq
     topLevelDirs.flatMap(dir => scanForDomains(dir, ""))
   }
 }

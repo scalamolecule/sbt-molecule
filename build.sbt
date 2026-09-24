@@ -10,7 +10,10 @@ lazy val root = (project in file("."))
     version := "1.25.0",
     organization := "org.scalamolecule",
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "4.9.0",
+      // scalameta_3 drags trees_2.13 -> common_2.13 -> sourcecode_2.13 which clashes
+      // with sourcecode_3 under sbt 2's stricter cross-version check; no scalameta
+      // class references sourcecode at runtime (verified via bytecode scan), so exclude it.
+      ("org.scalameta" %% "scalameta" % "4.13.10").exclude("com.lihaoyi", "sourcecode_2.13"),
       "org.atteo" % "evo-inflector" % "1.3", // English pluralizer
 
       "com.lihaoyi" %% "requests" % "0.9.0",

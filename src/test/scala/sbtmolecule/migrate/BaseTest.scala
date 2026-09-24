@@ -2,6 +2,7 @@ package sbtmolecule.migrate
 
 import molecule.base.metaModel.MetaDomain
 import sbtmolecule.ParseAndGenerate
+import sbtmolecule.TreeWalk
 import sbtmolecule.migration.MigrationDetector
 import utest.TestSuite
 
@@ -109,7 +110,7 @@ trait BaseTest extends TestSuite {
     val tree = fileContent.parse[scala.meta.Source].get
 
     // Find the trait with the given name
-    tree.collect {
+    TreeWalk.collect(tree) {
       case tr@q"trait $name extends ..$parents { ..$stats }" if name.value == traitName =>
         tr.syntax
     }.headOption.getOrElse(
